@@ -230,7 +230,7 @@ runcmd:
   # Restart postgres cluster
   - pg_ctlcluster $(psql -V|awk -F'[ .]' '{print $3}') main restart
   # Create cloud-init-psql.rc file for all users who can login
-  - "for x in $(awk -F":" '!/root|postgres/&&/sh$/{if ($NF ~ /sh$/) print $6\",\"$3;next}' /etc/passwd);do export H=${x%%,*} I=${x##*,};export U=${H##*/};if ! $(test -f ${H}/cloud-init-psql.rc);then (for x in CANDID MAAS RBAC;do for y in DBCON DBHBA DBHOST DBNAME DBPASS DBPORT DBUSER DBVER;do eval printf 'export\ %s=\'"'"'%s%s%s\'"'"'\\n' ${x}_${y} \$\{${x}_${y}\};done;done)|su - $(id -un ${I}) -c 'tee 1>/dev/null '${H}'/cloud-init-psql.rc';fi;done"
+  - "for x in $(awk -F':' '!/root|postgres/&&/sh$/{if ($NF ~ /sh$/) print $6\",\"$3;next}' /etc/passwd);do export H=${x%%,*} I=${x##*,};export U=${H##*/};if ! $(test -f ${H}/cloud-init-psql.rc);then (for x in CANDID MAAS RBAC;do for y in DBCON DBHBA DBHOST DBNAME DBPASS DBPORT DBUSER DBVER;do eval printf 'export\ %s=\'"'"'%s%s%s\'"'"'\\n' ${x}_${y} \$\{${x}_${y}\};done;done)|su - $(id -un ${I}) -c 'tee 1>/dev/null '${H}'/cloud-init-psql.rc';fi;done"
   - apt install maas -o Acquire::ForceIPv4=true -yqf --auto-remove --purge
   - if [ -f /etc/lynx/lynx.cfg ];then sed -i -r "s/^#?(FORCE_SSL_COOKIE.*:|SET_COOKIE.*:|ACCEPT_ALL_COOKIE.*:)[^$]*/\1TRUE/;s/^#?(COOKIE_LOOSE_INVALID_DOMAINS:)[^$]*/\1$(hostname -I|sed -r 's/\x20/\n/g'|sed -r '/:|^$/d;1s/^/'$(hostname -d)'\n/g'|paste -sd,)/;s/^#?(FORCE_COOKIE_PROMPT.*:|FORCE_SSL_PROMPT.*:)[^$]*/\1yes/;s/^#?(COOKIE_.*FILE:.*$)/\1/" /etc/lynx/lynx.cfg;fi
   #- if [ -f /home/$(id -un 1000)/maas.lynx ];then lynx -cmd_script=/home/$(id -un 1000)/maas.lynx https://$(hostname -f);fi
