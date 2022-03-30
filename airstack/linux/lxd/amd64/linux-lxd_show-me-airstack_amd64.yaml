@@ -1,0 +1,109 @@
+config:
+  migration.incremental.memory: "true"
+  security.nesting: "true"
+  user.network-config: |
+    version: 2
+    renderer: networkd
+    ethernets:
+      eth0:
+        dhcp4: false
+        match:
+          name: 'eth0'
+        set-name: eth0
+    bridges:
+      br0:
+        interfaces: ['eth0']
+        link-local: [ ]
+        dhcp4: true
+        dhcp4-overrides:
+          use-routes: true
+          use-dns: false
+          use-domains: false
+        nameservers:
+          addresses:
+          - 9.9.9.9
+          - 1.1.1.1
+          search:
+          - ubuntu-show.me
+        parameters:
+          stp: false
+  user.user-data: |
+    #cloud-config
+    final_message: 'Landscape Quickstart completed Installing in $UPTIME'
+    merge_how:
+     - name: list
+       settings: [append]
+     - name: dict
+       settings: [no_replace, recurse_list]
+    manage_etc_hosts: true
+    preserve_hostname: true
+    prefer_fqdn_over_hostname: true
+    fqdn: landscape.ubuntu-show.me
+    hostname: landscape
+    locale: en_US.UTF-8
+    package_upgrade: true
+    packages: [ jq, lynx, ssl-cert ]
+    write_files:
+      - encoding: b64
+        path: /usr/local/bin/add-clients.sh
+        content: IyEvYmluL2Jhc2gKZm9yIFggaW4gJChseGMgaW1hZ2UgbGlzdCAtY2ZsfGF3ayAnL15cfC8mJiEvRklOL3twcmludCAkMn0nKTtkbwogIFtbICR7WH0gPSB4XV0gJiYgUj1YZW5pYWw7W1sgJHtYfSA9IGIgXV0gJiYgUj1CaW9uaWM7W1sgJHtYfSA9IGYgXV0gJiYgUj1Gb2NhbDtbWyAke1h9ID0gaSBdXSAmJiBSPUltcGlzaDtbWyAke1h9ID0gaiBdXSAmJiBSPUphbW15OwogIGZvciBZIGluIDEgMiAzO2RvCiAgICBbWyAke1l9ID0gMSBdXSAmJiBXPXN0O1tbICR7WX0gPSAyIF1dICYmIFc9bmQ7W1sgJHtZfSA9IDMgXV0gJiYgVz1yZDsKICAgIHByaW50ZiAiTGF1bmNoaW5nICR7WX0ke1d9IGluc3RhbmNlIG9mICR7Un1cbiIKICAgICgobHhjIGxhdW5jaCAkWCAtcCBsYW5kc2NhcGUtY2xpZW50KSAmKQogIGRvbmUKZG9uZQpleGl0IDAK
+        permissions: '0755'
+        owner: 'root:root'
+    apt:
+      sources:
+        landscape-19.10-bionic.list:
+          source: 'deb [arch=amd64] http://ppa.launchpad.net/landscape/19.10/ubuntu bionic main'
+          keyid: 6E85A86E4652B4E6
+      conf: |
+        APT {
+          Acquire {
+            ForceIPv4 "true";
+            Check-Date "false";
+          };
+        };
+    bootcmd:
+      - ['cloud-init-per', 'once', 'bc0', 'export', 'DEBIAN_FRONTEND=noninteractive']
+      - ['cloud-init-per', 'once', 'apt0', 'apt-get', 'update']
+      - ['cloud-init-per', 'once', 'apt1', 'apt-get', 'remove', 'lxd', 'lxd-client', '--auto-remove', '--purge', '--assume-yes', '--quiet', '--fix-broken']
+    runcmd:
+      - export DEBIAN_FRONTEND=noninteractive
+      - "echo 'precedence ::ffff:0:0/96  100'|tee 1>/dev/null -a /etc/gai.conf"
+      - if [ "$(readlink -f /etc/resolv.conf)" != "/run/resolvconf/resolv.conf" ];then ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf;fi
+      - export DEFAULT_IP=$(ip -o -4 a show $(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")|grep -m1 -oP "(?<=inet )[^/]+")
+      - if $(test -f /etc/hosts);then sudo sed -i.orig "/127.0.0.1/a ${DEFAULT_IP}\t$(hostname -s).ubuntu-show.me $(hostname -s)" /etc/hosts;fi
+      - sed -i "s/127.0.1.1/$DEFAULT_IP/" /etc/hosts
+      - mkdir -p /etc/show-me/www /etc/show-me/log
+      - find /etc/show-me -type d -exec chmod 0755 {}\;
+      - find /etc/show-me -type f -exec chmod 0644 {}\;
+      - "chown -R $(id -un 1000):$(id -un 1000) /etc/show-me"
+      - "wget -P /etc/lynx -qO https://gist.githubusercontent.com/ThinGuy/9ad9a342cb8857966ea1693f9a70bb89/raw/c5dd79e03d67b191a0559d0f8d89a3e305814039/lynx.cfg"
+      - "wget -P /home/$(id -un 1000) -qO https://gist.githubusercontent.com/ThinGuy/cf0907b359ef614a0597d0d9dda73db3/raw/72763a11a94d91fc3ba98032089445548630b83a/landscape.lynx"
+      - "wget -P /usr/local/bin -qO https://gist.githubusercontent.com/ThinGuy/e4d7ff004934e576e023c81c3e8c9b18/raw/ade04a97f23ece34b22a6bf86b7960ca36258912/create-show-me-files-service.sh"
+      - if [ -f /usr/local/bin/create-show-me-files-service.sh ];then chmod +x /usr/local/bin/create-show-me-files-service.sh;/usr/local/bin/create-show-me-files-service.sh;fi
+      - if [ -f /etc/systemd/system/show-me-files.service ];then systemctl daemon-reload;for S in enable start start status;do systemctl $S show-me-files.service;sleep .5;done;fi
+      - apt install landscape-server-quickstart landscape-client -yqf
+      - if [ -f /etc/ssl/certs/landscape_server_ca.crt ];then cp /etc/ssl/certs/landscape_server_ca.crt /etc/landscape/landscape-server.crt;fi
+      - if [ -f /etc/landscape/landscape-server.crt ];then echo "ssl_public_key = /etc/landscape/landscape-server.crt "|sudo tee 1>/dev/null -a /etc/landscape/client.conf;fi
+      - if [ -f /home/$(id -un 1000)/landscape.lynx ];then chown $(id -un 1000):$(id -gn 1000) /home/$(id -un 1000)/landscape.lynx;chmod 0644 /home/$(id -un 1000)/landscape.lynx;fi
+      - if [ -f /home/$(id -un 1000)/landscape.lynx ];then lynx -cmd_script=/home/$(id -un 1000)/landscape.lynx https://$(hostname -f);fi
+      - if [ -f /etc/landscape/landscape-server.crt -a -d /etc/show-me/www ];then cp /etc/landscape/landscape-server.crt /etc/show-me/www/landscape-server.crt;fi
+      - if [ -f /etc/landscape/client.conf -a -d /etc/show-me/www ];then cp /etc/landscape/client.conf /etc/show-me/www/landscape-client.conf;fi
+      - "landscape-config -k /etc/landscape/landscape-server.crt -t $(hostname -s) -u https://$(hostname -f)/message-system --ping-url http://$(hostname -f)/ping -a standalone --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=show-me-demo,ubuntu --silent --log-level=debug"
+      - if $(test -n "$(command 2>/dev/null -v lxd.lxc)");then su - $(id -un 1000) -c 'sudo snap refresh lxd --channel latest/stable';else su - $(id -un 1000) -c 'sudo snap install lxd';fi
+      - "wget -P /usr/local/bin -qO https://gist.githubusercontent.com/ThinGuy/5a5f64a648dc698aab945e625acf004d/raw/5ed56dd0a9b168c20f0563d6d3b3b73f3879e8b2/lxd-preseed.sh"
+      - if [ -f /usr/local/bin/lxd-preseed ];then chmod +x /usr/local/bin/lxd-preseed;/usr/local/bin/lxd-preseed;fi
+      - "if [ -f /usr/local/bin/lxd-preseed ];then lxc remote add min https://cloud-images.ubuntu.com/minimal/daily --protocol simplestreams --accept-certificate;fi"
+      - "if [ -f /usr/local/bin/lxd-preseed ];then for I in $(lxc image list min: -cfl|awk '/more|CONTAIN/{print $4}'|sort -uV|sed '1h;1d;$!H;$!d;G');do ((lxc image copy min:${I} local: --alias ${I}-min --auto-update --public) &);done;fi"
+      - if [ -f /usr/local/bin/lxd-preseed ];then if $(test -f /usr/local/bin/add-clients.sh);then /usr/local/bin/add-clients.sh;fi;fi
+description: Show Me Landscape LXD Profile
+devices:
+  eth0:
+    name: eth0
+    nictype: bridged
+    parent: br-bond0
+    type: nic
+  root:
+    path: /
+    pool: default
+    size: 20GB
+    type: disk
