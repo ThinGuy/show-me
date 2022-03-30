@@ -1,0 +1,247 @@
+#cloud-config
+merge_how:
+ - name: list
+   settings: [append]
+ - name: dict
+   settings: [no_replace, recurse_list]
+final_message: 'MAAS Installed in $UPTIME'
+manage_etc_hosts: false
+prefer_fqdn_over_hostname: true
+fqdn: maas.ubuntu-show.me
+hostname: maas
+timezone: America/Los_Angeles
+locale: en_US.UTF-8
+package_upgrade: true
+packages: [git, jq, landscape-client, lynx, petname, postgresql, postgresql-client, postgresql-common, ssl-cert, tree, unzip]
+apt:
+  conf: |
+    APT {
+      Get {
+        Assume-Yes "true";
+        Fix-Broken "true";
+        Auto-Remove "true";
+        Purge "true";
+      };
+      Acquire {
+        ForceIPv4 "true";
+        Check-Date "false";
+      };
+    };
+  primary:
+    - arches: [amd64]
+      uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
+      search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
+  security:
+    - arches: [amd64]
+      uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
+      search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
+  sources_list: |
+    deb [arch=amd64] $PRIMARY $RELEASE main universe restricted multiverse
+    deb [arch=amd64] $PRIMARY $RELEASE-updates main universe restricted multiverse
+    deb [arch=amd64] $SECURITY $RELEASE-security main universe restricted multiverse
+    deb [arch=amd64] $PRIMARY $RELEASE-backports main universe restricted multiverse
+  sources:
+    maas-ubuntu-3_2-focal.list:
+      source: 'deb [arch=amd64]https://ppa.launchpadcontent.net/maas/3.2/ubuntu focal main'
+      keyid: 3AB6DCF1F234E78DAA9C104204E7FDC5684D4A1C
+ssh_pwauth: true
+bootcmd:
+  - ['cloud-init-per', 'once', 'net0', 'echo', 'network: {config: disabled}', '>', '/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg']
+  - |-
+    cat <<-NETPLAN|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init.yaml
+    network:
+      version: 2
+      renderer: networkd
+      ethernets:
+        ens5:
+          dhcp4: false
+          dhcp6: false
+          optional: false
+          accept-ra: false
+          link-local: [ ]
+          match:
+            macaddress: '$(ip -o l show dev ens5|grep -oP "(?<=ether )[^ ]+")'
+          set-name: ens5
+      bridges:
+        br0:
+          macaddress: '$(ip -o l show dev ens5|grep -oP "(?<=ether )[^ ]+")'
+          interfaces: ['ens5']
+          link-local: [ ]
+          dhcp4: true
+          dhcp4-overrides:
+            use-dns: false
+            use-hostname: false
+            use-domains: false
+            route-metric: 1
+          dhcp6: false
+          optional: false
+          accept-ra: false
+          link-local: [ ]
+          nameservers:
+            addresses: [9.9.9.9,1.1.1.1]
+            search: [ubuntu-show.me]
+          parameters:
+            priority: 0
+            stp: false
+    NETPLAN
+  - ['cloud-init-per', 'once', 'net2', 'netplan', '--debug', 'generate']
+  - ['cloud-init-per', 'once', 'net3', 'netplan', '--debug', 'apply']
+  - ['cloud-init-per', 'once', 'net3', 'systemctl', 'restart', 'systemd-networkd', 'systemd-resolved', 'procps.service']
+  - ['cloud-init-per', 'once', 'bc0', 'set', '-x']
+  - ['cloud-init-per', 'once', 'bc1', 'export', 'DEBIAN_FRONTEND=noninteractive']
+  - ['cloud-init-per', 'once', 'apt0', 'apt-get', 'update']
+  - ['cloud-init-per', 'once', 'apt1', 'apt-get', 'upgrade', 'ubuntu-advantage-tools', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
+runcmd:
+  - set -x
+  - mkdir -p /opt/show-me
+  - export ARCH=amd64
+  - mkdir -p /etc/show-me/www /etc/show-me/log
+  - "chown -R $(id -un 1000):$(id -un 1000) /opt/show-me"
+  - "echo 'precedence ::ffff:0:0/96  100'|tee 1>/dev/null -a /etc/gai.conf"
+  - export DEFAULT_IP=$(ip -o -4 a show $(ip -o r l default|grep -vE '10\.10\.1[0-9]\.'|grep -m1 -oP "(?<=dev )[^ ]+")|grep -m1 -oP "(?<=inet )[^/]+")
+  - sed -i -r "s/127.0.1.1/$DEFAULT_IP/;/localhost/a ${DEFAULT_IP}\t$(hostname -f) $(hostname -s)" /etc/hosts
+  - systemctl restart systemd-networkd systemd-resolved procps.service
+  - export DEBIAN_FRONTEND=noninteractive
+  - git clone https://github.com/ThinGuy/show-me.git /opt/show-me/show-me.git
+  - cp -a /opt/show-me/maas/aws/helpers/usr/local/bin/petname-helper.sh /usr/local/bin/petname-helper.sh
+  - cp -a /opt/show-me/maas/aws/helpers/usr/local/bin/add-clients.sh /usr/local/bin/add-clients.sh
+  - cp -a /opt/show-me/maas/aws/helpers/etc/systemd/system/show-me-files.service /etc/systemd/system/show-me-files.service
+  - cp -a /opt/show-me/maas/aws/helpers/home/ubuntu/.ssh/id_rsa /home/ubuntu/.ssh/id_rsa
+  - cp -a /opt/show-me/maas/aws/helpers/home/ubuntu/.ssh/id_rsa.pub /home/ubuntu/.ssh/id_rsa.pub
+  - cp -a /opt/show-me/maas/aws/helpers/home/ubuntu/maas.lynx /home/ubuntu/maas.lynx
+  - cp -a /opt/show-me/maas/aws/helpers/usr/local/bin/show-me-maas_lxd-preseed.sh /usr/local/bin/show-me-maas_lxd-preseed.sh
+  - cp -a /opt/show-me/maas/aws/helpers/etc/ssl/certs/show-me_host.pem /etc/ssl/certs/show-me_host.pem
+  - cp -a /opt/show-me/maas/aws/helpers/etc/ssl/private/show-me_host.key /etc/ssl/private/show-me_host.key
+  - cp -a /opt/show-me/maas/aws/helpers/etc/ssl/certs/show-me_ca.crt /etc/ssl/certs/show-me_ca.crt
+  - "chown root:root /usr/local/bin/petname-helper.sh"
+  - chmod 0755 /usr/local/bin/petname-helper.sh
+  - "chown root:root /usr/local/bin/add-clients.sh"
+  - chmod 0755 /usr/local/bin/add-clients.sh
+  - "chown root:root /etc/systemd/system/show-me-files.service"
+  - chmod 0644 /etc/systemd/system/show-me-files.service
+  - "chown ubuntu:ubuntu /home/ubuntu/.ssh/id_rsa"
+  - chmod 0400 /home/ubuntu/.ssh/id_rsa
+  - "chown ubuntu:ubuntu /home/ubuntu/.ssh/id_rsa.pub"
+  - chmod 0640 /home/ubuntu/.ssh/id_rsa.pub
+  - "chown ubuntu:ubuntu /home/ubuntu/maas.lynx"
+  - chmod 0644 /home/ubuntu/maas.lynx
+  - "chown root:root /usr/local/bin/show-me-maas_lxd-preseed.sh"
+  - chmod 0755 /usr/local/bin/show-me-maas_lxd-preseed.sh
+  - "chown root:root /etc/ssl/certs/show-me_host.pem"
+  - chmod 0644 /etc/ssl/certs/show-me_host.pem
+  - "chown root:root /etc/ssl/private/show-me_host.key"
+  - chmod 0644 /etc/ssl/private/show-me_host.key
+  - "chown root:root /etc/ssl/certs/show-me_ca.crt"
+  - chmod 0644 /etc/ssl/certs/show-me_ca.crt
+  - cp -a /etc/ssl/certs/show-me_ca.crt /usr/local/share/ca-certificates/
+  - update-ca-certificates --fresh --verbose
+  - "apt-get -o Acquire::ForceIPv4=true update"
+  - if $(test -n "$(command 2>/dev/null -v lxd.lxc)");then su - $(id -un 1000) -c 'sudo snap refresh lxd --channel latest/stable';else su - $(id -un 1000) -c 'sudo snap install lxd';fi
+  - snap restart snapd
+  - for GROUP in docker kvm libvirt libvirt-qemu lxd landscape;do if [ "$(getent group $GROUP;echo $?)" = "0" ];then usermod -a -G $GROUP $(id -un 1000);fi;done
+  - if ! $(grep -qE 'PATH.*/snap/bin' /etc/environment);then sed -i -r '1s|\x22$|\x3a/snap/bin&|g' /etc/environment;fi
+  - echo "EDITOR=/usr/bin/vim.basic"|tee 1>/dev/null -a /etc/environment
+  - . /etc/environment
+  - if [ -f /usr/local/bin/petname-helper.sh ];then /usr/local/bin/petname-helper.sh;fi
+  - if [ -f /home/ubuntu/.ssh/id_rsa ];then cat /home/ubuntu/.ssh/id_rsa.pub|tee 1>/dev/null -a /home/ubuntu/.ssh/authorized_keys;fi
+  - if [ -f /etc/systemd/system/show-me-files.service ];then systemctl daemon-reload;for S in enable start start status;do systemctl $S show-me-files.service;sleep .5;done;fi
+  - if [ -f /etc/ssl/certs/show-me_ca.crt ];then ln -sf /etc/ssl/certs/show-me_ca.crt /etc/show-me/www/;fi
+  - if [ -f /etc/ssl/certs/show-me_host.pem ];then ln -sf /etc/ssl/certs/show-me_host.pem /etc/show-me/www/;fi
+  ###################################
+  #### Begin App Specific config ####
+  ###################################
+  # Get Postgresql Version
+  - export PGVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
+  #
+  ######################################################
+  #### PostgreSQL Config for MAAS, Candid, and RBAC ####
+  ######################################################
+  #
+  # PostgreSQL setup for Candid
+  - export CANDID_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
+  - export CANDID_DBHBA="/etc/postgresql/${CANDID_DBVER}/main/pg_hba.conf"
+  - export CANDID_DBHOST=localhost
+  - export CANDID_DBUSER=candid
+  - export CANDID_DBNAME='candiddb'
+  - export CANDID_DBPORT=5432
+  - export CANDID_DBPASS="$(env LANG=C LC_ALL=C tr 2>/dev/null -dc "[:alnum:]" < /dev/urandom|fold -w12|head -n1)"
+  - export CANDID_DBCON="postgres://${CANDID_DBUSER}:${CANDID_DBPASS}@${CANDID_DBHOST}:${CANDID_DBPORT}/${CANDID_DBNAME}"
+  - su - postgres -c 'psql -c "CREATE ROLE '${CANDID_DBUSER}' WITH SUPERUSER CREATEDB CREATEROLE LOGIN REPLICATION ENCRYPTED PASSWORD '"'"''${CANDID_DBPASS}''"'"';"'
+  - su - postgres -c 'psql -c "CREATE DATABASE '${CANDID_DBNAME}' WITH OWNER '"'"''${CANDID_DBUSER}''"'"';"'
+  - echo "${CANDID_DBHOST}:${CANDID_DBPORT}:${CANDID_DBNAME}:${CANDID_DBUSER}:${CANDID_DBPASS}"|su postgres -c 'tee 1>/dev/null /var/lib/postgresql/.pgpass.candid'
+  - chmod 0600 /var/lib/postgresql/.pgpass.candid
+  - chown postgres:postgres /var/lib/postgresql/.pgpass.candid
+  # PostgreSQL setup for RBAC
+  - export RBAC_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
+  - export RBAC_DBHBA="/etc/postgresql/${RBAC_DBVER}/main/pg_hba.conf"
+  - export RBAC_DBHOST=localhost
+  - export RBAC_DBUSER=rbac
+  - export RBAC_DBNAME='rbacdb'
+  - export RBAC_DBPORT=5432
+  - export RBAC_DBPASS="$(env LANG=C LC_ALL=C tr 2>/dev/null -dc "[:alnum:]" < /dev/urandom|fold -w12|head -n1)"
+  - export RBAC_DBCON="postgres://${RBAC_DBUSER}:${RBAC_DBPASS}@${RBAC_DBHOST}:${RBAC_DBPORT}/${RBAC_DBNAME}"
+  - su - postgres -c 'psql -c "CREATE ROLE '${RBAC_DBUSER}' WITH SUPERUSER CREATEDB CREATEROLE LOGIN REPLICATION ENCRYPTED PASSWORD '"'"''${RBAC_DBPASS}''"'"';"'
+  - su - postgres -c 'psql -c "CREATE DATABASE '${RBAC_DBNAME}' WITH OWNER '"'"''${RBAC_DBUSER}''"'"';"'
+  - echo "${RBAC_DBHOST}:${RBAC_DBPORT}:${RBAC_DBNAME}:${RBAC_DBUSER}:${RBAC_DBPASS}"|su postgres -c 'tee 1>/dev/null /var/lib/postgresql/.pgpass.rbac'
+  - chmod 0600 /var/lib/postgresql/.pgpass.rbac
+  - chown postgres:postgres /var/lib/postgresql/.pgpass.rbac
+  # PostgreSQL setup for MAAS
+  - export MAAS_PROFILE="maas-admin"
+  - export MAAS_PASSWORD="ubuntu"
+  - export MAAS_URIPORT=5240
+  - export MAAS_FQDN="maas.ubuntu.show.me"
+  - export MAAS_EMAIL="maas-admin@ubuntu-show.me"
+  - export MAAS_IMPORTID="lp:craig-bender"
+  - export MAAS_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
+  - export MAAS_DBHBA="/etc/postgresql/${MAAS_DBVER}/main/pg_hba.conf"
+  - export MAAS_DBHOST="maas.ubuntu-show.me"
+  - export MAAS_DBUSER=maas
+  - export MAAS_DBNAME='maasdb'
+  - export MAAS_DBPORT=5432
+  - export MAAS_DBPASS="$(env LANG=C LC_ALL=C tr 2>/dev/null -dc "[:alnum:]" < /dev/urandom|fold -w12|head -n1)"
+  - export MAAS_DBCON="postgres://${MAAS_DBUSER}:${MAAS_DBPASS}@${MAAS_DBHOST}:${MAAS_DBPORT}/${MAAS_DBNAME}"
+  - su - postgres -c 'psql -c "CREATE ROLE '${MAAS_DBUSER}' WITH SUPERUSER CREATEDB CREATEROLE LOGIN REPLICATION ENCRYPTED PASSWORD '"'"''${MAAS_DBPASS}''"'"';"'
+  - su - postgres -c 'psql -c "CREATE DATABASE '${MAAS_DBNAME}' WITH OWNER '"'"''${MAAS_DBUSER}''"'"';"'
+  - echo "${MAAS_DBHOST}:${MAAS_DBPORT}:${MAAS_DBNAME}:${MAAS_DBUSER}:${MAAS_DBPASS}"|su postgres -c 'tee 1>/dev/null /var/lib/postgresql/.pgpass.maas'
+  - chmod 0600 /var/lib/postgresql/.pgpass.maas
+  - chown postgres:postgres /var/lib/postgresql/.pgpass.maas
+  # Write pg_hba.conf with all local IP addresses
+  - (hostname -I|sed 's/[0-9]\s/&\n/g'|sed '/      $/d')|awk '!/127/{gsub(/\/.*$/,"",$4);printf "%-08s%-016s%-016s%-024s%s\n","host","all","all",$1"/32","md5"}'|tee -a 1>/dev/null /etc/postgresql/$(psql -V|awk -F'[ .]' '{print $3}')/main/pg_hba.conf
+  # PostgreSQL System Tuning
+  - su - postgres -c 'psql postgres -c "ALTER SYSTEM SET listen_addresses TO '"'"'*'"'"';"'
+  - su - postgres -c 'psql postgres -c "ALTER SYSTEM SET max_connections TO '"'"'500'"'"';"'
+  - su - postgres -c 'psql postgres -c "ALTER SYSTEM SET max_prepared_transactions TO '"'"'500'"'"';"'
+  - su - postgres -c 'psql postgres -c "ALTER SYSTEM SET shared_buffers = \"2GB\";"'
+  - su - postgres -c 'psql postgres -c "ALTER SYSTEM SET effective_cache_size = \"6GB\";"'
+  - su - postgres -c 'psql postgres -c "ALTER SYSTEM SET maintenance_work_mem = \"512MB\";"'
+  - su - postgres -c 'psql postgres -c "ALTER SYSTEM SET checkpoint_completion_target = 0.9;"'
+  - su - postgres -c 'psql postgres -c "ALTER SYSTEM SET wal_buffers = \"16MB\";"'
+  - su - postgres -c 'psql postgres -c "ALTER SYSTEM SET default_statistics_target = 100;"'
+  - su - postgres -c 'psql postgres -c "ALTER SYSTEM SET random_page_cost = 1.1;"'
+  - su - postgres -c 'psql postgres -c "ALTER SYSTEM SET effective_io_concurrency = 200;"'
+  - su - postgres -c 'psql postgres -c "ALTER SYSTEM SET work_mem = \"2621kB\";"'
+  - su - postgres -c 'psql postgres -c "ALTER SYSTEM SET min_wal_size = \"1GB\";"'
+  - su - postgres -c 'psql postgres -c "ALTER SYSTEM SET max_wal_size = \"4GB\";"'
+  - su - postgres -c 'psql postgres -c "ALTER SYSTEM SET max_worker_processes = 4;"'
+  - su - postgres -c 'psql postgres -c "ALTER SYSTEM SET max_parallel_workers_per_gather = 2;"'
+  - su - postgres -c 'psql postgres -c "ALTER SYSTEM SET max_parallel_workers = 4;"'
+  - su - postgres -c 'psql postgres -c "ALTER SYSTEM SET max_parallel_maintenance_workers = 2;"'
+  # Restart postgres cluster
+  - pg_ctlcluster $(psql -V|awk -F'[ .]' '{print $3}') main restart
+  # Create cloud-init-psql.rc file for all users who can login
+  - "for x in $(awk -F":" '!/root|postgres/&&/sh$/{if ($NF ~ /sh$/) print $6\",\"$3;next}' /etc/passwd);do export H=${x%%,*} I=${x##*,};export U=${H##*/};if ! $(test -f ${H}/cloud-init-psql.rc);then (for x in CANDID MAAS RBAC;do for y in DBCON DBHBA DBHOST DBNAME DBPASS DBPORT DBUSER DBVER;do eval printf 'export\ %s=\'"'"'%s%s%s\'"'"'\\n' ${x}_${y} \$\{${x}_${y}\};done;done)|su - $(id -un ${I}) -c 'tee 1>/dev/null '${H}'/cloud-init-psql.rc';fi;done"
+  - apt install maas maas-region-api maas-region-controller -o Acquire::ForceIPv4=true -yqf --auto-remove --purge
+  - if [ -f /etc/lynx/lynx.cfg ];then sed -i -r "s/^#?(FORCE_SSL_COOKIE.*:|SET_COOKIE.*:|ACCEPT_ALL_COOKIE.*:)[^$]*/\1TRUE/;s/^#?(COOKIE_LOOSE_INVALID_DOMAINS:)[^$]*/\1$(hostname -I|sed -r 's/\x20/\n/g'|sed -r '/:|^$/d;1s/^/'$(hostname -d)'\n/g'|paste -sd,)/;s/^#?(FORCE_COOKIE_PROMPT.*:|FORCE_SSL_PROMPT.*:)[^$]*/\1yes/;s/^#?(COOKIE_.*FILE:.*$)/\1/" /etc/lynx/lynx.cfg;fi
+  #- if [ -f /home/$(id -un 1000)/maas.lynx ];then lynx -cmd_script=/home/$(id -un 1000)/maas.lynx https://$(hostname -f);fi
+  - if [ -f /usr/local/bin/show-me-maas_lxd-preseed.sh ];then /usr/local/bin/show-me-maas_lxd-preseed.sh;fi
+  - "lxc image copy ubuntu-daily:focal local: --copy-aliases --alias maas-controller-focal --auto-update --public"
+  - "lxc image copy ubuntu-daily:jammy local: --copy-aliases --alias maas-controller-jammy --auto-update --public"
+  - "lxc remote add min https://cloud-images.ubuntu.com/minimal/daily --protocol simplestreams --accept-certificate"
+  - "for I in $(lxc image list min: -cfl|awk '/more|CONTAIN/{print $4}'|sort -uV|sed '1h;1d;$!H;$!d;G');do ((lxc image copy min:${I} local: --alias maas-tgt-${I} --alias ${I}-min --auto-update --public) &);done"
+  - "curl -fSlL -o /opt/show-me/packer_1.8.0_linux_amd64.zip https://releases.hashicorp.com/packer/1.8.0/packer_1.8.0_linux_amd64.zip"
+  - "if [ -f /opt/show-me/packer_1.8.0_linux_amd64.zip ];then unzip -qq -d /usr/local/bin /opt/show-me/packer_1.8.0_linux_amd64.zip;fi"
+  - "su - $(id -un 1000) -c 'git clone https://github.com/canonical/packer-maas'"
+  - maas init region+rack --database-uri "postgres://${MAAS_DBUSER}:${MAAS_DBPASS}@maas.ubuntu-show.me:${MAAS_DBPORT}/${MAAS_DBNAME}" --maas-url "http://${MAAS_FQDN}:${MAAS_URI_PORT}/MAAS"
+  - maas createadmin --username ${MAAS_PROFILE} --password ${MAAS_PASSWORD} --email ${MAAS_EMAIL} --ssh-import "${MAAS_IMPORTID}"
+  - maas login ${MAAS_PROFILE} http://${MAAS_FQDN}:${MAAS_URI_PORT}/MAAS \$(sudo maas apikey --username=${MAAS_PROFILE})
+  - su - $(id -un 1000) -c 'maas login ${MAAS_PROFILE} http://${MAAS_FQDN}:${MAAS_URI_PORT}/MAAS $(sudo maas apikey --username=${MAAS_PROFILE})'
