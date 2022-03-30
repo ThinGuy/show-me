@@ -12,7 +12,7 @@ hostname: maas
 timezone: America/Los_Angeles
 locale: en_US.UTF-8
 package_upgrade: true
-packages: [git, jq, landscape-client, lynx, petname, postgresql, postgresql-client, postgresql-common, ssl-cert, tree, unzip]
+packages: [git, jq, landscape-client, lynx, ntpdate, petname, postgresql, postgresql-client, postgresql-common, ssl-cert, tree, unzip]
 apt:
   conf: |
     APT {
@@ -93,15 +93,17 @@ bootcmd:
   - ['cloud-init-per', 'once', 'apt1', 'apt-get', 'upgrade', 'ubuntu-advantage-tools', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
 runcmd:
   - set -x
+  - export DEBIAN_FRONTEND=noninteractive
+  - "apt-get -o Acquire::ForceIPv4=true update"
   - mkdir -p /opt/show-me
   - export ARCH=amd64
   - mkdir -p /etc/show-me/www /etc/show-me/log
+  - ntpdate -u ntp.ubuntu.com
   - "chown -R $(id -un 1000):$(id -un 1000) /opt/show-me"
   - "echo 'precedence ::ffff:0:0/96  100'|tee 1>/dev/null -a /etc/gai.conf"
   - export DEFAULT_IP=$(ip -o -4 a show $(ip -o r l default|grep -vE '10\.10\.1[0-9]\.'|grep -m1 -oP "(?<=dev )[^ ]+")|grep -m1 -oP "(?<=inet )[^/]+")
   - sed -i -r "s/127.0.1.1/$DEFAULT_IP/;/localhost/a ${DEFAULT_IP}\t$(hostname -f) $(hostname -s)" /etc/hosts
   - systemctl restart systemd-networkd systemd-resolved procps.service
-  - export DEBIAN_FRONTEND=noninteractive
   - git clone https://github.com/ThinGuy/show-me.git /opt/show-me/show-me.git
   - cp -a /opt/show-me/maas/aws/helpers/usr/local/bin/petname-helper.sh /usr/local/bin/petname-helper.sh
   - cp -a /opt/show-me/maas/aws/helpers/usr/local/bin/add-clients.sh /usr/local/bin/add-clients.sh
@@ -135,7 +137,6 @@ runcmd:
   - chmod 0644 /etc/ssl/certs/show-me_ca.crt
   - cp -a /etc/ssl/certs/show-me_ca.crt /usr/local/share/ca-certificates/
   - update-ca-certificates --fresh --verbose
-  - "apt-get -o Acquire::ForceIPv4=true update"
   - if $(test -n "$(command 2>/dev/null -v lxd.lxc)");then su - $(id -un 1000) -c 'sudo snap refresh lxd --channel latest/stable';else su - $(id -un 1000) -c 'sudo snap install lxd';fi
   - snap restart snapd
   - for GROUP in docker kvm libvirt libvirt-qemu lxd landscape;do if [ "$(getent group $GROUP;echo $?)" = "0" ];then usermod -a -G $GROUP $(id -un 1000);fi;done
@@ -230,7 +231,7 @@ runcmd:
   - pg_ctlcluster $(psql -V|awk -F'[ .]' '{print $3}') main restart
   # Create cloud-init-psql.rc file for all users who can login
   - "for x in $(awk -F":" '!/root|postgres/&&/sh$/{if ($NF ~ /sh$/) print $6\",\"$3;next}' /etc/passwd);do export H=${x%%,*} I=${x##*,};export U=${H##*/};if ! $(test -f ${H}/cloud-init-psql.rc);then (for x in CANDID MAAS RBAC;do for y in DBCON DBHBA DBHOST DBNAME DBPASS DBPORT DBUSER DBVER;do eval printf 'export\ %s=\'"'"'%s%s%s\'"'"'\\n' ${x}_${y} \$\{${x}_${y}\};done;done)|su - $(id -un ${I}) -c 'tee 1>/dev/null '${H}'/cloud-init-psql.rc';fi;done"
-  - apt install maas maas-region-api maas-region-controller -o Acquire::ForceIPv4=true -yqf --auto-remove --purge
+  - apt install maas -o Acquire::ForceIPv4=true -yqf --auto-remove --purge
   - if [ -f /etc/lynx/lynx.cfg ];then sed -i -r "s/^#?(FORCE_SSL_COOKIE.*:|SET_COOKIE.*:|ACCEPT_ALL_COOKIE.*:)[^$]*/\1TRUE/;s/^#?(COOKIE_LOOSE_INVALID_DOMAINS:)[^$]*/\1$(hostname -I|sed -r 's/\x20/\n/g'|sed -r '/:|^$/d;1s/^/'$(hostname -d)'\n/g'|paste -sd,)/;s/^#?(FORCE_COOKIE_PROMPT.*:|FORCE_SSL_PROMPT.*:)[^$]*/\1yes/;s/^#?(COOKIE_.*FILE:.*$)/\1/" /etc/lynx/lynx.cfg;fi
   #- if [ -f /home/$(id -un 1000)/maas.lynx ];then lynx -cmd_script=/home/$(id -un 1000)/maas.lynx https://$(hostname -f);fi
   - if [ -f /usr/local/bin/show-me-maas_lxd-preseed.sh ];then /usr/local/bin/show-me-maas_lxd-preseed.sh;fi
@@ -241,7 +242,7 @@ runcmd:
   - "curl -fSlL -o /opt/show-me/packer_1.8.0_linux_amd64.zip https://releases.hashicorp.com/packer/1.8.0/packer_1.8.0_linux_amd64.zip"
   - "if [ -f /opt/show-me/packer_1.8.0_linux_amd64.zip ];then unzip -qq -d /usr/local/bin /opt/show-me/packer_1.8.0_linux_amd64.zip;fi"
   - "su - $(id -un 1000) -c 'git clone https://github.com/canonical/packer-maas'"
-  - maas init region+rack --database-uri "postgres://${MAAS_DBUSER}:${MAAS_DBPASS}@maas.ubuntu-show.me:${MAAS_DBPORT}/${MAAS_DBNAME}" --maas-url "http://${MAAS_FQDN}:${MAAS_URI_PORT}/MAAS"
+  - maas init region+rack --database-uri "postgres://${MAAS_DBUSER}:${MAAS_DBPASS}@${MAAS_DBHOST}:${MAAS_DBPORT}/${MAAS_DBNAME}" --maas-url "http://${MAAS_FQDN}:${MAAS_URI_PORT}/MAAS"
   - maas createadmin --username ${MAAS_PROFILE} --password ${MAAS_PASSWORD} --email ${MAAS_EMAIL} --ssh-import "${MAAS_IMPORTID}"
   - maas login ${MAAS_PROFILE} http://${MAAS_FQDN}:${MAAS_URI_PORT}/MAAS \$(sudo maas apikey --username=${MAAS_PROFILE})
   - su - $(id -un 1000) -c 'maas login ${MAAS_PROFILE} http://${MAAS_FQDN}:${MAAS_URI_PORT}/MAAS $(sudo maas apikey --username=${MAAS_PROFILE})'
