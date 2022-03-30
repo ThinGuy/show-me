@@ -22,7 +22,41 @@ storage_pools:
   name: default
   driver: dir
 profiles:
-- config: {}
+- config:
+    boot.autostart: "false"
+    user.user-data: |
+      #cloud-config
+      final_message: 'Landscape Client completed Installing in \$UPTIME'
+      manage_etc_hosts: false
+      locale: en_US.UTF-8
+      apt:
+        conf: |
+          APT {
+            Get {
+              Assume-Yes "true";
+              Fix-Broken "true";
+              Auto-Remove "true";
+              Purge "true";
+            };
+            Acquire {
+              ForceIPv4 "true";
+              Check-Date "false";
+            };
+          };
+        primary:
+          - arches: [amd64]
+            uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
+            search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
+        security:
+          - arches: [amd64]
+            uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
+            search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
+        sources_list: |
+          deb [arch=amd64] $PRIMARY $RELEASE main universe restricted multiverse
+          deb [arch=amd64] $PRIMARY $RELEASE-updates main universe restricted multiverse
+          deb [arch=amd64] $SECURITY $RELEASE-security main universe restricted multiverse
+          deb [arch=amd64] $PRIMARY $RELEASE-backports main universe restricted multiverse
+        sources:
   description: Default LXD profile
   devices:
     eth0:
