@@ -152,14 +152,9 @@ runcmd:
   # Get Postgresql Version
   - export PG_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export PG_DBHBA="/etc/postgresql/${PG_DBVER}/main/pg_hba.conf"
-  - export PG_DBSSL_DIR=/etc/ssl/postgresql
   - export PG_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export PG_DBHBA="/etc/postgresql/${PG_DBVER}/main/pg_hba.conf"
-  - export PG_DBHOST="maas.ubuntu-show.me"
-  - export PG_DBSSL_DIR=/etc/ssl/postgresql
-  - export PG_DBUSER=postgres
-  - export PG_DBNAME=postgres
-  - export PG_DBPORT=5432
+  - export PG_DBHOST="maas.ubuntu-show.me" PG_DBUSER=postgres PG_DBNAME=postgres PG_DBPORT=5432
   - export PG_DBSSL_CRT=/etc/ssl/certs/show-me_ca.crt
   - export PG_DBSSL_PEM=/etc/ssl/certs/show-me_host.pem
   - export PG_DBSSL_KEY=/etc/ssl/private/show-me_host.key
@@ -170,33 +165,21 @@ runcmd:
   - su - postgres -c "psql postgres -c \"ALTER SYSTEM SET listen_addresses to '*';\""
   - su - postgres -c "psql postgres -c \"ALTER SYSTEM SET max_connections to '500';\""
   - su - postgres -c "psql postgres -c \"ALTER SYSTEM SET max_prepared_transactions to '500';\""
-  - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
   - su - postgres -c 'psql -P pager=off  postgres -xtc "select name,setting from pg_settings where name SIMILAR TO '"'"'listen%|max%(con|prep)%|ssl|ssl_(ca|cert|key)%'"'"';"'
   # PostgreSQL setup for Landscape
   - export LANDSCAPE_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export LANDSCAPE_DBHBA="/etc/postgresql/${LANDSCAPE_DBVER}/main/pg_hba.conf"
-  - export LANDSCAPE_DBHOST="maas.ubuntu-show.me"
-  - export LANDSCAPE_DBSSL_DIR=/etc/ssl/postgresql
-  - export LANDSCAPE_DBUSER=landscape
-  - export LANDSCAPE_DBNAME='landscapedb'
-  - export LANDSCAPE_DBPORT=5432
+  - export LANDSCAPE_DBHOST="maas.ubuntu-show.me" LANDSCAPE_DBUSER=landscape LANDSCAPE_DBNAME='landscapedb' LANDSCAPE_DBPORT=5432
   - export LANDSCAPE_DBPASS="$(env LANG=C LC_ALL=C tr 2>/dev/null -dc "[:alnum:]" < /dev/urandom|fold -w12|head -n1)"
   - export LANDSCAPE_DBCON="postgres://${LANDSCAPE_DBUSER}:${LANDSCAPE_DBPASS}@${LANDSCAPE_DBHOST}:${LANDSCAPE_DBPORT}/${LANDSCAPE_DBNAME}"
   - su - postgres -c 'psql -c "CREATE ROLE '${LANDSCAPE_DBUSER}' WITH SUPERUSER CREATEDB CREATEROLE LOGIN REPLICATION ENCRYPTED PASSWORD '"'"''${LANDSCAPE_DBPASS}''"'"';"'
   - su - postgres -c 'psql -c "CREATE DATABASE '${LANDSCAPE_DBNAME}' WITH OWNER '"'"''${LANDSCAPE_DBUSER}''"'"';"'
   - echo "${LANDSCAPE_DBHOST}:${LANDSCAPE_DBPORT}:${LANDSCAPE_DBNAME}:${LANDSCAPE_DBUSER}:${LANDSCAPE_DBPASS}"|su postgres -c 'tee 1>/dev/null /var/lib/postgresql/.pgpass.landscape'
-  - chmod 0600 /var/lib/postgresql/.pgpass.landscape
-  - chown postgres:postgres /var/lib/postgresql/.pgpass.landscape
   - printf '%-08s%-016s%-016s%-024s%s\n' host ${LANDSCAPE_DBNAME} ${LANDSCAPE_DBUSER} '::/0' md5 host ${LANDSCAPE_DBNAME} ${LANDSCAPE_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${LANDSCAPE_DBHBA}''
-  - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
   # PostgreSQL setup for Snap-Store-Proxy
   - export SSP_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export SSP_DBHBA="/etc/postgresql/${SSP_DBVER}/main/pg_hba.conf"
-  - export SSP_DBHOST=maas.ubuntu-show.me
-  - export SSP_DBSSL_DIR=/etc/ssl/postgresql
-  - export SSP_DBUSER=snap-proxy
-  - export SSP_DBNAME='snap-proxy-db'
-  - export SSP_DBPORT=5432
+  - export SSP_DBHOST=maas.ubuntu-show.me SSP_DBUSER=snap-proxy SSP_DBNAME='snap-proxy-db' SSP_DBPORT=5432
   - export SSP_DBPASS="$(env LANG=C LC_ALL=C tr 2>/dev/null -dc "[:alnum:]" < /dev/urandom|fold -w12|head -n1)"
   - export SSP_DBCON="postgres://${SSP_DBUSER}:${SSP_DBPASS}@${SSP_DBHOST}:${SSP_DBPORT}/${SSP_DBNAME}"
   - |-
@@ -207,67 +190,44 @@ runcmd:
     CREATE EXTENSION "btree_gist";
     SQL
   - echo "${SSP_DBHOST}:${SSP_DBPORT}:${SSP_DBNAME}:${SSP_DBUSER}:${SSP_DBPASS}"|su postgres -c 'tee 1>/dev/null /var/lib/postgresql/.pgpass.ssp'
-  - chmod 0600 /var/lib/postgresql/.pgpass.ssp
-  - chown postgres:postgres /var/lib/postgresql/.pgpass.ssp
   - printf '%-08s%-016s%-016s%-024s%s\n' host ${SSP_DBNAME} ${SSP_DBUSER} '::/0' md5 host ${SSP_DBNAME} ${SSP_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${SSP_DBHBA}''
-  - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
   # PostgreSQL setup for Candid
   - export CANDID_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export CANDID_DBHBA="/etc/postgresql/${CANDID_DBVER}/main/pg_hba.conf"
-  - export CANDID_DBHOST="maas.ubuntu-show.me"
-  - export CANDID_DBSSL_DIR=/etc/ssl/postgresql
-  - export CANDID_DBUSER=candid
-  - export CANDID_DBNAME='candiddb'
-  - export CANDID_DBPORT=5432
+  - export CANDID_DBHOST="maas.ubuntu-show.me" CANDID_DBUSER=candid CANDID_DBNAME='candiddb' CANDID_DBPORT=5432
   - export CANDID_DBPASS="$(env LANG=C LC_ALL=C tr 2>/dev/null -dc "[:alnum:]" < /dev/urandom|fold -w12|head -n1)"
   - export CANDID_DBCON="postgres://${CANDID_DBUSER}:${CANDID_DBPASS}@${CANDID_DBHOST}:${CANDID_DBPORT}/${CANDID_DBNAME}"
   - su - postgres -c 'psql -c "CREATE ROLE '${CANDID_DBUSER}' WITH SUPERUSER CREATEDB CREATEROLE LOGIN REPLICATION ENCRYPTED PASSWORD '"'"''${CANDID_DBPASS}''"'"';"'
   - su - postgres -c 'psql -c "CREATE DATABASE '${CANDID_DBNAME}' WITH OWNER '"'"''${CANDID_DBUSER}''"'"';"'
   - echo "${CANDID_DBHOST}:${CANDID_DBPORT}:${CANDID_DBNAME}:${CANDID_DBUSER}:${CANDID_DBPASS}"|su postgres -c 'tee 1>/dev/null /var/lib/postgresql/.pgpass.candid'
-  - chmod 0600 /var/lib/postgresql/.pgpass.candid
-  - chown postgres:postgres /var/lib/postgresql/.pgpass.candid
   - printf '%-08s%-016s%-016s%-024s%s\n' host ${CANDID_DBNAME} ${CANDID_DBUSER} '::/0' md5 host ${CANDID_DBNAME} ${CANDID_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${CANDID_DBHBA}''
-  - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
   # PostgreSQL setup for RBAC
   - export RBAC_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export RBAC_DBHBA="/etc/postgresql/${RBAC_DBVER}/main/pg_hba.conf"
-  - export RBAC_DBSSL_DIR=/etc/ssl/postgresql
-  - export RBAC_DBHOST="maas.ubuntu-show.me"
-  - export RBAC_DBUSER=rbac
-  - export RBAC_DBNAME='rbacdb'
-  - export RBAC_DBPORT=5432
+  - export RBAC_DBHOST="maas.ubuntu-show.me" RBAC_DBUSER=rbac RBAC_DBNAME='rbacdb' RBAC_DBPORT=5432
   - export RBAC_DBPASS="$(env LANG=C LC_ALL=C tr 2>/dev/null -dc "[:alnum:]" < /dev/urandom|fold -w12|head -n1)"
   - export RBAC_DBCON="postgres://${RBAC_DBUSER}:${RBAC_DBPASS}@${RBAC_DBHOST}:${RBAC_DBPORT}/${RBAC_DBNAME}"
   - su - postgres -c 'psql -c "CREATE ROLE '${RBAC_DBUSER}' WITH SUPERUSER CREATEDB CREATEROLE LOGIN REPLICATION ENCRYPTED PASSWORD '"'"''${RBAC_DBPASS}''"'"';"'
   - su - postgres -c 'psql -c "CREATE DATABASE '${RBAC_DBNAME}' WITH OWNER '"'"''${RBAC_DBUSER}''"'"';"'
   - echo "${RBAC_DBHOST}:${RBAC_DBPORT}:${RBAC_DBNAME}:${RBAC_DBUSER}:${RBAC_DBPASS}"|su postgres -c 'tee 1>/dev/null /var/lib/postgresql/.pgpass.rbac'
-  - chmod 0600 /var/lib/postgresql/.pgpass.rbac
-  - chown postgres:postgres /var/lib/postgresql/.pgpass.rbac
   - printf '%-08s%-016s%-016s%-024s%s\n' host ${RBAC_DBNAME} ${RBAC_DBUSER} '::/0' md5 host ${RBAC_DBNAME} ${RBAC_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${RBAC_DBHBA}''
-  - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
   # PostgreSQL setup for MAAS
   - export MAAS_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export MAAS_PROFILE="maas-admin"
   - export MAAS_PASSWORD="ubuntu"
   - export MAAS_URIPORT=5240
   - export MAAS_FQDN="maas.ubuntu-show.me"
-  - export MAAS_DBSSL_DIR=/etc/ssl/postgresql
   - export MAAS_EMAIL="maas-admin@ubuntu-show.me"
   - export MAAS_IMPORTID="lp:craig-bender"
   - export MAAS_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export MAAS_DBHBA="/etc/postgresql/${MAAS_DBVER}/main/pg_hba.conf"
-  - export MAAS_DBHOST="maas.ubuntu-show.me"
-  - export MAAS_DBUSER=maas
-  - export MAAS_DBNAME='maasdb'
-  - export MAAS_DBPORT=5432
+  - export MAAS_DBHOST="maas.ubuntu-show.me" MAAS_DBUSER=maas MAAS_DBNAME='maasdb' MAAS_DBPORT=5432
   - export MAAS_DBPASS="$(env LANG=C LC_ALL=C tr 2>/dev/null -dc "[:alnum:]" < /dev/urandom|fold -w12|head -n1)"
   - export MAAS_DBCON="postgres://${MAAS_DBUSER}:${MAAS_DBPASS}@${MAAS_DBHOST}:${MAAS_DBPORT}/${MAAS_DBNAME}"
   - export MAAS_URL="http://${MAAS_FQDN}:${MAAS_URIPORT}/MAAS"
   - su - postgres -c 'psql -c "CREATE ROLE '${MAAS_DBUSER}' WITH SUPERUSER CREATEDB CREATEROLE LOGIN REPLICATION ENCRYPTED PASSWORD '"'"''${MAAS_DBPASS}''"'"';"'
   - su - postgres -c 'psql -c "CREATE DATABASE '${MAAS_DBNAME}' WITH OWNER '"'"''${MAAS_DBUSER}''"'"';"'
   - echo "${MAAS_DBHOST}:${MAAS_DBPORT}:${MAAS_DBNAME}:${MAAS_DBUSER}:${MAAS_DBPASS}"|su postgres -c 'tee 1>/dev/null /var/lib/postgresql/.pgpass.maas'
-  - chmod 0600 /var/lib/postgresql/.pgpass.maas
-  - chown postgres:postgres /var/lib/postgresql/.pgpass.maas
   - su - postgres -c 'psql postgres -c "ALTER SYSTEM SET listen_addresses TO '"'"'*'"'"';"'
   - su - postgres -c 'psql postgres -c "ALTER SYSTEM SET max_connections TO '"'"'500'"'"';"'
   - su - postgres -c 'psql postgres -c "ALTER SYSTEM SET max_prepared_transactions TO '"'"'500'"'"';"'
@@ -276,8 +236,10 @@ runcmd:
   - for P in LANDSCAPE SSP RBAC CANDID MAAS PG SHOW_ME;do set|grep "^${P}_";done|sort -uV|tee ~/.show-me.rc|su - $(id -un 1000) -c 'tee ~/.show-me.rc'|su - postgres -c 'tee ~/.show-me.rc'
   - echo 'for RC in $(find ~/ -maxdepth 1 -type f -iname ".show-me*.rc");do source $RC;done'|tee -a /root/.bashrc |su - $(id -un 1000) -c 'tee -a ~/.bashrc'|su - postgres -c 'tee -a ~/.bashrc'
   - apt install maas -o Acquire::ForceIPv4=true -yqf --auto-remove --purge
-  - maas init --force --mode=region --maas-url="${MAAS_URL}" --database-host=${MAAS_DBHOST} --database-name=${MAAS_DBNAME} --database-user=${MAAS_DBUSER} --database-pass=${MAAS_DBPASS} --database-port=${MAAS_DBPORT}  --admin-username=${MAAS_PROFILE} --admin-password=${MAAS_PASSWORD} --admin-email=${MAAS_EMAIL} --admin-ssh-import="${MAAS_IMPORTID}"
-  - if [ -f /etc/lynx/lynx.cfg ];then sed -i -r "s/^#?(FORCE_SSL_COOKIE.*:|SET_COOKIE.*:|ACCEPT_ALL_COOKIE.*:)[^$]*/\1TRUE/;s/^#?(COOKIE_LOOSE_INVALID_DOMAINS:)[^$]*/\1$(hostname -I|sed -r 's/\x20/\n/g'|sed -r '/:|^$/d;1s/^/'$(hostname -d)'\n/g'|paste -sd,)/;s/^#?(FORCE_COOKIE_PROMPT.*:|FORCE_SSL_PROMPT.*:)[^$]*/\1yes/;s/^#?(COOKIE_.*FILE:.*$)/\1/" /etc/lynx/lynx.cfg;fi
+  - maas init --force --mode=region --maas-url="${MAAS_URL}" --database-host=${MAAS_DBHOST} --database-name=${MAAS_DBNAME} --database-user=${MAAS_DBUSER} --database-pass=${MAAS_DBPASS} --database-port=${MAAS_DBPORT}
+  - maas createadmin --username ${MAAS_PROFILE} --password ${MAAS_PASSWORD} --email ${MAAS_EMAIL} --ssh-import "${MAAS_IMPORTID}"
+  - maas login ${MAAS_PROFILE} ${MAAS_URL} \$(sudo maas apikey --username=${MAAS_PROFILE})
+  - su - $(id -un 1000) -c 'maas login '${MAAS_PROFILE}' '${MAAS_URL}' $(sudo maas apikey --username='${MAAS_PROFILE}')'  - if [ -f /etc/lynx/lynx.cfg ];then sed -i -r "s/^#?(FORCE_SSL_COOKIE.*:|SET_COOKIE.*:|ACCEPT_ALL_COOKIE.*:)[^$]*/\1TRUE/;s/^#?(COOKIE_LOOSE_INVALID_DOMAINS:)[^$]*/\1$(hostname -I|sed -r 's/\x20/\n/g'|sed -r '/:|^$/d;1s/^/'$(hostname -d)'\n/g'|paste -sd,)/;s/^#?(FORCE_COOKIE_PROMPT.*:|FORCE_SSL_PROMPT.*:)[^$]*/\1yes/;s/^#?(COOKIE_.*FILE:.*$)/\1/" /etc/lynx/lynx.cfg;fi
   #- if [ -f /home/$(id -un 1000)/maas.lynx ];then lynx -cmd_script=/home/$(id -un 1000)/maas.lynx https://$(hostname -f);fi
   - if [ -f /usr/local/bin/aws_show-me_maas_lxd-preseed.sh ];then /usr/local/bin/aws_show-me_maas_lxd-preseed.sh;fi
   - "lxc image copy ubuntu-daily:focal local: --copy-aliases --alias maas-controller-focal --auto-update --public"
@@ -286,7 +248,3 @@ runcmd:
   - "for I in $(lxc image list min: -cfl|awk '/more|CONTAIN/{print $4}'|sort -uV|sed '1h;1d;$!H;$!d;G');do ((lxc image copy min:${I} local: --alias maas-tgt-${I} --alias ${I}-min --auto-update --public) &);done"
   - "curl -fSlL -o /opt/show-me/packer_1.8.0_linux_amd64.zip https://releases.hashicorp.com/packer/1.8.0/packer_1.8.0_linux_${SHOW_ME_ARCH}.zip"
   - "if [ -f /opt/show-me/packer_1.8.0_linux_amd64.zip ];then unzip -qq -d /usr/local/bin /opt/show-me/packer_1.8.0_linux_${SHOW_ME_ARCH}.zip;fi"
-  - maas init --force --mode=region --maas-url="${MAAS_URL}" --database-host=${MAAS_DBHOST} --database-name=${MAAS_DBNAME} --database-user=${MAAS_DBUSER} --database-pass=${MAAS_DBPASS} --database-port=${MAAS_DBPORT}
-  - maas createadmin --username ${MAAS_PROFILE} --password ${MAAS_PASSWORD} --email ${MAAS_EMAIL} --ssh-import "${MAAS_IMPORTID}"
-  - maas login ${MAAS_PROFILE} ${MAAS_URL} \$(sudo maas apikey --username=${MAAS_PROFILE})
-  - su - $(id -un 1000) -c 'maas login '${MAAS_PROFILE}' '${MAAS_URL}' $(sudo maas apikey --username='${MAAS_PROFILE}')'
