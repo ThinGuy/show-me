@@ -1,0 +1,164 @@
+#cloud-config
+final_message: 'Landscape Quickstart completed Installing in $UPTIME'
+merge_how:
+ - name: list
+   settings: [append]
+ - name: dict
+   settings: [no_replace, recurse_list]
+manage_etc_hosts: false
+preserve_hostname: true
+prefer_fqdn_over_hostname: true
+fqdn: landscape.ubuntu-show.me
+hostname: landscape
+locale: en_US.UTF-8
+package_upgrade: true
+packages: [git, jq, lynx, landcape-client, ssl-cert, tree, unzip, vim ]
+write_files:
+  - encoding: b64
+    path: /usr/local/bin/add-clients.sh
+    content: IyEvYmluL2Jhc2gKZm9yIFggaW4gJChseGMgaW1hZ2UgbGlzdCAtY2ZsfGF3ayAnL15cfC8mJiEvRklOL3twcmludCAkMn0nKTtkbwogIFtbICR7WH0gPSB4XV0gJiYgUj1YZW5pYWw7W1sgJHtYfSA9IGIgXV0gJiYgUj1CaW9uaWM7W1sgJHtYfSA9IGYgXV0gJiYgUj1Gb2NhbDtbWyAke1h9ID0gaSBdXSAmJiBSPUltcGlzaDtbWyAke1h9ID0gaiBdXSAmJiBSPUphbW15OwogIGZvciBZIGluIDEgMiAzO2RvCiAgICBbWyAke1l9ID0gMSBdXSAmJiBXPXN0O1tbICR7WX0gPSAyIF1dICYmIFc9bmQ7W1sgJHtZfSA9IDMgXV0gJiYgVz1yZDsKICAgIHByaW50ZiAiTGF1bmNoaW5nICR7WX0ke1d9IGluc3RhbmNlIG9mICR7Un1cbiIKICAgICgobHhjIGxhdW5jaCAkWCAtcCBsYW5kc2NhcGUtY2xpZW50KSAmKQogIGRvbmUKZG9uZQpleGl0IDAK
+    permissions: '0755'
+    owner: 'root:root'
+apt:
+  conf: |
+    APT {
+      Get {
+        Assume-Yes "true";
+        Fix-Broken "true";
+        Auto-Remove "true";
+        Purge "true";
+      };
+      Acquire {
+        ForceIPv4 "true";
+        Check-Date "false";
+      };
+    };
+  primary:
+    - arches: [amd64]
+      uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
+      search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
+  security:
+    - arches: [amd64]
+      uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
+      search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
+  sources_list: |
+    deb [arch=amd64] $PRIMARY $RELEASE main universe restricted multiverse
+    deb [arch=amd64] $PRIMARY $RELEASE-updates main universe restricted multiverse
+    deb [arch=amd64] $SECURITY $RELEASE-security main universe restricted multiverse
+    deb [arch=amd64] $PRIMARY $RELEASE-backports main universe restricted multiverse
+  sources:
+    landscape-19.10-bionic.list:
+      source: 'deb [arch=amd64] http://ppa.launchpad.net/landscape/19.10/ubuntu bionic main'
+      keyid: 6E85A86E4652B4E6
+bootcmd:
+  - ['cloud-init-per', 'once', 'net0', 'echo', 'network: {config: disabled}', '>', '/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg']
+  - |-
+    cat <<-NETPLAN|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init.yaml
+    network:
+      version: 2
+      renderer: networkd
+      ethernets:
+        ens5:
+          dhcp4: false
+          dhcp6: false
+          optional: false
+          accept-ra: false
+          link-local: [ ]
+          match:
+            macaddress: '$(ip -o l show dev ens5|grep -oP "(?<=ether )[^ ]+")'
+          set-name: ens5
+      bridges:
+        br0:
+          macaddress: '$(ip -o l show dev ens5|grep -oP "(?<=ether )[^ ]+")'
+          interfaces: ['ens5']
+          link-local: [ ]
+          dhcp4: true
+          dhcp4-overrides:
+            use-dns: false
+            use-hostname: false
+            use-domains: false
+            route-metric: 1
+          dhcp6: false
+          optional: false
+          accept-ra: false
+          link-local: [ ]
+          nameservers:
+            addresses: [9.9.9.9,1.1.1.1]
+            search: [ubuntu-show.me]
+          parameters:
+            priority: 1
+            stp: false
+    NETPLAN
+  - ['cloud-init-per', 'once', 'net2', 'netplan', '--debug', 'generate']
+  - ['cloud-init-per', 'once', 'net3', 'netplan', '--debug', 'apply']
+  - ['cloud-init-per', 'once', 'net3', 'systemctl', 'restart', 'systemd-networkd', 'systemd-resolved', 'procps.service']
+  - ['cloud-init-per', 'once', 'bc0', 'export', 'DEBIAN_FRONTEND=noninteractive']
+  - ['cloud-init-per', 'once', 'apt0', 'apt-get', 'update']
+  - ['cloud-init-per', 'once', 'apt1', 'apt-get', 'remove', 'lxd', 'lxd-client', '--auto-remove', '--purge', '--assume-yes', '--quiet', '--fix-broken']
+runcmd:
+  - set -x
+  - export DEBIAN_FRONTEND=noninteractive
+  - mkdir -p /opt/show-me
+  - export ARCH=amd64
+  - mkdir -p /etc/show-me/www /etc/show-me/log
+  - "chown -R $(id -un 1000):$(id -un 1000) /opt/show-me"
+  - "echo 'precedence ::ffff:0:0/96  100'|tee 1>/dev/null -a /etc/gai.conf"
+  - if [ "$(readlink -f /etc/resolv.conf)" != "/run/resolvconf/resolv.conf" ];then ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf;fi
+  - export DEFAULT_IP=$(ip -o -4 a show $(ip -o r l default|grep -vE '10\.10\.1[0-9]\.'|grep -m1 -oP "(?<=dev )[^ ]+")|grep -m1 -oP "(?<=inet )[^/]+")
+  - sed -i -r "s/127.0.1.1/$DEFAULT_IP/;/localhost/a ${DEFAULT_IP}\t$(hostname -f) $(hostname -s)" /etc/hosts
+  - git clone https://github.com/ThinGuy/show-me.git /opt/show-me/show-me.git
+  - cp -a /opt/show-me/landscape/aws/helpers/usr/local/bin/petname-helper.sh /usr/local/bin/petname-helper.sh
+  - cp -a /opt/show-me/landscape/aws/helpers/usr/local/bin/add-clients.sh /usr/local/bin/add-clients.sh
+  - cp -a /opt/show-me/landscape/aws/helpers/etc/systemd/system/show-me-files.service /etc/systemd/system/show-me-files.service
+  - cp -a /opt/show-me/landscape/aws/helpers/home/ubuntu/.ssh/id_rsa /home/ubuntu/.ssh/id_rsa
+  - cp -a /opt/show-me/landscape/aws/helpers/home/ubuntu/.ssh/id_rsa.pub /home/ubuntu/.ssh/id_rsa.pub
+  - cp -a /opt/show-me/landscape/aws/helpers/home/ubuntu/maas.lynx /home/ubuntu/maas.lynx
+  - cp -a /opt/show-me/landscape/aws/helpers/usr/local/bin/aws_show-me-landscape_lxd-preseed.sh /usr/local/bin/aws_show-me-landscape_lxd-preseed.sh
+  - cp -a /opt/show-me/landscape/aws/helpers/etc/ssl/certs/show-me_host.pem /etc/ssl/certs/show-me_host.pem
+  - cp -a /opt/show-me/landscape/aws/helpers/etc/ssl/private/show-me_host.key /etc/ssl/private/show-me_host.key
+  - cp -a /opt/show-me/landscape/aws/helpers/etc/ssl/certs/show-me_ca.crt /etc/ssl/certs/show-me_ca.crt
+  - cp -a /etc/ssl/certs/show-me_ca.crt /etc/ssl/certs/landscape_server_ca.crt
+  - cp -a /etc/ssl/certs/show-me_host.pem /etc/ssl/certs/landscape_server.pem
+  - cp -a /etc/ssl/private/show-me_host.key /etc/ssl/certs/landscape_server.key
+  - cp -a /etc/ssl/certs/show-me_host.pem /etc/ssl/certs/show-me_ca.crt /etc/show-me/www/
+  - "chown root:root /usr/local/bin/petname-helper.sh"
+  - chmod 0755 /usr/local/bin/petname-helper.sh
+  - "chown root:root /usr/local/bin/add-clients.sh"
+  - chmod 0755 /usr/local/bin/add-clients.sh
+  - "chown root:root /etc/systemd/system/show-me-files.service"
+  - chmod 0644 /etc/systemd/system/show-me-files.service
+  - "chown ubuntu:ubuntu /home/ubuntu/.ssh/id_rsa"
+  - chmod 0400 /home/ubuntu/.ssh/id_rsa
+  - "chown ubuntu:ubuntu /home/ubuntu/.ssh/id_rsa.pub"
+  - chmod 0640 /home/ubuntu/.ssh/id_rsa.pub
+  - "chown ubuntu:ubuntu /home/ubuntu/maas.lynx"
+  - chmod 0644 /home/ubuntu/maas.lynx
+  - "chown root:root /usr/local/bin/aws_show-me-landscape_lxd-preseed.sh"
+  - chmod 0755 /usr/local/bin/aws_show-me-landscape_lxd-preseed.sh
+  - "chown root:root /etc/ssl/certs/show-me_host.pem"
+  - chmod 0644 /etc/ssl/certs/show-me_host.pem
+  - "chown root:root /etc/ssl/private/show-me_host.key"
+  - chmod 0644 /etc/ssl/private/show-me_host.key
+  - "chown root:root /etc/ssl/certs/show-me_ca.crt"
+  - chmod 0644 /etc/ssl/certs/landscape_server_ca.crt
+  - chmod 0644 /etc/ssl/certs/landscape_server.pem
+  - chmod 0644 /etc/ssl/private/landscape_server.key
+  - cp -a /etc/ssl/certs/show-me_ca.crt /usr/local/share/ca-certificates/
+  - update-ca-certificates --fresh --verbose
+  - "apt-get -o Acquire::ForceIPv4=true update"
+  - find /etc/show-me -type d -exec chmod 0755 {}\;
+  - find /etc/show-me -type f -exec chmod 0644 {}\;
+  - "chown -R $(id -un 1000):$(id -un 1000) /etc/show-me"
+  - if [ -f /usr/local/bin/create-show-me-files-service.sh ];then /usr/local/bin/create-show-me-files-service.sh
+  - if [ -f /etc/systemd/system/show-me-files.service ];then systemctl daemon-reload;for S in enable start start status;do systemctl $S show-me-files.service;sleep .5;done;fi
+  - apt install landscape-server-quickstart landscape-client -yqf
+  - if [ -f /etc/ssl/certs/landscape_server_ca.crt ];then cp /etc/ssl/certs/landscape_server_ca.crt /etc/landscape/;fi
+  - if [ -f /etc/landscape/landscape-server_ca.crt ];then echo "ssl_public_key = /etc/landscape/landscape-server_ca.crt "|sudo tee 1>/dev/null -a /etc/landscape/client.conf;fi
+  - if [ -f /home/$(id -un 1000)/landscape.lynx ];then lynx -cmd_script=/home/$(id -un 1000)/landscape.lynx https://$(hostname -f);fi
+  - cp /etc/landscape/client.conf /etc/show-me/www/landscape-client.conf
+  - "landscape-config -k /etc/landscape/landscape_server.pem -t $(hostname -s) -u https://$(hostname -f)/message-system --ping-url http://$(hostname -f)/ping -a standalone --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=show-me-demo,ubuntu --silent --log-level=debug"
+  - if $(test -n "$(command 2>/dev/null -v lxd.lxc)");then su - $(id -un 1000) -c 'sudo snap refresh lxd --channel latest/stable';else su - $(id -un 1000) -c 'sudo snap install lxd';fi
+  - "if [ -f /usr/local/bin/aws_show-me-landscape_lxd-preseed.sh ];then /usr/local/bin/aws_show-me-landscape_lxd-preseed.sh;fi"
+  - "if [ -f /usr/local/bin/aws_show-me-landscape_lxd-preseed.sh ];then lxc remote add min https://cloud-images.ubuntu.com/minimal/daily --protocol simplestreams --accept-certificate;fi"
+  - "if [ -f /usr/local/bin/aws_show-me-landscape_lxd-preseed.sh ];then for I in $(lxc image list min: -cfl|awk '/more|CONTAIN/{print $4}'|sort -uV|sed '1h;1d;$!H;$!d;G');do ((lxc image copy min:${I} local: --alias ${I}-min --auto-update --public) &);done;fi"
+  - "if [ -f /usr/local/bin/aws_show-me-landscape_lxd-preseed.sh ];then if $(test -f /usr/local/bin/add-clients.sh);then /usr/local/bin/add-clients.sh 2;fi;fi"
