@@ -50,7 +50,7 @@ profiles:
     eth0:
       name: eth0
       nictype: bridged
-      parent: eth0
+      parent: br0
       type: nic
     root:
       path: /
@@ -66,12 +66,12 @@ profiles:
       renderer: networkd
       ethernets:
         eth0:
-          dhcp4: false
+          dhcp4: "false"
           match:
             name: 'eth0'
           set-name: eth0
         eth1:
-          dhcp4: false
+          dhcp4: "false"
           match:
             name: 'eth1'
           set-name: eth1
@@ -79,11 +79,11 @@ profiles:
         br0:
           interfaces: ['eth0']
           link-local: [ ]
-          dhcp4: true
+          dhcp4: "true"
           dhcp4-overrides:
-            use-routes: true
-            use-dns: false
-            use-domains: false
+            use-routes: "true"
+            use-dns: "false"
+            use-domains: "false"
             route-metric: 100
           nameservers:
             addresses:
@@ -92,16 +92,16 @@ profiles:
             search:
             - ubuntu-show.me
           parameters:
-            stp: false
+            stp: "false"
             priority: 0
         br1:
           interfaces: ['eth1']
           link-local: [ ]
-          dhcp4: true
+          dhcp4: "true"
           dhcp4-overrides:
-            use-routes: true
-            use-dns: false
-            use-domains: false
+            use-routes: "true"
+            use-dns: "false"
+            use-domains: "false"
             route-metric: 200
           nameservers:
             addresses:
@@ -110,21 +110,21 @@ profiles:
             search:
             - ubuntu-show.me
           parameters:
-            stp: false
+            stp: "false"
             priority: 100
     user.user-data: |
       #cloud-config
       final_message: 'MAAS Target Installed in \$UPTIME'
       locale: 'en_US.UTF-8'
-      ssh_pwauth: true
+      ssh_pwauth: "true"
       apt:
         primary:
           - arches: [amd64]
-            uri: http://us-west-1.ec2.archive.ubuntu.com/ubuntu
+            uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
             search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
         security:
           - arches: [amd64]
-            uri: http://us-west-1.ec2.archive.ubuntu.com/ubuntu
+            uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
             search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
         sources_list: |
           deb [arch=amd64] \$PRIMARY \$RELEASE main universe restricted multiverse
@@ -148,8 +148,8 @@ profiles:
              Check-Date "false";
            };
          };
-      package_update: true
-      package_upgrade: true
+      package_update: "true"
+      package_upgrade: "true"
       packages: [git, jq, maas-common, maas-cli, ntpdate, unzip, vim]
       runcmd:
         # Escape commands and params that we do not want expanded during here doc
@@ -174,7 +174,7 @@ profiles:
     eth0:
       name: eth0
       nictype: bridged
-      network: br0
+      parent: br0
       type: nic
     root:
       path: /
@@ -192,12 +192,12 @@ profiles:
       renderer: networkd
       ethernets:
         eth0:
-          dhcp4: false
+          dhcp4: "false"
           match:
             name: 'eth0'
           set-name: eth0
         eth1:
-          dhcp4: false
+          dhcp4: "false"
           match:
             name: 'eth1'
           set-name: eth1
@@ -205,11 +205,11 @@ profiles:
         br0:
           interfaces: ['eth0']
           link-local: [ ]
-          dhcp4: true
+          dhcp4: "true"
           dhcp4-overrides:
-            use-routes: true
-            use-dns: false
-            use-domains: false
+            use-routes: "true"
+            use-dns: "false"
+            use-domains: "false"
             route-metric: 200
           nameservers:
             addresses:
@@ -218,16 +218,16 @@ profiles:
             search:
             - ubuntu-show.me
           parameters:
-            stp: false
+            stp: "false"
             priority: 200
         br1:
           interfaces: ['eth1']
           link-local: [ ]
-          dhcp4: true
+          dhcp4: "true"
           dhcp4-overrides:
-            use-routes: true
-            use-dns: false
-            use-domains: false
+            use-routes: "true"
+            use-dns: "false"
+            use-domains: "false"
             route-metric: 100
           nameservers:
             addresses:
@@ -236,24 +236,24 @@ profiles:
             search:
             - ubuntu-show.me
           parameters:
-            stp: false
+            stp: "false"
             priority: 0
     user.user-data: |
       #cloud-config
       hostname: maas-rack-002
       fqdn: maas-rack-002.ubuntu-show.me
-      manage_etc_hosts: false
-      prefer_fqdn_over_hostname: true
+      manage_etc_hosts: "false"
+      prefer_fqdn_over_hostname: "true"
       locale: 'en_US.UTF-8'
-      ssh_pwauth: true
+      ssh_pwauth: "true"
       apt:
         primary:
           - arches: [amd64]
-            uri: http://us-west-1.ec2.archive.ubuntu.com/ubuntu
+            uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
             search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
         security:
           - arches: [amd64]
-            uri: http://us-west-1.ec2.archive.ubuntu.com/ubuntu
+            uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
             search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
         sources_list: |
           deb [arch=amd64] \$PRIMARY \$RELEASE main universe restricted multiverse
@@ -277,12 +277,13 @@ profiles:
              Check-Date "false";
            };
          };
-      package_update: true
-      package_upgrade: true
+      package_update: "true"
+      package_upgrade: "true"
       packages: [git, jq, maas-common, maas-cli, ntpdate, unzip, vim]
       runcmd:
         # Escape commands and params that we do not want expanded during here doc
         - set -x
+        - ntpdate -u ntp.ubuntu.com
         - export MAAS_SECRET=$(cat /var/snap/maas/current/var/lib/maas/secret)
         - echo ${MAAS_SECRET}|tee 1>/dev/null /opt/show-me/maas-secret
         - export DEBIAN_FRONTEND=noninteractive
@@ -300,19 +301,19 @@ profiles:
         - update-alternatives --set editor /usr/bin/vim.basic
         - "wget -qO -P /opt/show-me/ http://$DEFAULT_IP:9999/show-me_host.pem"
         - for GROUP in docker kvm libvirt libvirt-qemu lxd maas;do if [ \"$(getent group $GROUP;echo \$?)" = "0" ];then usermod -a -G \$GROUP \$(id -un 1000);fi;done
-        - apt install maas-rack-controller -yqf --auto-remove --purge -o Acquire::ForceIPv4=true
-        - maas-rack register --url http://maas.ubuntu-show.me:5240/MAAS --secret \$MAAS_SECRET
+        - apt install maas-rack-controller -yqf --auto-remove --purge -o "Acquire::ForceIPv4=true"
+        - maas-rack register --url "http://maas.ubuntu-show.me:5240/MAAS" --secret \$MAAS_SECRET
   description: maas-rack-1 profile
   devices:
     eth0:
       name: eth0
       nictype: bridged
-      network: br0
+      parent: br0
       type: nic
     eth1:
       name: eth1
       nictype: bridged
-      network: maas-br1
+      parent: maas-br1
       type: nic
     root:
       path: /
@@ -330,12 +331,12 @@ profiles:
       renderer: networkd
       ethernets:
         eth0:
-          dhcp4: false
+          dhcp4: "false"
           match:
             name: 'eth0'
           set-name: eth0
         eth1:
-          dhcp4: false
+          dhcp4: "false"
           match:
             name: 'eth1'
           set-name: eth1
@@ -343,11 +344,11 @@ profiles:
         br0:
           interfaces: ['eth0']
           link-local: [ ]
-          dhcp4: true
+          dhcp4: "true"
           dhcp4-overrides:
-            use-routes: true
-            use-dns: false
-            use-domains: false
+            use-routes: "true"
+            use-dns: "false"
+            use-domains: "false"
             route-metric: 200
           nameservers:
             addresses:
@@ -356,16 +357,16 @@ profiles:
             search:
             - ubuntu-show.me
           parameters:
-            stp: false
+            stp: "false"
             priority: 200
         br1:
           interfaces: ['eth1']
           link-local: [ ]
-          dhcp4: true
+          dhcp4: "true"
           dhcp4-overrides:
-            use-routes: true
-            use-dns: false
-            use-domains: false
+            use-routes: "true"
+            use-dns: "false"
+            use-domains: "false"
             route-metric: 100
           nameservers:
             addresses:
@@ -374,23 +375,23 @@ profiles:
             search:
             - ubuntu-show.me
           parameters:
-            stp: false
+            stp: "false"
             priority: 0
     user.user-data: |
       #cloud-config
       hostname: maas-rack-002
       fqdn: maas-rack-002.ubuntu-show.me
-      manage_etc_hosts: false
-      prefer_fqdn_over_hostname: true
-      ssh_pwauth: true
+      manage_etc_hosts: "false"
+      prefer_fqdn_over_hostname: "true"
+      ssh_pwauth: "true"
       apt:
         primary:
           - arches: [amd64]
-            uri: http://us-west-1.ec2.archive.ubuntu.com/ubuntu
+            uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
             search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
         security:
           - arches: [amd64]
-            uri: http://us-west-1.ec2.archive.ubuntu.com/ubuntu
+            uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
             search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
         sources_list: |
           deb [arch=amd64] \$PRIMARY \$RELEASE main universe restricted multiverse
@@ -414,8 +415,8 @@ profiles:
              Check-Date "false";
            };
          };
-      package_update: true
-      package_upgrade: true
+      package_update: "true"
+      package_upgrade: "true"
       packages: [git, jq, maas-common, maas-cli, ntpdate, unzip, vim]
       runcmd:
         # Escape commands and params that we do not want expanded during here doc
@@ -437,19 +438,19 @@ profiles:
         - update-alternatives --set editor /usr/bin/vim.basic
         - "wget -qO -P /opt/show-me/ http://$DEFAULT_IP:9999/show-me_host.pem"
         - for GROUP in docker kvm libvirt libvirt-qemu lxd maas;do if [ \"$(getent group $GROUP;echo \$?)" = "0" ];then usermod -a -G \$GROUP \$(id -un 1000);fi;done
-        - apt install maas-rack-controller -yqf --auto-remove --purge -o Acquire::ForceIPv4=true
-        - maas-rack register --url http://maas.ubuntu-show.me:5240/MAAS --secret \$MAAS_SECRET
+        - apt install maas-rack-controller -yqf --auto-remove --purge -o "Acquire::ForceIPv4=true"
+        - maas-rack register --url "http://maas.ubuntu-show.me:5240/MAAS" --secret \$MAAS_SECRET
   description: maas-rack-2 profile
   devices:
     eth0:
       name: eth0
       nictype: bridged
-      network: br0
+      parent: br0
       type: nic
     eth1:
       name: eth1
       nictype: bridged
-      network: maas-br2
+      parent: maas-br2
       type: nic
     root:
       path: /
@@ -467,12 +468,12 @@ profiles:
       renderer: networkd
       ethernets:
         eth0:
-          dhcp4: false
+          dhcp4: "false"
           match:
             name: 'eth0'
           set-name: eth0
         eth1:
-          dhcp4: false
+          dhcp4: "false"
           match:
             name: 'eth1'
           set-name: eth1
@@ -480,11 +481,11 @@ profiles:
         br0:
           interfaces: ['eth0']
           link-local: [ ]
-          dhcp4: true
+          dhcp4: "true"
           dhcp4-overrides:
-            use-routes: true
-            use-dns: false
-            use-domains: false
+            use-routes: "true"
+            use-dns: "false"
+            use-domains: "false"
             route-metric: 200
           nameservers:
             addresses:
@@ -493,16 +494,16 @@ profiles:
             search:
             - ubuntu-show.me
           parameters:
-            stp: false
+            stp: "false"
             priority: 200
         br1:
           interfaces: ['eth1']
           link-local: [ ]
-          dhcp4: true
+          dhcp4: "true"
           dhcp4-overrides:
-            use-routes: true
-            use-dns: false
-            use-domains: false
+            use-routes: "true"
+            use-dns: "false"
+            use-domains: "false"
             route-metric: 100
           nameservers:
             addresses:
@@ -511,24 +512,24 @@ profiles:
             search:
             - ubuntu-show.me
           parameters:
-            stp: false
+            stp: "false"
             priority: 0
     user.user-data: |
       #cloud-config
       hostname: maas-rack-003
       fqdn: maas-rack-003.ubuntu-show.me
-      manage_etc_hosts: false
-      prefer_fqdn_over_hostname: true
+      manage_etc_hosts: "false"
+      prefer_fqdn_over_hostname: "true"
       locale: 'en_US.UTF-8'
-      ssh_pwauth: true
+      ssh_pwauth: "true"
       apt:
         primary:
           - arches: [amd64]
-            uri: http://us-west-1.ec2.archive.ubuntu.com/ubuntu
+            uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
             search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
         security:
           - arches: [amd64]
-            uri: http://us-west-1.ec2.archive.ubuntu.com/ubuntu
+            uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
             search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
         sources_list: |
           deb [arch=amd64] \$PRIMARY \$RELEASE main universe restricted multiverse
@@ -552,8 +553,8 @@ profiles:
              Check-Date "false";
            };
          };
-      package_update: true
-      package_upgrade: true
+      package_update: "true"
+      package_upgrade: "true"
       packages: [git, jq, maas-common, maas-cli, ntpdate, unzip, vim]
       runcmd:
         # Escape commands and params that we do not want expanded during here doc
@@ -575,19 +576,19 @@ profiles:
         - update-alternatives --set editor /usr/bin/vim.basic
         - "wget -qO -P /opt/show-me/ http://$DEFAULT_IP:9999/show-me_host.pem"
         - for GROUP in docker kvm libvirt libvirt-qemu lxd maas;do if [ \"$(getent group $GROUP;echo \$?)" = "0" ];then usermod -a -G \$GROUP \$(id -un 1000);fi;done
-        - apt install maas-rack-controller -yqf --auto-remove --purge -o Acquire::ForceIPv4=true
-        - maas-rack register --url http://maas.ubuntu-show.me:5240/MAAS --secret \$MAAS_SECRET
+        - apt install maas-rack-controller -yqf --auto-remove --purge -o "Acquire::ForceIPv4=true"
+        - maas-rack register --url "http://maas.ubuntu-show.me:5240/MAAS" --secret \$MAAS_SECRET
   description: maas-rack-3 profile
   devices:
     eth0:
       name: eth0
       nictype: bridged
-      network: br0
+      parent: br0
       type: nic
     eth1:
       name: eth1
       nictype: bridged
-      network: maas-br3
+      parent: maas-br3
       type: nic
     root:
       path: /
@@ -605,12 +606,12 @@ profiles:
       renderer: networkd
       ethernets:
         eth0:
-          dhcp4: false
+          dhcp4: "false"
           match:
             name: 'eth0'
           set-name: eth0
         eth1:
-          dhcp4: false
+          dhcp4: "false"
           match:
             name: 'eth1'
           set-name: eth1
@@ -618,11 +619,11 @@ profiles:
         br0:
           interfaces: ['eth0']
           link-local: [ ]
-          dhcp4: true
+          dhcp4: "true"
           dhcp4-overrides:
-            use-routes: true
-            use-dns: false
-            use-domains: false
+            use-routes: "true"
+            use-dns: "false"
+            use-domains: "false"
             route-metric: 200
           nameservers:
             addresses:
@@ -631,16 +632,16 @@ profiles:
             search:
             - ubuntu-show.me
           parameters:
-            stp: false
+            stp: "false"
             priority: 200
         br1:
           interfaces: ['eth1']
           link-local: [ ]
-          dhcp4: true
+          dhcp4: "true"
           dhcp4-overrides:
-            use-routes: true
-            use-dns: false
-            use-domains: false
+            use-routes: "true"
+            use-dns: "false"
+            use-domains: "false"
             route-metric: 100
           nameservers:
             addresses:
@@ -649,24 +650,24 @@ profiles:
             search:
             - ubuntu-show.me
           parameters:
-            stp: false
+            stp: "false"
             priority: 0
     user.user-data: |
       #cloud-config
       hostname: maas-rack-004
       fqdn: maas-rack-004.ubuntu-show.me
-      manage_etc_hosts: false
-      prefer_fqdn_over_hostname: true
+      manage_etc_hosts: "false"
+      prefer_fqdn_over_hostname: "true"
       locale: 'en_US.UTF-8'
-      ssh_pwauth: true
+      ssh_pwauth: "true"
       apt:
         primary:
           - arches: [amd64]
-            uri: http://us-west-1.ec2.archive.ubuntu.com/ubuntu
+            uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
             search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
         security:
           - arches: [amd64]
-            uri: http://us-west-1.ec2.archive.ubuntu.com/ubuntu
+            uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
             search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
         sources_list: |
           deb [arch=amd64] \$PRIMARY \$RELEASE main universe restricted multiverse
@@ -690,8 +691,8 @@ profiles:
              Check-Date "false";
            };
          };
-      package_update: true
-      package_upgrade: true
+      package_update: "true"
+      package_upgrade: "true"
       packages: [git, jq, maas-common, maas-cli, ntpdate, unzip, vim]
       runcmd:
         # Escape commands and params that we do not want expanded during here doc
@@ -713,19 +714,19 @@ profiles:
         - update-alternatives --set editor /usr/bin/vim.basic
         - "wget -qO -P /opt/show-me/ http://$DEFAULT_IP:9999/show-me_host.pem"
         - for GROUP in docker kvm libvirt libvirt-qemu lxd maas;do if [ \"$(getent group $GROUP;echo \$?)" = "0" ];then usermod -a -G \$GROUP \$(id -un 1000);fi;done
-        - apt install maas-rack-controller -yqf --auto-remove --purge -o Acquire::ForceIPv4=true
-        - maas-rack register --url http://maas.ubuntu-show.me:5240/MAAS --secret \$MAAS_SECRET
+        - apt install maas-rack-controller -yqf --auto-remove --purge -o "Acquire::ForceIPv4=true"
+        - maas-rack register --url "http://maas.ubuntu-show.me:5240/MAAS" --secret \$MAAS_SECRET
   description: maas-rack-4 profile
   devices:
     eth0:
       name: eth0
       nictype: bridged
-      network: br0
+      parent: br0
       type: nic
     eth1:
       name: eth1
       nictype: bridged
-      network: maas-br4
+      parent: maas-br4
       type: nic
     root:
       path: /

@@ -117,7 +117,6 @@ runcmd:
   - cp -a /opt/show-me/maas/aws/helpers/etc/ssl/certs/show-me_ca.crt /etc/ssl/certs/
   - chown -R "root:root" /usr/local/bin/ /etc/ssl /etc/systemd/system/
   - chmod -R 0755 /usr/local/bin/
-  - chown -R root:root
   - chown "$(id -un 1000):$(id -un 1000)" /home/$(id -un 1000)/
   - chmod 0400 /home/ubuntu/.ssh/id_rsa
   - chmod 0640 /home/ubuntu/.ssh/id_rsa.pub /home/ubuntu/maas.lynx
@@ -130,11 +129,9 @@ runcmd:
   - echo "EDITOR=/usr/bin/vim.basic"|tee 1>/dev/null -a /etc/environment
   - . /etc/environment
   - if [ -f /usr/local/bin/petname-helper.sh ];then /usr/local/bin/petname-helper.sh;fi
-  - if [ -f /home/ubuntu/.ssh/id_rsa ];then cat /home/ubuntu/.ssh/id_rsa.pub|tee 1>/dev/null -a /home/ubuntu/.ssh/authorized_keys;fi
   - if [ -f /etc/systemd/system/show-me-files.service ];then systemctl daemon-reload;for S in enable start start status;do systemctl $S show-me-files.service;sleep .5;done;fi
   - if [ -f /etc/ssl/certs/show-me_ca.crt ];then ln -sf /etc/ssl/certs/show-me_ca.crt /etc/show-me/www/;fi
   - if [ -f /etc/ssl/certs/show-me_host.pem ];then ln -sf /etc/ssl/certs/show-me_host.pem /etc/show-me/www/;fi
-  # Get Postgresql Version
   - export PG_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export PG_DBHBA="/etc/postgresql/${PG_DBVER}/main/pg_hba.conf"
   - export PG_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
