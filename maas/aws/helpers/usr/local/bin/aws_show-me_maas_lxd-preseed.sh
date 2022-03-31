@@ -154,7 +154,6 @@ profiles:
       runcmd:
         # Escape commands and params that we do not want expanded during here doc
         - set -x
-        - ntpdate -u ntp.ubuntu.com
         - export DEBIAN_FRONTEND=noninteractive
         - echo $DEFAULT_IP $(hostname -f) $(hostname -s)|tee -a /etc/hosts
         - if [ "\$(readlink -f /etc/resolv.conf)" != "/run/resolvconf/resolv.conf" ];then ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf;fi
@@ -284,8 +283,7 @@ profiles:
       runcmd:
         # Escape commands and params that we do not want expanded during here doc
         - set -x
-        - ntpdate -u ntp.ubuntu.com
-        - export MAAS_SECRET=$(cat /var/lib/maas/secret)
+        - export MAAS_SECRET=$(cat /var/snap/maas/current/var/lib/maas/secret)
         - echo ${MAAS_SECRET}|tee 1>/dev/null /opt/show-me/maas-secret
         - export DEBIAN_FRONTEND=noninteractive
         - echo $DEFAULT_IP $(hostname -f) $(hostname -s)|tee -a /etc/hosts
@@ -422,8 +420,7 @@ profiles:
       runcmd:
         # Escape commands and params that we do not want expanded during here doc
         - set -x
-        - ntpdate -u ntp.ubuntu.com
-        - export MAAS_SECRET=$(cat /var/lib/maas/secret)
+        - export MAAS_SECRET=$(cat /var/snap/maas/current/var/lib/maas/secret)
         - echo ${MAAS_SECRET}|tee 1>/dev/null /opt/show-me/maas-secret
         - export DEBIAN_FRONTEND=noninteractive
         - echo $DEFAULT_IP $(hostname -f) $(hostname -s)|tee -a /etc/hosts
@@ -561,8 +558,7 @@ profiles:
       runcmd:
         # Escape commands and params that we do not want expanded during here doc
         - set -x
-        - ntpdate -u ntp.ubuntu.com
-        - export MAAS_SECRET=$(cat /var/lib/maas/secret)
+        - export MAAS_SECRET=$(cat /var/snap/maas/current/var/lib/maas/secret)
         - echo ${MAAS_SECRET}|tee 1>/dev/null /opt/show-me/maas-secret
         - export DEBIAN_FRONTEND=noninteractive
         - echo $DEFAULT_IP $(hostname -f) $(hostname -s)|tee -a /etc/hosts
@@ -700,8 +696,7 @@ profiles:
       runcmd:
         # Escape commands and params that we do not want expanded during here doc
         - set -x
-        - ntpdate -u ntp.ubuntu.com
-        - export MAAS_SECRET=$(cat /var/lib/maas/secret)
+        - export MAAS_SECRET=$(cat /var/snap/maas/current/var/lib/maas/secret)
         - echo ${MAAS_SECRET}|tee 1>/dev/null /opt/show-me/maas-secret
         - export DEBIAN_FRONTEND=noninteractive
         - echo $DEFAULT_IP $(hostname -f) $(hostname -s)|tee -a /etc/hosts
