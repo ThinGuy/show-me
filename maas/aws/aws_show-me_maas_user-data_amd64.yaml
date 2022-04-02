@@ -12,7 +12,7 @@ fqdn: maas.ubuntu-show.me
 hostname: landscape
 locale: en_US.UTF-8
 package_upgrade: true
-packages: [git, jq, lynx, landscape-client, maas-cli, maas-common, ssl-cert, tree, unzip, vim ]
+packages: [amtterm, build-essential, git, jq, lynx, landscape-client, maas-cli, maas-common, postgresql, postgresql-client, postgresql-commonm software-properties-common, ssl-cert, tree, unzip, vim, wsmancli ]
 apt:
   conf: |
     APT {
@@ -52,7 +52,6 @@ bootcmd:
   - ['cloud-init-per', 'once', 'net3', 'systemctl', 'restart', 'systemd-networkd', 'systemd-resolved', 'procps.service']
   - ['cloud-init-per', 'once', 'apt0', 'export', 'DEBIAN_FRONTEND=noninteractive']
   - ['cloud-init-per', 'once', 'apt1', 'apt-get', '--option=Acquire::ForceIPv4=true', 'update']
-  - ['cloud-init-per', 'once', 'apt2', 'apt-get', 'dist-upgrade', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
   - ['cloud-init-per', 'once', 'apt3', 'apt-get', 'remove', 'lxd', 'lxd-client', '--auto-remove', '--purge', '--assume-yes', '--quiet', '--fix-broken', '--option=Acquire::ForceIPv4=true']
   - ['cloud-init-per', 'once', 'net1', 'echo', 'network: {config: disabled}', '>', '/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg']
   - |-
@@ -61,28 +60,19 @@ bootcmd:
       version: 2
       renderer: networkd
       ethernets:
-        enp0s3:
+        ens5:
           dhcp4: false
           dhcp6: false
           optional: false
           accept-ra: false
           link-local: [ ]
           match:
-            macaddress: '$(ip -o l show dev enp0s3|grep -oP "(?<=ether )[^ ]+")'
-          set-name: enp0s3
-        enp0s8:
-          dhcp4: false
-          dhcp6: false
-          optional: false
-          accept-ra: false
-          link-local: [ ]
-          match:
-            macaddress: '$(ip -o l show dev enp0s8|grep -oP "(?<=ether )[^ ]+")'
-          set-name: enp0s8
+            macaddress: '$(ip -o l show dev ens5|grep -oP "(?<=ether )[^ ]+")'
+          set-name: ens5
       bridges:
         br0:
-          macaddress: '$(ip -o l show dev enp0s8|grep -oP "(?<=ether )[^ ]+")'
-          interfaces: ['enp0s8']
+          macaddress: '$(ip -o l show dev ens5|grep -oP "(?<=ether )[^ ]+")'
+          interfaces: ['ens5']
           link-local: [ ]
           dhcp4: true
           dhcp4-overrides:
@@ -95,31 +85,10 @@ bootcmd:
           accept-ra: false
           link-local: [ ]
           nameservers:
-            addresses: [8.8.8.8,1.1.1.1]
+            addresses: [9.9.9.9,1.1.1.1]
             search: [ubuntu-show.me]
           parameters:
             priority: 1
-            stp: false
-        br1:
-          macaddress: '$(ip -o l show dev enp0s3|grep -oP "(?<=ether )[^ ]+")'
-          interfaces: ['enp0s3']
-          link-local: [ ]
-          dhcp4: true
-          dhcp4-overrides:
-            use-dns: false
-            use-hostname: false
-            use-domains: false
-            use-routes: true
-            route-metric: 100
-          dhcp6: false
-          optional: false
-          accept-ra: false
-          link-local: [ ]
-          nameservers:
-            addresses: [8.8.8.8,1.1.1.1]
-            search: [ubuntu-show.me]
-          parameters:
-            priority: 100
             stp: false
     NETPLAN
   - ['cloud-init-per', 'once', 'net2', 'netplan', '--debug', 'generate']
@@ -127,7 +96,6 @@ bootcmd:
   - ['cloud-init-per', 'once', 'net4', 'netplan', '--debug', 'apply']
   - ['cloud-init-per', 'once', 'net5', 'systemctl', 'restart', 'systemd-networkd', 'systemd-resolved', 'procps.service']
   - ['cloud-init-per', 'once', 'bc0', 'export', 'DEBIAN_FRONTEND=noninteractive']
-
 runcmd:
   - set -x
   - export PNIC=br0
@@ -233,21 +201,14 @@ runcmd:
   - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
   - for P in LANDSCAPE SSP RBAC CANDID MAAS PG SHOW_ME;do set|grep "^${P}_";done|sort -uV|tee ~/.show-me.rc|su - $(id -un 1000) -c 'tee ~/.show-me.rc'|su - postgres -c 'tee ~/.show-me.rc'
   - echo 'for RC in $(find ~/ -maxdepth 1 -type f -iname ".show-me*.rc");do source $RC;done'|tee -a /root/.bashrc |su - $(id -un 1000) -c 'tee -a ~/.bashrc'|su - postgres -c 'tee -a ~/.bashrc'
-    - apt install maas -o Acquire::ForceIPv4=true -yqf --auto-remove --purge
+  - apt install maas -o Acquire::ForceIPv4=true -yqf --auto-remove --purge
   - maas init --force --mode=region --maas-url="${MAAS_URL}" --database-host=${MAAS_DBHOST} --database-name=${MAAS_DBNAME} --database-user=${MAAS_DBUSER} --database-pass=${MAAS_DBPASS} --database-port=${MAAS_DBPORT}
   - maas createadmin --username ${MAAS_PROFILE} --password ${MAAS_PASSWORD} --email ${MAAS_EMAIL} --ssh-import "${MAAS_IMPORTID}"
   - maas login ${MAAS_PROFILE} ${MAAS_URL} \$(sudo maas apikey --username=${MAAS_PROFILE})
-<<<<<<< HEAD
   - su - $(id -un 1000) -c 'maas login '${MAAS_PROFILE}' '${MAAS_URL}' $(sudo maas apikey --username='${MAAS_PROFILE}')'
-=======
-  #- if [ -f /home/$(id -un 1000)/maas.lynx ];then lynx -cmd_script=/home/$(id -un 1000)/maas.lynx https://$(hostname -f);fi
->>>>>>> 930f88c8a5830b3b00ff02b6248e5f2e088d093a
   - if [ -f /usr/local/bin/show-me_maas_lxd-preseed.sh ];then /usr/local/bin/show-me_maas_lxd-preseed.sh;fi
   - "lxc image copy ubuntu-daily:focal local: --copy-aliases --alias maas-controller-focal --auto-update --public"
-  - "lxc remote add min https://cloud-images.ubuntu.com/minimal/daily --protocol simplestreams --accept-certificate"
-  - "for I in $(lxc image list min: -cfl|awk '/more|CONTAIN/{print $4}'|sort -uV|sed '1h;1d;$!H;$!d;G');do ((lxc image copy min:${I} local: --alias maas-tgt-${I} --alias ${I}-min --auto-update --public) &);done"
+  - lxc remote add minimal "https://cloud-images.ubuntu.com/minimal/daily" --protocol simplestreams --accept-certificate
+  - "for I in $(lxc image list minimal: -cfl|awk '/more|CONTAIN/{print $4}'|sort -uV|sed -r '/^t.*|^x.*/!H;//p;$!d;g;s/\n//');do ((lxc image copy  minimal:${I} local: --alias ${I} --auto-update --public) &);done"
   - if $(test -n "$(command 2>/dev/null -v lxd.lxc)");then su - $(id -un 1000) -c 'sudo snap refresh lxd --channel latest/stable';else su - $(id -un 1000) -c 'sudo snap install lxd';fi
   - if [ -f /usr/local/bin/show-me_maas_lxd-preseed.sh ];then /usr/local/bin/show-me_maas_lxd-preseed.sh;fi
-  - lxc remote add ubuntu-min "https://cloud-images.ubuntu.com/minimal/daily" --protocol simplestreams --accept-certificate
-  - "for I in $(lxc image list minimal: -cfl|awk '/more|CONTAIN/{print $4}'|sort -uV|sed -r '/^t.*|^x.*/!H;//p;$!d;g;s/\n//');do ((lxc image copy ubuntu-min:${I} local: --alias ${I} --auto-update --public) &);done"
-  - if $[ -f /usr/local/bin/add-landscape-clients.sh];then /usr/local/bin/add-landscape-clients.sh;fi
