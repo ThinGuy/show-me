@@ -12,7 +12,7 @@ fqdn: landscape.ubuntu-show.me
 hostname: landscape
 locale: en_US.UTF-8
 package_upgrade: true
-packages: [git, jq, lynx, landcape-client, ssl-cert, tree, unzip, vim ]
+packages: [git, jq, lynx, landscape-client, ssl-cert, tree, unzip, vim ]
 apt:
   conf: |
     APT {
