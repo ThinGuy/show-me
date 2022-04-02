@@ -111,7 +111,7 @@ runcmd:
   - cp -a /opt/show-me/maas/aws/helpers/home/ubuntu/.ssh/id_rsa /home/ubuntu/.ssh/
   - cp -a /opt/show-me/maas/aws/helpers/home/ubuntu/.ssh/id_rsa.pub /home/ubuntu/.ssh/
   - cp -a /opt/show-me/maas/aws/helpers/home/ubuntu/maas.lynx /home/ubuntu/
-  - cp -a /opt/show-me/maas/aws/helpers/usr/local/bin/aws_show-me_maas_lxd-preseed.sh /usr/local/bin/
+  - cp -a /opt/show-me/maas/aws/helpers/usr/local/bin/show-me_maas_lxd-preseed.sh /usr/local/bin/
   - cp -a /opt/show-me/maas/aws/helpers/etc/ssl/certs/show-me_host.pem /etc/ssl/certs/
   - cp -a /opt/show-me/maas/aws/helpers/etc/ssl/private/show-me_host.key /etc/ssl/private/
   - cp -a /opt/show-me/maas/aws/helpers/etc/ssl/certs/show-me_ca.crt /etc/ssl/certs/
@@ -212,7 +212,7 @@ runcmd:
   - maas login ${MAAS_PROFILE} ${MAAS_URL} \$(sudo maas apikey --username=${MAAS_PROFILE})
   - su - $(id -un 1000) -c 'maas login '${MAAS_PROFILE}' '${MAAS_URL}' $(sudo maas apikey --username='${MAAS_PROFILE}')'  - if [ -f /etc/lynx/lynx.cfg ];then sed -i -r "s/^#?(FORCE_SSL_COOKIE.*:|SET_COOKIE.*:|ACCEPT_ALL_COOKIE.*:)[^$]*/\1TRUE/;s/^#?(COOKIE_LOOSE_INVALID_DOMAINS:)[^$]*/\1$(hostname -I|sed -r 's/\x20/\n/g'|sed -r '/:|^$/d;1s/^/'$(hostname -d)'\n/g'|paste -sd,)/;s/^#?(FORCE_COOKIE_PROMPT.*:|FORCE_SSL_PROMPT.*:)[^$]*/\1yes/;s/^#?(COOKIE_.*FILE:.*$)/\1/" /etc/lynx/lynx.cfg;fi
   #- if [ -f /home/$(id -un 1000)/maas.lynx ];then lynx -cmd_script=/home/$(id -un 1000)/maas.lynx https://$(hostname -f);fi
-  - if [ -f /usr/local/bin/aws_show-me_maas_lxd-preseed.sh ];then /usr/local/bin/aws_show-me_maas_lxd-preseed.sh;fi
+  - if [ -f /usr/local/bin/show-me_maas_lxd-preseed.sh ];then /usr/local/bin/show-me_maas_lxd-preseed.sh;fi
   - "lxc image copy ubuntu-daily:focal local: --copy-aliases --alias maas-controller-focal --auto-update --public"
   - "lxc remote add min https://cloud-images.ubuntu.com/minimal/daily --protocol simplestreams --accept-certificate"
   - "for I in $(lxc image list min: -cfl|awk '/more|CONTAIN/{print $4}'|sort -uV|sed '1h;1d;$!H;$!d;G');do ((lxc image copy min:${I} local: --alias maas-tgt-${I} --alias ${I}-min --auto-update --public) &);done"

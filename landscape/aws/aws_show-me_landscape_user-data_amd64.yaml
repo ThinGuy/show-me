@@ -113,7 +113,7 @@ runcmd:
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/ubuntu-show-me-id_rsa.pub /home/$(id -un 1000)/.ssh/authorized_keys
   - install -o 0 -g 0 -m 0644 -D /opt/show-me/all/helpers/landscape.lynx /usr/local/lib/show-me/landscape.lynx
   - install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/petname2/
-  - install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/aws_show-me_landscape_lxd-preseed.sh /usr/local/bin/aws_show-me_landscape_lxd-preseed.sh
+  - install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/show-me_landscape_lxd-preseed.sh /usr/local/bin/show-me_landscape_lxd-preseed.sh
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.pem /etc/ssl/certs/show-me_host.pem
   - install -o 0 -g 0 -m 0600 /opt/show-me/all/pki/show-me_host.key /etc/ssl/private/show-me_host.key
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/ssl/certs/show-me_ca.crt
