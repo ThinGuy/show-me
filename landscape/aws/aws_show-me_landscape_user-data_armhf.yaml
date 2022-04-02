@@ -28,21 +28,21 @@ apt:
       };
     };
   primary:
-    - arches: [amd64]
+    - arches: [armhf]
       uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
       search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
   security:
-    - arches: [amd64]
+    - arches: [armhf]
       uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
       search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
   sources_list: |
-    deb [arch=amd64] $PRIMARY $RELEASE main universe restricted multiverse
-    deb [arch=amd64] $PRIMARY $RELEASE-updates main universe restricted multiverse
-    deb [arch=amd64] $SECURITY $RELEASE-security main universe restricted multiverse
-    deb [arch=amd64] $PRIMARY $RELEASE-backports main universe restricted multiverse
+    deb [arch=armhf] $PRIMARY $RELEASE main universe restricted multiverse
+    deb [arch=armhf] $PRIMARY $RELEASE-updates main universe restricted multiverse
+    deb [arch=armhf] $SECURITY $RELEASE-security main universe restricted multiverse
+    deb [arch=armhf] $PRIMARY $RELEASE-backports main universe restricted multiverse
   sources:
     landscape-19.10-bionic.list:
-      source: 'deb [arch=amd64] http://ppa.launchpad.net/landscape/19.10/ubuntu bionic main'
+      source: 'deb [arch=armhf] http://ppa.launchpad.net/landscape/19.10/ubuntu bionic main'
       keyid: 6E85A86E4652B4E6
 bootcmd:
   - ['cloud-init-per', 'once', 'net0', 'echo', 'network: {config: disabled}', '>', '/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg']
@@ -96,7 +96,7 @@ runcmd:
   - sed -i -r "/127.0|$(hostname -s)/d;1s/^/127.0.1.1\ \ $(hostname -s).ubuntu-show.me\ $(hostname -s)\n127.0.0.1 localhost\n${DEFAULT_IP}\ \ $(hostname -s).ubuntu-show.me $(hostname -s)\n" /etc/hosts
   - export DEBIAN_FRONTEND=noninteractive
   - apt update -o "Acquire::ForceIPv4=true"
-  - export SHOW_ME_ARCH='amd64' SHOW_ME_APP='landscape' SHOW_ME_SUBSTRT='aws' SHOW_ME_GIT="https://github.com/ThinGuy/show-me.git"
+  - export SHOW_ME_ARCH='armhf' SHOW_ME_APP='landscape' SHOW_ME_SUBSTRT='aws' SHOW_ME_GIT="https://github.com/ThinGuy/show-me.git"
   - mkdir -p /etc/show-me/www /etc/show-me/log
   - "echo 'precedence ::ffff:0:0/96  100'|tee 1>/dev/null -a /etc/gai.conf"
   - systemctl restart systemd-networkd systemd-resolved procps.service

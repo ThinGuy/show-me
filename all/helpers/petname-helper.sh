@@ -1,13 +1,16 @@
 #!/bin/bash
-[[ $(dpkg -l petname|awk '/'${i}'/{print $1}') = ii ]] || { sudo apt install petname -yqf; }
-sudo mkdir -p /usr/local/share/petname2
+[[ $EUID -ne 0 ]] && { echo "This script must be run as root";exit 1; } || { true; }
+[[ $(dpkg -l petname|awk '/'${i}'/{print $1}') = ii ]] || { apt install petname -yqf; }
+export UBUNTU_DISTS_URL="http://us.archive.ubuntu.com/ubuntu/dists"
+declare -ag UBUNTU_SERIES_TMP=($(curl -sSlL ${UBUNTU_DISTS_URL} |awk -F">|<" -v R="${UBUNTU_DISTS_URL}" '/folder/{gsub(/\/$|-.*/,"",$13);print $13}'|sort -uV))
+declare -ag UBUNTU_SERIES=($(printf '%s\n' ${UBUNTU_SERIES_TMP[@]}|sort -uV|sed '/devel/d'|sed -r '/^trusty.*|^xenial*/!H;//p;$!d;g;s/\n//'))
+declare -ag UBUNTU_ALIASES=($(printf '%s\n' ${UBUNTU_SERIES[@]}|sed 's/.//2g'))
+unset UBUNTU_SERIES_TMP
+[[ -d /usr/local/lib/show-me/petname2 ]] || { install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/petname2/; }
+set -x
 for X in names adjectives adverbs;do
-  for Y in x b f i j;do
-    grep -REI '^'${Y}'' /usr/share/petname|awk -F':' '/'${X}'/{print $NF}'|sort -uV|tee 1>/dev/null /usr/local/share/petname2/${Y}-${X}.txt
+  for Y in ${UBUNTU_ALIASES[@]};do
+    grep -REI ^${Y} /usr/share/petname|awk -F':' '/'${X}'/{print $NF}'|sort -uV|tee 1>/dev/null /usr/local/lib/show-me/petname2/${Y}-${X}.txt
   done
 done
-sudo chown -R root:root /usr/local/share/petname2
-sudo chmod -R 0644 /usr/local/share/petname2/
-sudo chmod 755 /usr/local/share/petname2
 exit 0
-

@@ -107,7 +107,7 @@ runcmd:
   - if [ -f /opt/show-me/packer_1.8.0_linux_${SHOW_ME_ARCH}.zip ];then unzip -qq -o -d /usr/local/bin /opt/show-me/packer_1.8.0_linux_${SHOW_ME_ARCH}.zip;fi
   - cp -a /opt/show-me/maas/aws/helpers/usr/local/bin/petname-helper.sh /usr/local/bin/
   - cp -a /opt/show-me/maas/aws/helpers/usr/local/bin/add-clients.sh /usr/local/bin/
-  - cp -a /opt/show-me/maas/aws/helpers/etc/systemd/system/show-me-files.service /etc/systemd/system/
+  - cp -a /opt/show-me/maas/aws/helpers/etc/systemd/system/show-me-file.service /etc/systemd/system/
   - cp -a /opt/show-me/maas/aws/helpers/home/ubuntu/.ssh/id_rsa /home/ubuntu/.ssh/
   - cp -a /opt/show-me/maas/aws/helpers/home/ubuntu/.ssh/id_rsa.pub /home/ubuntu/.ssh/
   - cp -a /opt/show-me/maas/aws/helpers/home/ubuntu/maas.lynx /home/ubuntu/
@@ -129,7 +129,7 @@ runcmd:
   - echo "EDITOR=/usr/bin/vim.basic"|tee 1>/dev/null -a /etc/environment
   - . /etc/environment
   - if [ -f /usr/local/bin/petname-helper.sh ];then /usr/local/bin/petname-helper.sh;fi
-  - if [ -f /etc/systemd/system/show-me-files.service ];then systemctl daemon-reload;for S in enable start start status;do systemctl $S show-me-files.service;sleep .5;done;fi
+  - if [ -f /etc/systemd/system/show-me-file.service ];then systemctl daemon-reload;for S in enable start start status;do systemctl $S show-me-file.service;sleep .5;done;fi
   - if [ -f /etc/ssl/certs/show-me_ca.crt ];then ln -sf /etc/ssl/certs/show-me_ca.crt /etc/show-me/www/;fi
   - if [ -f /etc/ssl/certs/show-me_host.pem ];then ln -sf /etc/ssl/certs/show-me_host.pem /etc/show-me/www/;fi
   - export PG_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
