@@ -1,4 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# vim: set et ts=2 sw=2 filetype=bash :
+
 [[ -n ${1} && ${1,,} =~ -h ]] && { printf "${0##*/} [# of instances per release (ipr)]\n\nDefault ipr = 2\n\n";exit 2; }
 [[ -n ${1} && ${1} =~ ^[0-9]+$ ]] && { export MAXI=${1}; }
 [[ ${MAXI} -gt 10 ]] && { printf "Defaulting to safe max instances per release of 10\n"; } || { printf "Setting instances per release to ${MAXI}\n"; }
@@ -25,4 +27,4 @@ declare -ag ADJECTIVES=($(cat /usr/local/share/petname2/${A:0:1}-adjectives.txt)
     unset X Y NAME
   done
 done
-exit 0
+exit ${?}

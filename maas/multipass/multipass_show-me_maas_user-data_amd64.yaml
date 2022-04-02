@@ -12,7 +12,7 @@ fqdn: maas.ubuntu-show.me
 hostname: maas
 locale: en_US.UTF-8
 package_upgrade: true
-packages: [amtterm, build-essential, git, jq, lynx, landscape-client, maas-cli, maas-common, postgresql, postgresql-client, postgresql-common, software-properties-common, ssl-cert, tree, unzip, vim, wsmancli ]
+packages: [amtterm, build-essential, git, jq, lynx, landscape-client, maas-cli, maas-common, postgresql, postgresql-client, postgresql-commonm, software-properties-common, ssl-cert, tree, unzip, vim, wsmancli]
 apt:
   conf: |
     APT {
@@ -46,15 +46,9 @@ apt:
       keyid: 3AB6DCF1F234E78DAA9C104204E7FDC5684D4A1C
 bootcmd:
   - ['cloud-init-per', 'once', 'bc0', 'set', '-x']
-  - ['cloud-init-per', 'always', 'bc1', 'sysctl', '-w', 'net.ipv4.ip_forward=1']
-  - ['cloud-init-per', 'once', 'bc2', 'set', '-x']
-  - ['cloud-init-per', 'once', 'bc2', 'echo "precedence ::ffff:0:0/96  100"', '|', 'tee', '1>/dev/null', '-a', '/etc/gai.conf']
-  - ['cloud-init-per', 'once', 'net3', 'systemctl', 'restart', 'systemd-networkd', 'systemd-resolved', 'procps.service']
-  - ['cloud-init-per', 'once', 'apt0', 'export', 'DEBIAN_FRONTEND=noninteractive']
-  - ['cloud-init-per', 'once', 'apt1', 'apt-get', '--option=Acquire::ForceIPv4=true', 'update']
-  - ['cloud-init-per', 'once', 'apt2', 'apt-get', 'dist-upgrade', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
-  - ['cloud-init-per', 'once', 'apt3', 'apt-get', 'remove', 'lxd', 'lxd-client', '--auto-remove', '--purge', '--assume-yes', '--quiet', '--fix-broken', '--option=Acquire::ForceIPv4=true']
-  - ['cloud-init-per', 'once', 'net1', 'echo', 'network: {config: disabled}', '>', '/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg']
+  - ['cloud-init-per', 'once', 'net0', 'echo', 'network: {config: disabled}', '>', '/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg']
+  - ['cloud-init-per', 'once', 'net1', 'sysctl', '-w', 'net.ipv4.ip_forward=1']
+  - ['cloud-init-per', 'once', 'net2', 'echo "precedence ::ffff:0:0/96  100"', '|', 'tee', '1>/dev/null', '-a', '/etc/gai.conf']
   - |-
     cat <<-NETPLAN|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init.yaml
     network:
@@ -122,19 +116,26 @@ bootcmd:
             priority: 100
             stp: false
     NETPLAN
-  - ['cloud-init-per', 'once', 'net2', 'netplan', '--debug', 'generate']
-  - ['cloud-init-per', 'once', 'net3', 'netplan', '--debug', 'apply']
+  - ['cloud-init-per', 'once', 'net3', 'netplan', '--debug', 'generate']
   - ['cloud-init-per', 'once', 'net4', 'netplan', '--debug', 'apply']
-  - ['cloud-init-per', 'once', 'net5', 'systemctl', 'restart', 'systemd-networkd', 'systemd-resolved', 'procps.service']
-  - ['cloud-init-per', 'once', 'bc0', 'export', 'DEBIAN_FRONTEND=noninteractive']
+  - ['cloud-init-per', 'once', 'net5', 'netplan', '--debug', 'apply']
+  - ['cloud-init-per', 'once', 'net6', 'systemctl', 'restart', 'systemd-networkd', 'systemd-resolved', 'procps.service']
+  - ['cloud-init-per', 'once', 'apt0', 'export', 'DEBIAN_FRONTEND=noninteractive']
+  - ['cloud-init-per', 'once', 'apt1', 'apt-get', '--option=Acquire::ForceIPv4=true', 'update']
+  - ['cloud-init-per', 'once', 'apt2', 'apt-get', 'dist-upgrade', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
+  - ['cloud-init-per', 'once', 'apt3', 'apt-get', 'remove', 'lxd', 'lxd-client', '--auto-remove', '--purge', '--assume-yes', '--quiet', '--fix-broken', '--option=Acquire::ForceIPv4=true']
 runcmd:
   - set -x
   - export PNIC=br0
   - export DEFAULT_IP=$(ip -o -4 a show $(ip -o r l default|grep $PNIC|grep -m1 -oP "(?<=dev )[^ ]+")|grep -m1 -oP "(?<=inet )[^/]+")
-  - sed -i -r "/127.0|$(hostname -s)/d;1s/^/127.0.1.1\ \ $(hostname -s).ubuntu-show.me\ $(hostname -s)\n127.0.0.1 localhost\n${DEFAULT_IP}\ \ $(hostname -s).ubuntu-show.me $(hostname -s)\n" /etc/hosts
-  - export DEBIAN_FRONTEND=noninteractivea
+  - sed -i -r "/127.0|$(hostname -s)/d"
+  - sed -i -r "1s/^/127.0.0.1\tlocalhost\n${DEFAULT_IP}\t$(hostname -s).ubuntu-show.me $(hostname -s)\n/" /etc/hosts
+  - export DEBIAN_FRONTEND=noninteractive
   - apt update -o "Acquire::ForceIPv4=true"
-  - export SHOW_ME_ARCH='amd64' SHOW_ME_APP='maas' SHOW_ME_SUBSTRT='aws' SHOW_ME_GIT="https://github.com/ThinGuy/show-me.git"
+  - export SHOW_ME_ARCH='amd64'
+  - export SHOW_ME_APP='maas'
+  - export SHOW_ME_SUBSTRT='aws'
+  - export SHOW_ME_GIT="https://github.com/ThinGuy/show-me.git"
   - mkdir -p /etc/show-me/www /etc/show-me/log
   - "echo 'precedence ::ffff:0:0/96  100'|tee 1>/dev/null -a /etc/gai.conf"
   - systemctl restart systemd-networkd systemd-resolved procps.service
@@ -144,25 +145,27 @@ runcmd:
   - git clone https://github.com/canonical/packer-maas /opt/show-me/packer-maas
   - curl -fSlL -o /opt/show-me/packer_1.8.0_linux_amd64.zip "https://releases.hashicorp.com/packer/1.8.0/packer_1.8.0_linux_${SHOW_ME_ARCH}.zip"
   - if [ -f /opt/show-me/packer_1.8.0_linux_${SHOW_ME_ARCH}.zip ];then unzip -qq -o -d /usr/local/bin /opt/show-me/packer_1.8.0_linux_${SHOW_ME_ARCH}.zip;fi
-  - install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/petname-helper.sh /usr/local/bin/petname-helper.sh
-  - install -o 0 -g 0 -m 0644 /opt/show-me/all/helpers/show-me-file.service /etc/systemd/system/show-me-file.service
+  - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/petname-helper.sh /usr/local/bin/petname-helper.sh
   - install -o 0 -g 0 -m 0400 /opt/show-me/all/pki/ubuntu-show-me-id_rsa /home/$(id -un 1000)/.ssh/showme_rsa
   - install -o 0 -g 0 -m 0640 /opt/show-me/all/pki/ubuntu-show-me-id_rsa.pub /home/$(id -un 1000)/.ssh/showme_rsa.pub
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/ubuntu-show-me-id_rsa.pub /home/$(id -un 1000)/.ssh/authorized_keys
   - install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/petname2/
-  - install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/show-me_maas_lxd-preseed.sh /usr/local/bin/show-me_maas_lxd-preseed.sh
+  - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/show-me_maas_lxd-preseed.sh /usr/local/bin/show-me_maas_lxd-preseed.sh
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.pem /etc/ssl/certs/show-me_host.pem
   - install -o 0 -g 0 -m 0600 /opt/show-me/all/pki/show-me_host.key /etc/ssl/private/show-me_host.key
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/ssl/certs/show-me_ca.crt
+  - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/show-me_file-service_init.sh /usr/local/bin/show-me_file-service_init.sh
+  - if [ -f /usr/local/bin/show-me_file-service_init.sh ];/usr/local/bin/show-me_file-service_init.sh;fi
   - if [ -f /etc/ssl/certs/show-me_ca.crt ];then cp -a /etc/ssl/certs/show-me_ca.crt /usr/local/share/ca-certificates/show-me_ca.crt;fi
   - if [ -f /etc/ssl/certs/show-me_host.pem ];then ln -sf /etc/ssl/certs/show-me_ca.crt /etc/show-me/www/.;fi
   - update-ca-certificates --fresh --verbose
-  - if [ -f /etc/systemd/system/show-me-file.service ];then systemctl daemon-reload;for S in enable start start status;do systemctl $S show-me-file.service;sleep .5;done;fi
   - export PG_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export PG_DBHBA="/etc/postgresql/${PG_DBVER}/main/pg_hba.conf"
   - export PG_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export PG_DBHBA="/etc/postgresql/${PG_DBVER}/main/pg_hba.conf"
-  - export PG_DBHOST='maas.ubuntu-show.me' PG_DBUSER=postgres PG_DBNAME=postgres PG_DBPORT=5432
+  - export PG_DBHOST='maas.ubuntu-show.me'
+  - export PG_DBUSER=postgres
+  - export PG_DBNAME=postgres PG_DBPORT=5432
   - export PG_DBSSL_CRT=/etc/ssl/certs/show-me_ca.crt
   - export PG_DBSSL_PEM=/etc/ssl/certs/show-me_host.pem
   - export PG_DBSSL_KEY=/etc/ssl/private/show-me_host.key
@@ -174,15 +177,15 @@ runcmd:
   - su - postgres -c "psql postgres -c \"ALTER SYSTEM SET max_connections to '500';\""
   - su - postgres -c "psql postgres -c \"ALTER SYSTEM SET max_prepared_transactions to '500';\""
   - su - postgres -c 'psql -P pager=off  postgres -xtc "select name,setting from pg_settings where name SIMILAR TO '"'"'listen%|max%(con|prep)%|ssl|ssl_(ca|cert|key)%'"'"';"'
-  - export maas_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
-  - export maas_DBHBA="/etc/postgresql/${maas_DBVER}/main/pg_hba.conf"
-  - export maas_DBHOST='maas.ubuntu-show.me' maas_DBUSER=maas maas_DBNAME='maasdb' maas_DBPORT=5432
-  - export maas_DBPASS="$(env LANG=C LC_ALL=C tr 2>/dev/null -dc "[:alnum:]" < /dev/urandom|fold -w12|head -n1)"
-  - export maas_DBCON="postgres://${maas_DBUSER}:${maas_DBPASS}@${maas_DBHOST}:${maas_DBPORT}/${maas_DBNAME}"
-  - su - postgres -c 'psql -c "CREATE ROLE '${maas_DBUSER}' WITH SUPERUSER CREATEDB CREATEROLE LOGIN REPLICATION ENCRYPTED PASSWORD '"'"''${maas_DBPASS}''"'"';"'
-  - su - postgres -c 'psql -c "CREATE DATABASE '${maas_DBNAME}' WITH OWNER '"'"''${maas_DBUSER}''"'"';"'
-  - echo "${maas_DBHOST}:${maas_DBPORT}:${maas_DBNAME}:${maas_DBUSER}:${maas_DBPASS}"|su postgres -c 'tee 1>/dev/null /var/lib/postgresql/.pgpass.maas'
-  - printf '%-08s%-016s%-016s%-024s%s\n' host ${maas_DBNAME} ${maas_DBUSER} '::/0' md5 host ${maas_DBNAME} ${maas_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${maas_DBHBA}''
+  - export SSP_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
+  - export SSP_DBHBA="/etc/postgresql/${SSP_DBVER}/main/pg_hba.conf"
+  - export SSP_DBHOST='maas.ubuntu-show.me' SSP_DBUSER=maas SSP_DBNAME='maasdb' SSP_DBPORT=5432
+  - export SSP_DBPASS="$(env LANG=C LC_ALL=C tr 2>/dev/null -dc "[:alnum:]" < /dev/urandom|fold -w12|head -n1)"
+  - export SSP_DBCON="postgres://${SSP_DBUSER}:${SSP_DBPASS}@${SSP_DBHOST}:${SSP_DBPORT}/${SSP_DBNAME}"
+  - su - postgres -c 'psql -c "CREATE ROLE '${SSP_DBUSER}' WITH SUPERUSER CREATEDB CREATEROLE LOGIN REPLICATION ENCRYPTED PASSWORD '"'"''${SSP_DBPASS}''"'"';"'
+  - su - postgres -c 'psql -c "CREATE DATABASE '${SSP_DBNAME}' WITH OWNER '"'"''${SSP_DBUSER}''"'"';"'
+  - echo "${SSP_DBHOST}:${SSP_DBPORT}:${SSP_DBNAME}:${SSP_DBUSER}:${SSP_DBPASS}"|su postgres -c 'tee 1>/dev/null /var/lib/postgresql/.pgpass.maas'
+  - printf '%-08s%-016s%-016s%-024s%s\n' host ${SSP_DBNAME} ${SSP_DBUSER} '::/0' md5 host ${SSP_DBNAME} ${SSP_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${SSP_DBHBA}''
   - export SSP_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export SSP_DBHBA="/etc/postgresql/${SSP_DBVER}/main/pg_hba.conf"
   - export SSP_DBHOST=maas.ubuntu-show.me SSP_DBUSER=snap-proxy SSP_DBNAME='snap-proxy-db' SSP_DBPORT=5432
@@ -199,7 +202,10 @@ runcmd:
   - printf '%-08s%-016s%-016s%-024s%s\n' host ${SSP_DBNAME} ${SSP_DBUSER} '::/0' md5 host ${SSP_DBNAME} ${SSP_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${SSP_DBHBA}''
   - export CANDID_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export CANDID_DBHBA="/etc/postgresql/${CANDID_DBVER}/main/pg_hba.conf"
-  - export CANDID_DBHOST='maas.ubuntu-show.me' CANDID_DBUSER=candid CANDID_DBNAME='candiddb' CANDID_DBPORT=5432
+  - export CANDID_DBHOST='maas.ubuntu-show.me'
+  - export CANDID_DBUSER=candid
+  - export CANDID_DBNAME='candiddb'
+  - export CANDID_DBPORT=5432
   - export CANDID_DBPASS="$(env LANG=C LC_ALL=C tr 2>/dev/null -dc "[:alnum:]" < /dev/urandom|fold -w12|head -n1)"
   - export CANDID_DBCON="postgres://${CANDID_DBUSER}:${CANDID_DBPASS}@${CANDID_DBHOST}:${CANDID_DBPORT}/${CANDID_DBNAME}"
   - su - postgres -c 'psql -c "CREATE ROLE '${CANDID_DBUSER}' WITH SUPERUSER CREATEDB CREATEROLE LOGIN REPLICATION ENCRYPTED PASSWORD '"'"''${CANDID_DBPASS}''"'"';"'
@@ -208,7 +214,10 @@ runcmd:
   - printf '%-08s%-016s%-016s%-024s%s\n' host ${CANDID_DBNAME} ${CANDID_DBUSER} '::/0' md5 host ${CANDID_DBNAME} ${CANDID_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${CANDID_DBHBA}''
   - export RBAC_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export RBAC_DBHBA="/etc/postgresql/${RBAC_DBVER}/main/pg_hba.conf"
-  - export RBAC_DBHOST='maas.ubuntu-show.me' RBAC_DBUSER=rbac RBAC_DBNAME='rbacdb' RBAC_DBPORT=5432
+  - export RBAC_DBHOST='maas.ubuntu-show.me'
+  - export RBAC_DBUSER=rbac
+  - export RBAC_DBNAME='rbacdb'
+  - export RBAC_DBPORT=5432
   - export RBAC_DBPASS="$(env LANG=C LC_ALL=C tr 2>/dev/null -dc "[:alnum:]" < /dev/urandom|fold -w12|head -n1)"
   - export RBAC_DBCON="postgres://${RBAC_DBUSER}:${RBAC_DBPASS}@${RBAC_DBHOST}:${RBAC_DBPORT}/${RBAC_DBNAME}"
   - su - postgres -c 'psql -c "CREATE ROLE '${RBAC_DBUSER}' WITH SUPERUSER CREATEDB CREATEROLE LOGIN REPLICATION ENCRYPTED PASSWORD '"'"''${RBAC_DBPASS}''"'"';"'
@@ -216,7 +225,9 @@ runcmd:
   - echo "${RBAC_DBHOST}:${RBAC_DBPORT}:${RBAC_DBNAME}:${RBAC_DBUSER}:${RBAC_DBPASS}"|su postgres -c 'tee 1>/dev/null /var/lib/postgresql/.pgpass.rbac'
   - printf '%-08s%-016s%-016s%-024s%s\n' host ${RBAC_DBNAME} ${RBAC_DBUSER} '::/0' md5 host ${RBAC_DBNAME} ${RBAC_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${RBAC_DBHBA}''
   - export MAAS_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
-  - export MAAS_PROFILE="maas-admin" MAAS_PASSWORD="ubuntu" MAAS_URIPORT=5240
+  - export MAAS_PROFILE="maas-admin"
+  - export MAAS_PASSWORD="ubuntu"
+  - export MAAS_URIPORT=5240
   - export MAAS_FQDN='maas.ubuntu-show.me' MAAS_EMAIL='maas-admin@ubuntu-show.me' MAAS_IMPORTID='lp:craig-bender'
   - export MAAS_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export MAAS_DBHBA="/etc/postgresql/${MAAS_DBVER}/main/pg_hba.conf"
@@ -237,11 +248,9 @@ runcmd:
   - maas createadmin --username ${MAAS_PROFILE} --password ${MAAS_PASSWORD} --email ${MAAS_EMAIL} --ssh-import "${MAAS_IMPORTID}"
   - maas login ${MAAS_PROFILE} ${MAAS_URL} \$(sudo maas apikey --username=${MAAS_PROFILE})
   - su - $(id -un 1000) -c 'maas login '${MAAS_PROFILE}' '${MAAS_URL}' $(sudo maas apikey --username='${MAAS_PROFILE}')'
-  - if [ -f /usr/local/bin/show-me_maas_lxd-preseed.sh ];then /usr/local/bin/show-me_maas_lxd-preseed.sh;fi
-  - "lxc image copy ubuntu-daily:focal local: --copy-aliases --alias maas-controller-focal --auto-update --public"
-  - "lxc remote add min https://cloud-images.ubuntu.com/minimal/daily --protocol simplestreams --accept-certificate"
-  - "for I in $(lxc image list min: -cfl|awk '/more|CONTAIN/{print $4}'|sort -uV|sed '1h;1d;$!H;$!d;G');do ((lxc image copy min:${I} local: --alias maas-tgt-${I} --alias ${I}-min --auto-update --public) &);done"
   - if $(test -n "$(command 2>/dev/null -v lxd.lxc)");then su - $(id -un 1000) -c 'sudo snap refresh lxd --channel latest/stable';else su - $(id -un 1000) -c 'sudo snap install lxd';fi
   - if [ -f /usr/local/bin/show-me_maas_lxd-preseed.sh ];then /usr/local/bin/show-me_maas_lxd-preseed.sh;fi
-  - lxc remote add ubuntu-min "https://cloud-images.ubuntu.com/minimal/daily" --protocol simplestreams --accept-certificate
-  - "for I in $(lxc image list minimal: -cfl|awk '/more|CONTAIN/{print $4}'|sort -uV|sed -r '/^t.*|^x.*/!H;//p;$!d;g;s/\n//');do ((lxc image copy ubuntu-min:${I} local: --alias ${I} --auto-update --public) &);done"
+  - "lxc image copy ubuntu-daily:focal local: --copy-aliases --alias maas-controller-focal --auto-update --public"
+  - lxc remote add minimal "https://cloud-images.ubuntu.com/minimal/daily" --protocol simplestreams --accept-certificate
+  - "for I in $(lxc image list minimal: -cfl|awk '/more|CONTAIN/{print $4}'|sort -uV|sed -r '/^t.*|^x.*/!H;//p;$!d;g;s/\n//');do ((lxc image copy  minimal:${I} local: --alias ${I} --auto-update --public) &);done"
+  - if [ -f /usr/local/bin/show-me/finishing-script.sh ];then /usr/local/bin/show-me/finishing-script.sh;fi

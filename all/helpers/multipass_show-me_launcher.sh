@@ -1,4 +1,6 @@
-#!/usr/local/bin/bash
+#!/usr/bin/env bash
+# vim: set et ts=2 sw=2 filetype=bash :
+
 
 export PROG_DIR="$( cd $(dirname ${0})/../.. && pwd )"
 

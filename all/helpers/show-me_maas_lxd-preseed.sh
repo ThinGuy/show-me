@@ -1,4 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# vim: set et ts=2 sw=2 filetype=bash :
+[[ $EUID -ne 0 ]] && { echo "${0##*/} must be run as root or via sudo";exit 1; } || { true; }
+
 cat <<-PRESEED|sed -r 's/[ \t]+$//g'|lxd init --preseed -
 config:
   core.https_address: '[::]:8443'
@@ -737,3 +740,5 @@ profiles:
 projects: []
 cluster: null
 PRESEED
+
+exit ${?}

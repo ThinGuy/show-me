@@ -1,5 +1,8 @@
-#!/bin/bash
-[[ $EUID -ne 0 ]] && { echo "This script must be run as root";exit 1; } || { true; }
+#!/usr/bin/env bash
+# vim: set et ts=2 sw=2 filetype=bash :
+[[ $EUID -ne 0 ]] && { echo "${0##*/} must be run as root or via sudo";exit 1; } || { true; }
+
+
 [[ $(dpkg -l petname|awk '/'${i}'/{print $1}') = ii ]] || { apt install petname -yqf; }
 export UBUNTU_DISTS_URL="http://us.archive.ubuntu.com/ubuntu/dists"
 declare -ag UBUNTU_SERIES_TMP=($(curl -sSlL ${UBUNTU_DISTS_URL} |awk -F">|<" -v R="${UBUNTU_DISTS_URL}" '/folder/{gsub(/\/$|-.*/,"",$13);print $13}'|sort -uV))
