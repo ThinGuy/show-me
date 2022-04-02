@@ -128,7 +128,7 @@ runcmd:
   - set -x
   - export PNIC=br0
   - export DEFAULT_IP=$(ip -o -4 a show $(ip -o r l default|grep $PNIC|grep -m1 -oP "(?<=dev )[^ ]+")|grep -m1 -oP "(?<=inet )[^/]+")
-  - sed -i -r "/127.0|$(hostname -s)/d"
+  - sed -i -r "/127.0|$(hostname -s)/d" /etc/hosts
   - sed -i -r "1s/^/127.0.0.1\tlocalhost\n${DEFAULT_IP}\t$(hostname -s).ubuntu-show.me $(hostname -s)\n/" /etc/hosts
   - export DEBIAN_FRONTEND=noninteractive
   - apt update -o "Acquire::ForceIPv4=true"
@@ -156,7 +156,7 @@ runcmd:
   - install -o 0 -g 0 -m 0600 /opt/show-me/all/pki/show-me_host.key /etc/ssl/private/show-me_host.key
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/ssl/certs/show-me_ca.crt
   - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/show-me_file-service_init.sh /usr/local/bin/show-me_file-service_init.sh
-  - if [ -f /usr/local/bin/show-me_file-service_init.sh ];/usr/local/bin/show-me_file-service_init.sh;fi
+  - if [ -f /usr/local/bin/show-me_file-service_init.sh ];then /usr/local/bin/show-me_file-service_init.sh;fi
   - if [ -f /etc/ssl/certs/show-me_ca.crt ];then cp -a /etc/ssl/certs/show-me_ca.crt /usr/local/share/ca-certificates/show-me_ca.crt;fi
   - if [ -f /etc/ssl/certs/show-me_ca.crt ];then ln -sf /etc/ssl/certs/show-me_ca.crt /etc/ssl/certs/landscape_server_ca.crt;fi
   - if [ -f /etc/ssl/certs/show-me_host.pem ];then ln -sf /etc/ssl/certs/show-me_host.pem /etc/ssl/certs/landscape_server.pem;fi
