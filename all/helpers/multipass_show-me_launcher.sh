@@ -1,6 +1,19 @@
 #!/usr/local/bin/bash
 
+export PROG_DIR="$( cd $(dirname ${0})/../.. && pwd )"
+
+export LOG="/tmp/$(basename  ${x//\.sh/.log})"
+[[ -f $LOG ]] || { install -o $(id -un $USER) -g $(id -gn $USER) -m 0644 -d ${LOG}; }
+{
 P=$(uname);export PLAT=${P,,}
+
+export SHOW_ME_APP=${1:-landscape} SHOW_ME_SUBSTR=multipass SHOW_ME_GIT="https://github.com/ThinGuy/show-me.git"
+[[ ${SHOW_ME_APP,,} =~ landscape ]] && { declare -ag SHOW_ME_OS=(bionic);export SHOW_ME_REC_OS=${SHOW_ME_OS[0]};export SHOW_ME_RAM='4096M' SHOW_ME_CPU='4' SHOW_ME_VHD='20G'; }
+[[ ${SHOW_ME_APP,,} =~ maas ]] && { declare -ag SHOW_ME_OS=(focal jammy);export SHOW_ME_REC_OS=${SHOW_ME_OS[0]};export SHOW_ME_RAM='4096M' SHOW_ME_CPU='4' SHOW_ME_VHD='30G'; }
+[[ ${PLAT} = darwin ]] && { [[ $(uname -m) = x86_64 ]] && { SHOW_ME_ARCH=$(uname -m|sed 's/x86_/amd/'); }; }
+[[ ${PLAT} = linux ]]  && { export SHOW_ME_DIST=$(/bin/grep -oP '(?<=^ID=)[^$]+' /etc/os-release); }
+[[ ${SHOW_ME_DIST,,} = ubuntu ]] && { export SHOW_ME_ARCH=$(dpkg --print-architecture); }
+
 #macOS
 #
 #Recommend installing homebrew
@@ -33,8 +46,8 @@ P=$(uname);export PLAT=${P,,}
 
 export SHOW_ME_APP=${1:-landscape}
 
-[[ ${SHOW_ME_APP,,} =~ landscape ]] && { declare -ag SM_OS=(bionic);export SM_REC_OS=${SM_OS[0]};export SM_RAM='4096M' SM_CPU='4' SM_VHD='20G'; }
-[[ ${SHOW_ME_APP,,} =~ maas ]] && { declare -ag SM_OS=(focal jammy);export SM_REC_OS=${SM_OS[0]};export SM_RAM='4096M' SM_CPU='4' SM_VHD='30G'; }
+[[ ${SHOW_ME_APP,,} =~ landscape ]] && { declare -ag SHOW_ME_OS=(bionic);export SHOW_ME_REC_OS=${SHOW_ME_OS[0]};export SHOW_ME_RAM='4096M' SHOW_ME_CPU='4' SHOW_ME_VHD='20G'; }
+[[ ${SHOW_ME_APP,,} =~ maas ]] && { declare -ag SHOW_ME_OS=(focal jammy);export SHOW_ME_REC_OS=${SHOW_ME_OS[0]};export SHOW_ME_RAM='4096M' SHOW_ME_CPU='4' SHOW_ME_VHD='30G'; }
 
 
 mpsh (){
@@ -67,14 +80,21 @@ mpip-check() {
   [[ $MPIP =~ $V4CIDR_REGX ]] || [[ $MPIP =~ $V4ADDR_REGX ]] && { echo valid;return 0; } || { echo invalid;return 1; }
 };export -f mpip-check
 
+[[ ${PLAT} = darwin && -z $(sudo multipass 2>/dev/null get local.bridged-network) ]] && { printf "\e[4G\e[0;1;38;2;255;0;0mERROR\e[0m Multipass not configured for bridged networking.  exiting";exit 1; }
 
 
 [[ ${PLAT} = darwin ]] && { export TPUT='tput'; } || { export TPUT='tput -x'; }
 printf '%s\n' smcup rmam civis clear|$TPUT -S -
 stty -echo
 trap 'reset ; stty echo;printf '"'"'%s\n'"'"' rmcup smam cnorm|tput -S - ; trap - INT TERM EXIT ; [[ -n ${FUNCNAME} ]] && return || exit ; trap - INT TERM EXIT;' INT TERM EXIT
+
+export CLOUD_INIT="${PROG_DIR}/${SHOW_ME_APP,,}/${SHOW_ME_SUBSTR,,}/${SHOW_ME_SUBSTR,,}_show-me_${SHOW_ME_APP}_user-data_${SHOW_ME_ARCH,,}.yaml"
+[[ ! -f ${CLOUD_INIT} ]] && { printf "\n\e[4G\e[0;1;38;2;255;0;0mERROR\e[0m: Could not find the cloud-init file \"\e[0;1;38;2;255;200;0m${CLOUD_INIT##*/}\e[0m\".\n\e[11GExpected to find it in in: ${CLOUD_INIT%/*}.\n\n\e[11G\e[0;1;38;2;255;200;0mExiting\e[0m\n\n";exit 1; }
+
+
 printf "\e[2G\e[0;1;38;2;255;255;255mStarting your \"Show Me ${SHOW_ME_APP^} Demo\"\e[0,\n\n";
-[[ ${PLAT} = darwin && -z $(sudo multipass 2>/dev/null get local.bridged-network) ]] && { printf "\e[4G\e[0;1;38;2;255;0;0mERROR\e[0m Multipass not configured for bridged networking.  exiting";exit 1; }
+
+
 [[ -n $(multipass 2>/dev/null list|grep -o ${SHOW_ME_APP,,}) ]] && { printf "\e[4G- Deleting existing \"Show Me ${SHOW_ME_APP^} Demo\"  Please wait...\n";multipass delete ${SHOW_ME_APP,,}; export MP_PURGE=true; } || { export MP_PURGE=false; }
 [[ ${MP_PURGE} = true ]] && { printf "\e[4G- Purging just deleted \"Show Me ${SHOW_ME_APP^} Demo...\n";multipass purge; } || { true; }
 printf "\e[4G- Launching your \"Show Me ${SHOW_ME_APP^} Demo\"  Please wait...\n"
@@ -88,14 +108,13 @@ export MP_IP=$(multipass list|awk '/'${SHOW_ME_APP,,}'.*Running/{print $3}')
 [[ ${MP_IP} = "N/A" ]] || { sudo sed -i.pre-${SHOW_ME_APP,,} "/${SHOW_ME_APP,,}.ubuntu-show.me/d" /etc/hosts; }
 [[ ${MP_IP} = "N/A" ]] || { echo "${MP_IP}  ${SHOW_ME_APP,,}.ubuntu-show.me ${SHOW_ME_APP,,}"|sudo tee 1>/dev/null -a /etc/hosts; }
 export MP_IP=$(multipass list|awk '/'${SHOW_ME_APP,,}'.*Running/{print $3}')
-read -erp CONT
-trap - INT TERM EXIT
-printf '%s\n' sgr0 rmcup smam cnorm|$TPUT -S -
-stty echo
+
 [[ ${MP_IP} = "N/A" ]] || { echo "Ubuntu-Show-Me-related files available on http://${MP_IP}:9999"; }
 [[ ${MP_IP} = "N/A" ]] || { echo "Landscape Server available on https://${SHOW_ME_APP,,}.ubuntu-show.me"; }
 [[ ${MP_IP} = "N/A" ]] || { curl -sslL http://${MP_IP}:9999/show-me_ca.crt --output $HOME/show-me_ca.crt; }
 [[ ! ${MP_IP} = "N/A" && -f $HOME/show-me_ca.crt ]] && { sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain $HOME/show-me_ca.crt; }
 [[ ${MP_IP} = "N/A" ]] && { printf "Multipass Could not get an ip address.  Exiting";exit 1; }
-
-
+} 2>&1|tee -a ${LOG}
+trap - INT TERM EXIT
+printf '%s\n' sgr0 rmcup smam cnorm|$TPUT -S -
+stty echo
