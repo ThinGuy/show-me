@@ -48,7 +48,8 @@ bootcmd:
   - ['cloud-init-per', 'once', 'bc0', 'set', '-x']
   - ['cloud-init-per', 'once', 'net0', 'echo', 'network: {config: disabled}', '>', '/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg']
   - ['cloud-init-per', 'once', 'net1', 'sysctl', '-w', 'net.ipv4.ip_forward=1']
-  - ['cloud-init-per', 'once', 'net2', 'echo "precedence ::ffff:0:0/96  100"', '|', 'tee', '1>/dev/null', '-a', '/etc/gai.conf']
+  - ['cloud-init-per', 'once', 'net3', 'echo "precedence ::ffff:0:0/96  100"', '|', 'tee', '1>/dev/null', '-a', '/etc/gai.conf']
+  - ['cloud-init-per', 'once', 'net4', 'systemctl', 'restart', 'systemd-networkd', 'systemd-resolved', 'procps.service']
   - |-
     cat <<-NETPLAN|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init.yaml
     network:
@@ -116,10 +117,11 @@ bootcmd:
             priority: 100
             stp: false
     NETPLAN
-  - ['cloud-init-per', 'once', 'net3', 'netplan', '--debug', 'generate']
-  - ['cloud-init-per', 'once', 'net4', 'netplan', '--debug', 'apply']
-  - ['cloud-init-per', 'once', 'net5', 'netplan', '--debug', 'apply']
-  - ['cloud-init-per', 'once', 'net6', 'systemctl', 'restart', 'systemd-networkd', 'systemd-resolved', 'procps.service']
+  - ['cloud-init-per', 'once', 'net5', 'echo', 'network: {config: disabled}', '>', '/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg']
+  - ['cloud-init-per', 'once', 'net6', 'netplan', '--debug', 'generate']
+  - ['cloud-init-per', 'once', 'net7', 'systemctl', 'restart', 'systemd-networkd', 'systemd-resolved', 'procps.service']
+  - ['cloud-init-per', 'once', 'net8', 'netplan', '--debug', 'apply']
+  - ['cloud-init-per', 'once', 'net9', 'netplan', '--debug', 'apply']
   - ['cloud-init-per', 'once', 'apt0', 'export', 'DEBIAN_FRONTEND=noninteractive']
   - ['cloud-init-per', 'once', 'apt1', 'apt-get', '--option=Acquire::ForceIPv4=true', 'update']
   - ['cloud-init-per', 'once', 'apt2', 'apt-get', 'dist-upgrade', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
