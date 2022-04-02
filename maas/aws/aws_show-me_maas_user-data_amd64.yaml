@@ -237,7 +237,11 @@ runcmd:
   - maas init --force --mode=region --maas-url="${MAAS_URL}" --database-host=${MAAS_DBHOST} --database-name=${MAAS_DBNAME} --database-user=${MAAS_DBUSER} --database-pass=${MAAS_DBPASS} --database-port=${MAAS_DBPORT}
   - maas createadmin --username ${MAAS_PROFILE} --password ${MAAS_PASSWORD} --email ${MAAS_EMAIL} --ssh-import "${MAAS_IMPORTID}"
   - maas login ${MAAS_PROFILE} ${MAAS_URL} \$(sudo maas apikey --username=${MAAS_PROFILE})
+<<<<<<< HEAD
   - su - $(id -un 1000) -c 'maas login '${MAAS_PROFILE}' '${MAAS_URL}' $(sudo maas apikey --username='${MAAS_PROFILE}')'
+=======
+  #- if [ -f /home/$(id -un 1000)/maas.lynx ];then lynx -cmd_script=/home/$(id -un 1000)/maas.lynx https://$(hostname -f);fi
+>>>>>>> 930f88c8a5830b3b00ff02b6248e5f2e088d093a
   - if [ -f /usr/local/bin/show-me_maas_lxd-preseed.sh ];then /usr/local/bin/show-me_maas_lxd-preseed.sh;fi
   - "lxc image copy ubuntu-daily:focal local: --copy-aliases --alias maas-controller-focal --auto-update --public"
   - "lxc remote add min https://cloud-images.ubuntu.com/minimal/daily --protocol simplestreams --accept-certificate"
