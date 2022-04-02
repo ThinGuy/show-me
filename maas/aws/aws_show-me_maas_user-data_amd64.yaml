@@ -210,7 +210,6 @@ runcmd:
   - maas init --force --mode=region --maas-url="${MAAS_URL}" --database-host=${MAAS_DBHOST} --database-name=${MAAS_DBNAME} --database-user=${MAAS_DBUSER} --database-pass=${MAAS_DBPASS} --database-port=${MAAS_DBPORT}
   - maas createadmin --username ${MAAS_PROFILE} --password ${MAAS_PASSWORD} --email ${MAAS_EMAIL} --ssh-import "${MAAS_IMPORTID}"
   - maas login ${MAAS_PROFILE} ${MAAS_URL} \$(sudo maas apikey --username=${MAAS_PROFILE})
-  - su - $(id -un 1000) -c 'maas login '${MAAS_PROFILE}' '${MAAS_URL}' $(sudo maas apikey --username='${MAAS_PROFILE}')'  - if [ -f /etc/lynx/lynx.cfg ];then sed -i -r "s/^#?(FORCE_SSL_COOKIE.*:|SET_COOKIE.*:|ACCEPT_ALL_COOKIE.*:)[^$]*/\1TRUE/;s/^#?(COOKIE_LOOSE_INVALID_DOMAINS:)[^$]*/\1$(hostname -I|sed -r 's/\x20/\n/g'|sed -r '/:|^$/d;1s/^/'$(hostname -d)'\n/g'|paste -sd,)/;s/^#?(FORCE_COOKIE_PROMPT.*:|FORCE_SSL_PROMPT.*:)[^$]*/\1yes/;s/^#?(COOKIE_.*FILE:.*$)/\1/" /etc/lynx/lynx.cfg;fi
   #- if [ -f /home/$(id -un 1000)/maas.lynx ];then lynx -cmd_script=/home/$(id -un 1000)/maas.lynx https://$(hostname -f);fi
   - if [ -f /usr/local/bin/show-me_maas_lxd-preseed.sh ];then /usr/local/bin/show-me_maas_lxd-preseed.sh;fi
   - "lxc image copy ubuntu-daily:focal local: --copy-aliases --alias maas-controller-focal --auto-update --public"
