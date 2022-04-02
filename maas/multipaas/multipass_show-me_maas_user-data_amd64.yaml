@@ -12,7 +12,7 @@ fqdn: maas.ubuntu-show.me
 hostname: maas
 locale: en_US.UTF-8
 package_upgrade: true
-packages: [git, jq, lynx, maas-client, maas-cli, maas-common, ssl-cert, tree, unzip, vim ]
+packages: [amtterm, build-essential, git, jq, lynx, landscape-client, maas-cli, maas-common, postgresql, postgresql-client, postgresql-common, software-properties-common, ssl-cert, tree, unzip, vim, wsmancli ]
 apt:
   conf: |
     APT {
@@ -29,12 +29,12 @@ apt:
     };
   primary:
     - arches: [amd64]
-      uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
-      search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
+      uri: 'http://us.archive.ubuntu.com/ubuntu'
+      search: ['http://us.archive.ubuntu.com/ubuntu', 'http://us.archive.ubuntu.com/ubuntu']
   security:
     - arches: [amd64]
-      uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
-      search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
+      uri: 'http://us.archive.ubuntu.com/ubuntu'
+      search: ['http://us.archive.ubuntu.com/ubuntu', 'http://us.archive.ubuntu.com/ubuntu']
   sources_list: |
     deb [arch=amd64] $PRIMARY $RELEASE main universe restricted multiverse
     deb [arch=amd64] $PRIMARY $RELEASE-updates main universe restricted multiverse
@@ -127,7 +127,6 @@ bootcmd:
   - ['cloud-init-per', 'once', 'net4', 'netplan', '--debug', 'apply']
   - ['cloud-init-per', 'once', 'net5', 'systemctl', 'restart', 'systemd-networkd', 'systemd-resolved', 'procps.service']
   - ['cloud-init-per', 'once', 'bc0', 'export', 'DEBIAN_FRONTEND=noninteractive']
-
 runcmd:
   - set -x
   - export PNIC=br0
@@ -233,7 +232,7 @@ runcmd:
   - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
   - for P in maas SSP RBAC CANDID MAAS PG SHOW_ME;do set|grep "^${P}_";done|sort -uV|tee ~/.show-me.rc|su - $(id -un 1000) -c 'tee ~/.show-me.rc'|su - postgres -c 'tee ~/.show-me.rc'
   - echo 'for RC in $(find ~/ -maxdepth 1 -type f -iname ".show-me*.rc");do source $RC;done'|tee -a /root/.bashrc |su - $(id -un 1000) -c 'tee -a ~/.bashrc'|su - postgres -c 'tee -a ~/.bashrc'
-    - apt install maas -o Acquire::ForceIPv4=true -yqf --auto-remove --purge
+  - apt install maas -o Acquire::ForceIPv4=true -yqf --auto-remove --purge
   - maas init --force --mode=region --maas-url="${MAAS_URL}" --database-host=${MAAS_DBHOST} --database-name=${MAAS_DBNAME} --database-user=${MAAS_DBUSER} --database-pass=${MAAS_DBPASS} --database-port=${MAAS_DBPORT}
   - maas createadmin --username ${MAAS_PROFILE} --password ${MAAS_PASSWORD} --email ${MAAS_EMAIL} --ssh-import "${MAAS_IMPORTID}"
   - maas login ${MAAS_PROFILE} ${MAAS_URL} \$(sudo maas apikey --username=${MAAS_PROFILE})
@@ -246,4 +245,3 @@ runcmd:
   - if [ -f /usr/local/bin/show-me_maas_lxd-preseed.sh ];then /usr/local/bin/show-me_maas_lxd-preseed.sh;fi
   - lxc remote add ubuntu-min "https://cloud-images.ubuntu.com/minimal/daily" --protocol simplestreams --accept-certificate
   - "for I in $(lxc image list minimal: -cfl|awk '/more|CONTAIN/{print $4}'|sort -uV|sed -r '/^t.*|^x.*/!H;//p;$!d;g;s/\n//');do ((lxc image copy ubuntu-min:${I} local: --alias ${I} --auto-update --public) &);done"
-  - if $[ -f /usr/local/bin/add-maas-clients.sh];then /usr/local/bin/add-maas-clients.sh;fi
