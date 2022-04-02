@@ -145,6 +145,7 @@ runcmd:
   - su - postgres -c "psql postgres -c \"ALTER SYSTEM SET max_connections to '500';\""
   - su - postgres -c "psql postgres -c \"ALTER SYSTEM SET max_prepared_transactions to '500';\""
   - su - postgres -c 'psql -P pager=off  postgres -xtc "select name,setting from pg_settings where name SIMILAR TO '"'"'listen%|max%(con|prep)%|ssl|ssl_(ca|cert|key)%'"'"';"'
+  - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
   - export LANDSCAPE_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export LANDSCAPE_DBHBA="/etc/postgresql/${LANDSCAPE_DBVER}/main/pg_hba.conf"
   - export LANDSCAPE_DBHOST='maas.ubuntu-show.me' LANDSCAPE_DBUSER=landscape LANDSCAPE_DBNAME='landscapedb' LANDSCAPE_DBPORT=5432
