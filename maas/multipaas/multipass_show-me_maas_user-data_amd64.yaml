@@ -9,10 +9,10 @@ manage_etc_hosts: false
 preserve_hostname: true
 prefer_fqdn_over_hostname: true
 fqdn: maas.ubuntu-show.me
-hostname: landscape
+hostname: maas
 locale: en_US.UTF-8
 package_upgrade: true
-packages: [git, jq, lynx, landscape-client, maas-cli, maas-common, ssl-cert, tree, unzip, vim ]
+packages: [git, jq, lynx, maas-client, maas-cli, maas-common, ssl-cert, tree, unzip, vim ]
 apt:
   conf: |
     APT {
@@ -175,15 +175,15 @@ runcmd:
   - su - postgres -c "psql postgres -c \"ALTER SYSTEM SET max_connections to '500';\""
   - su - postgres -c "psql postgres -c \"ALTER SYSTEM SET max_prepared_transactions to '500';\""
   - su - postgres -c 'psql -P pager=off  postgres -xtc "select name,setting from pg_settings where name SIMILAR TO '"'"'listen%|max%(con|prep)%|ssl|ssl_(ca|cert|key)%'"'"';"'
-  - export LANDSCAPE_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
-  - export LANDSCAPE_DBHBA="/etc/postgresql/${LANDSCAPE_DBVER}/main/pg_hba.conf"
-  - export LANDSCAPE_DBHOST='maas.ubuntu-show.me' LANDSCAPE_DBUSER=landscape LANDSCAPE_DBNAME='landscapedb' LANDSCAPE_DBPORT=5432
-  - export LANDSCAPE_DBPASS="$(env LANG=C LC_ALL=C tr 2>/dev/null -dc "[:alnum:]" < /dev/urandom|fold -w12|head -n1)"
-  - export LANDSCAPE_DBCON="postgres://${LANDSCAPE_DBUSER}:${LANDSCAPE_DBPASS}@${LANDSCAPE_DBHOST}:${LANDSCAPE_DBPORT}/${LANDSCAPE_DBNAME}"
-  - su - postgres -c 'psql -c "CREATE ROLE '${LANDSCAPE_DBUSER}' WITH SUPERUSER CREATEDB CREATEROLE LOGIN REPLICATION ENCRYPTED PASSWORD '"'"''${LANDSCAPE_DBPASS}''"'"';"'
-  - su - postgres -c 'psql -c "CREATE DATABASE '${LANDSCAPE_DBNAME}' WITH OWNER '"'"''${LANDSCAPE_DBUSER}''"'"';"'
-  - echo "${LANDSCAPE_DBHOST}:${LANDSCAPE_DBPORT}:${LANDSCAPE_DBNAME}:${LANDSCAPE_DBUSER}:${LANDSCAPE_DBPASS}"|su postgres -c 'tee 1>/dev/null /var/lib/postgresql/.pgpass.landscape'
-  - printf '%-08s%-016s%-016s%-024s%s\n' host ${LANDSCAPE_DBNAME} ${LANDSCAPE_DBUSER} '::/0' md5 host ${LANDSCAPE_DBNAME} ${LANDSCAPE_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${LANDSCAPE_DBHBA}''
+  - export maas_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
+  - export maas_DBHBA="/etc/postgresql/${maas_DBVER}/main/pg_hba.conf"
+  - export maas_DBHOST='maas.ubuntu-show.me' maas_DBUSER=maas maas_DBNAME='maasdb' maas_DBPORT=5432
+  - export maas_DBPASS="$(env LANG=C LC_ALL=C tr 2>/dev/null -dc "[:alnum:]" < /dev/urandom|fold -w12|head -n1)"
+  - export maas_DBCON="postgres://${maas_DBUSER}:${maas_DBPASS}@${maas_DBHOST}:${maas_DBPORT}/${maas_DBNAME}"
+  - su - postgres -c 'psql -c "CREATE ROLE '${maas_DBUSER}' WITH SUPERUSER CREATEDB CREATEROLE LOGIN REPLICATION ENCRYPTED PASSWORD '"'"''${maas_DBPASS}''"'"';"'
+  - su - postgres -c 'psql -c "CREATE DATABASE '${maas_DBNAME}' WITH OWNER '"'"''${maas_DBUSER}''"'"';"'
+  - echo "${maas_DBHOST}:${maas_DBPORT}:${maas_DBNAME}:${maas_DBUSER}:${maas_DBPASS}"|su postgres -c 'tee 1>/dev/null /var/lib/postgresql/.pgpass.maas'
+  - printf '%-08s%-016s%-016s%-024s%s\n' host ${maas_DBNAME} ${maas_DBUSER} '::/0' md5 host ${maas_DBNAME} ${maas_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${maas_DBHBA}''
   - export SSP_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export SSP_DBHBA="/etc/postgresql/${SSP_DBVER}/main/pg_hba.conf"
   - export SSP_DBHOST=maas.ubuntu-show.me SSP_DBUSER=snap-proxy SSP_DBNAME='snap-proxy-db' SSP_DBPORT=5432
@@ -231,7 +231,7 @@ runcmd:
   - cp -a /var/lib/postgresql/.pgpass* /home/$(id -un 1000)/;chown -R "$(id -un 1000):$(id -un 1000)" /home/$(id -un 1000)/\.*
   - printf '%-08s%-016s%-016s%-024s%s\n' host ${MAAS_DBNAME} ${MAAS_DBUSER} '::/0' md5 host ${MAAS_DBNAME} ${MAAS_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${MAAS_DBHBA}''
   - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
-  - for P in LANDSCAPE SSP RBAC CANDID MAAS PG SHOW_ME;do set|grep "^${P}_";done|sort -uV|tee ~/.show-me.rc|su - $(id -un 1000) -c 'tee ~/.show-me.rc'|su - postgres -c 'tee ~/.show-me.rc'
+  - for P in maas SSP RBAC CANDID MAAS PG SHOW_ME;do set|grep "^${P}_";done|sort -uV|tee ~/.show-me.rc|su - $(id -un 1000) -c 'tee ~/.show-me.rc'|su - postgres -c 'tee ~/.show-me.rc'
   - echo 'for RC in $(find ~/ -maxdepth 1 -type f -iname ".show-me*.rc");do source $RC;done'|tee -a /root/.bashrc |su - $(id -un 1000) -c 'tee -a ~/.bashrc'|su - postgres -c 'tee -a ~/.bashrc'
     - apt install maas -o Acquire::ForceIPv4=true -yqf --auto-remove --purge
   - maas init --force --mode=region --maas-url="${MAAS_URL}" --database-host=${MAAS_DBHOST} --database-name=${MAAS_DBNAME} --database-user=${MAAS_DBUSER} --database-pass=${MAAS_DBPASS} --database-port=${MAAS_DBPORT}
@@ -246,4 +246,4 @@ runcmd:
   - if [ -f /usr/local/bin/show-me_maas_lxd-preseed.sh ];then /usr/local/bin/show-me_maas_lxd-preseed.sh;fi
   - lxc remote add ubuntu-min "https://cloud-images.ubuntu.com/minimal/daily" --protocol simplestreams --accept-certificate
   - "for I in $(lxc image list minimal: -cfl|awk '/more|CONTAIN/{print $4}'|sort -uV|sed -r '/^t.*|^x.*/!H;//p;$!d;g;s/\n//');do ((lxc image copy ubuntu-min:${I} local: --alias ${I} --auto-update --public) &);done"
-  - if $[ -f /usr/local/bin/add-landscape-clients.sh];then /usr/local/bin/add-landscape-clients.sh;fi
+  - if $[ -f /usr/local/bin/add-maas-clients.sh];then /usr/local/bin/add-maas-clients.sh;fi
