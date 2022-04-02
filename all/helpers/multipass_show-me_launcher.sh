@@ -10,8 +10,8 @@ P=$(uname);export PLAT=${P,,}
 export SHOW_ME_APP=${1:-landscape} SHOW_ME_SUBSTR=multipass SHOW_ME_GIT="https://github.com/ThinGuy/show-me.git"
 [[ ${SHOW_ME_APP,,} =~ landscape ]] && { declare -ag SHOW_ME_OS=(bionic);export SHOW_ME_REC_OS=${SHOW_ME_OS[0]};export SHOW_ME_RAM='4096M' SHOW_ME_CPU='4' SHOW_ME_VHD='20G'; }
 [[ ${SHOW_ME_APP,,} =~ maas ]] && { declare -ag SHOW_ME_OS=(focal jammy);export SHOW_ME_REC_OS=${SHOW_ME_OS[0]};export SHOW_ME_RAM='4096M' SHOW_ME_CPU='4' SHOW_ME_VHD='30G'; }
-[[ ${PLAT} = darwin ]] && { [[ $(uname -m) = x86_64 ]] && { SHOW_ME_ARCH=$(uname -m|sed 's/x86_/amd/'); }; }
-[[ ${PLAT} = linux ]]  && { export SHOW_ME_DIST=$(/bin/grep -oP '(?<=^ID=)[^$]+' /etc/os-release); }
+[[ ${PLAT,,} = darwin ]] && { [[ $(uname -m) = x86_64 ]] && { SHOW_ME_ARCH=$(uname -m|sed 's/x86_/amd/'); }; }
+[[ ${PLAT,,} = linux ]]  && { export SHOW_ME_DIST=$(/bin/grep -oP '(?<=^ID=)[^$]+' /etc/os-release); }
 [[ ${SHOW_ME_DIST,,} = ubuntu ]] && { export SHOW_ME_ARCH=$(dpkg --print-architecture); }
 
 #macOS
@@ -49,6 +49,7 @@ export SHOW_ME_APP=${1:-landscape}
 [[ ${SHOW_ME_APP,,} =~ landscape ]] && { declare -ag SHOW_ME_OS=(bionic);export SHOW_ME_REC_OS=${SHOW_ME_OS[0]};export SHOW_ME_RAM='4096M' SHOW_ME_CPU='4' SHOW_ME_VHD='20G'; }
 [[ ${SHOW_ME_APP,,} =~ maas ]] && { declare -ag SHOW_ME_OS=(focal jammy);export SHOW_ME_REC_OS=${SHOW_ME_OS[0]};export SHOW_ME_RAM='4096M' SHOW_ME_CPU='4' SHOW_ME_VHD='30G'; }
 
+[[ ${PLAT,,} = darwin ]] && { export TPUT_ARGS=''; } || { export TPUT_ARGS='-x'; }
 
 mpsh (){
 	multipass shell ${SHOW_ME_APP,,};
@@ -80,11 +81,11 @@ mpip-check() {
   [[ $MPIP =~ $V4CIDR_REGX ]] || [[ $MPIP =~ $V4ADDR_REGX ]] && { echo valid;return 0; } || { echo invalid;return 1; }
 };export -f mpip-check
 
-[[ ${PLAT} = darwin && -z $(sudo multipass 2>/dev/null get local.bridged-network) ]] && { printf "\e[4G\e[0;1;38;2;255;0;0mERROR\e[0m Multipass not configured for bridged networking.  exiting";exit 1; }
+[[ ${PLAT,,} = darwin && -z $(sudo multipass 2>/dev/null get local.bridged-network) ]] && { printf "\e[4G\e[0;1;38;2;255;0;0mERROR\e[0m Multipass not configured for bridged networking.  exiting";exit 1; }
 
 
-[[ ${PLAT} = darwin ]] && { export TPUT='tput'; } || { export TPUT='tput -x'; }
-printf '%s\n' smcup rmam civis clear|$TPUT -S -
+
+printf '%s\n' smcup rmam civis clear|tput ${TPUT_ARGS} -S -
 stty -echo
 trap 'reset ; stty echo;printf '"'"'%s\n'"'"' rmcup smam cnorm|tput -S - ; trap - INT TERM EXIT ; [[ -n ${FUNCNAME} ]] && return || exit ; trap - INT TERM EXIT;' INT TERM EXIT
 
@@ -116,5 +117,5 @@ export MP_IP=$(multipass list|awk '/'${SHOW_ME_APP,,}'.*Running/{print $3}')
 [[ ${MP_IP} = "N/A" ]] && { printf "Multipass Could not get an ip address.  Exiting";exit 1; }
 } 2>&1|tee -a ${LOG}
 trap - INT TERM EXIT
-printf '%s\n' sgr0 rmcup smam cnorm|$TPUT -S -
+printf '%s\n' sgr0 rmcup smam cnorm|tput -S -
 stty echo
