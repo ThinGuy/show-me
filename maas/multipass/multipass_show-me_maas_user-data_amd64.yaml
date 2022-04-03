@@ -158,7 +158,7 @@ runcmd:
   - install -o 0 -g 0 -m 0600 /opt/show-me/all/pki/show-me_host.key /etc/ssl/private/show-me_host.key
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/ssl/certs/show-me_ca.crt
   - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/show-me_file-service_init.sh /usr/local/bin/show-me_file-service_init.sh
-  - if [ -f /usr/local/bin/show-me_file-service_init.sh ];then /usr/local/bin/show-me_file-service_init.sh;fi
+  - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/finishing-script.sh /usr/local/bin/finishing-script.sh
   - if [ -f /etc/ssl/certs/show-me_ca.crt ];then cp -a /etc/ssl/certs/show-me_ca.crt /usr/local/share/ca-certificates/show-me_ca.crt;fi
   - if [ -f /etc/ssl/certs/show-me_host.pem ];then ln -sf /etc/ssl/certs/show-me_ca.crt /etc/show-me/www/.;fi
   - update-ca-certificates --fresh --verbose
@@ -254,4 +254,5 @@ runcmd:
   - su - $(id -un 1000) -c 'maas login '${MAAS_PROFILE}' '${MAAS_URL}' $(sudo maas apikey --username='${MAAS_PROFILE}')'
   - if $(test -n "$(command 2>/dev/null -v lxd.lxc)");then su - $(id -un 1000) -c 'sudo snap refresh lxd --channel latest/stable';else su - $(id -un 1000) -c 'sudo snap install lxd';fi
   - if [ -f /usr/local/bin/show-me_maas_lxd-init.sh ];then /usr/local/bin/show-me_maas_lxd-init.sh;fi
+  - if [ -f /usr/local/bin/show-me_file-service_init.sh ];then /usr/local/bin/show-me_file-service_init.sh;fi
   - if [ -f /usr/local/bin/show-me/finishing-script.sh ];then /usr/local/bin/show-me/finishing-script.sh;fi
