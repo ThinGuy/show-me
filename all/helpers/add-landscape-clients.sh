@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # vim: set et ts=2 sw=2 filetype=bash :
+[[ ! -f /usr/local/share/petname2 && -f /usr/local/bin/petname-helper.sh ]] && { mkdir -p /usr/local/share/petname2;/usr/local/bin/petname-helper.sh; }
+[[ -f /usr/local/share/petname2/f-names.txt && -f /usr/local/bin/petname-helper.sh ]] && { true; } || { printf "\n\e[4G\e[0;1;38;2;255;0;0mError\x21\e[0m Issues with the petname-helper script, please report this problem.\e[0m\n";false;exit 1; }
 
 [[ -n ${1} && ${1,,} =~ -h ]] && { printf "${0##*/} [# of instances per release (ipr)]\n\nDefault ipr = 2\n\n";exit 2; }
 [[ -n ${1} && ${1} =~ ^[0-9]+$ ]] && { export MAXI=${1}; }

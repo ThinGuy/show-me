@@ -21,7 +21,7 @@ Restart=always
 WantedBy=multi-user.target
 EOD
 
-[[ $? -eq 0 && -f /etc/systemd/system/show-me-file.service ]] { true; } || { printf "\n\e[4G\e[0;1;38;2;255;0;0mERROR\e[0m: Failed to start Show-Me-File Service\e[0m\n";exit 1; }
+[[ -f /etc/systemd/system/show-me-file.service ]] && { true; } || { printf "\n\e[4G\e[0;1;38;2;255;0;0mERROR\e[0m: Issue creating Show-Me-File service file in /etc/systemd/system/show-me-file.service. Please check permissions.\e[0m\n";exit 1; }
 
 
 systemctl daemon-reload;
@@ -33,5 +33,6 @@ for S in enable start start status;do
   systemctl ${S} show-me-file.service;
   sleep .5;
 done
+[[ $(systemctl -q is-active show-me-file.service;echo $?) -eq 0 ]] && { printf "\n\e[4G\e[0;1;38;2;0;255;0mSuccess\x21\e[0m The Show-Me-File Service is now available\e[0m\n";true;export RC=0; } || { printf "\n\e[4G\e[0;1;38;2;255;0;0mERROR\e[0m: Failed to start Show-Me-File Service\e[0m\n";false;export RC=1; }
+exit ${RC}
 
-exit 0
