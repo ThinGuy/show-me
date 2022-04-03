@@ -10,8 +10,9 @@ prefer_fqdn_over_hostname: true
 fqdn: landscape.ubuntu-show.me
 hostname: landscape
 locale: en_US.UTF-8
+package_update: true
 package_upgrade: true
-packages: [build-essential, git, jq, lynx, landscape-client, landscape-common, postgresql, postgresql-client, postgresql-commonm, software-properties-common, ssl-cert, tree, unzip, vim]
+packages: [build-essential, git, jq, lynx, landscape-client, landscape-common, postgresql-server, postgresql-client, postgresql-common, software-properties-common, ssl-cert, tree, unzip, vim]
 apt:
   conf: |
     APT {
@@ -123,7 +124,7 @@ runcmd:
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/ubuntu-show-me-id_rsa.pub /home/$(id -un 1000)/.ssh/authorized_keys
   - install -o 0 -g 0 -m 0644 -D /opt/show-me/all/helpers/landscape.lynx /usr/local/lib/show-me/landscape.lynx
   - install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/petname2/
-  - install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/show-me_landscape_lxd-preseed.sh /usr/local/bin/show-me_landscape_lxd-preseed.sh
+  - install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/show-me_landscape_lxd-init.sh /usr/local/bin/show-me_landscape_lxd-init.sh
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.pem /etc/ssl/certs/show-me_host.pem
   - install -o 0 -g 0 -m 0600 /opt/show-me/all/pki/show-me_host.key /etc/ssl/private/show-me_host.key
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/ssl/certs/show-me_ca.crt
@@ -154,8 +155,5 @@ runcmd:
   - if [ -f /etc/landscape/client.conf ];then ln -sf /etc/landscape/client.conf /etc/show-me/www/landscape-client.conf;fi
   - landscape-config -k /etc/landscape/landscape_server.pem -t $(hostname -s) -u "https://$(hostname -s).ubuntu-show.me/message-system" --ping-url "http://$(hostname -s).ubuntu-show.me/ping" -a standalone --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=show-me-demo,ubuntu --silent --log-level=debug
   - if $(test -n "$(command 2>/dev/null -v lxd.lxc)");then su - $(id -un 1000) -c 'sudo snap refresh lxd --channel latest/stable';else su - $(id -un 1000) -c 'sudo snap install lxd';fi
-  - if [ -f /usr/local/bin/show-me_landscape_lxd-preseed.sh ];then /usr/local/bin/show-me_landscape_lxd-preseed.sh;fi
-  - lxc remote add minimal "https://cloud-images.ubuntu.com/minimal/daily" --protocol simplestreams --accept-certificate
-  - "for I in $(lxc image list minimal: -cfl|awk '/more|CONTAIN/{print $4}'|sort -uV|sed -r '/^t.*|^x.*/!H;//p;$!d;g;s/\n//');do ((lxc image copy  minimal:${I} local: --alias ${I} --auto-update --public) &);done"
-  - if $[ -f /usr/local/bin/add-landscape-clients.sh ];then /usr/local/bin/add-landscape-clients.sh;fi
+  - if [ -f /usr/local/bin/show-me_landscape_lxd-init.sh ];then /usr/local/bin/show-me_landscape_lxd-init.sh;fi
   - if [ -f /usr/local/bin/show-me/finishing-script.sh ];then /usr/local/bin/show-me/finishing-script.sh;fi

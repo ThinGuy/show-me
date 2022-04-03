@@ -146,4 +146,9 @@ projects: []
 cluster: null
 PRESEED
 
-exit ${?}
+lxc remote add minimal https://cloud-images.ubuntu.com/minimal/daily --protocol simplestreams --accept-certificate
+for I in $(lxc image list minimal: -cfl|awk '/more|CONTAIN/{print $4}'|sort -uV|sed -r '/^t.*|^x.*/!H;//p;$!d;g;s/\n//');do lxc image copy  minimal:${I} local: --alias ${I} --auto-update --public;done
+[[ -f /usr/local/bin/add-landscape-clients.sh ]] && { /usr/local/bin/add-landscape-clients.sh; }
+
+
+exit 0

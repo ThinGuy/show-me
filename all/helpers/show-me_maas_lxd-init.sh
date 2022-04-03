@@ -741,4 +741,9 @@ projects: []
 cluster: null
 PRESEED
 
-exit ${?}
+lxc image copy ubuntu-daily:focal local: --copy-aliases --alias maas-controller-focal --auto-update --public
+lxc image copy ubuntu-daily:jammy local: --copy-aliases --alias maas-controller-jammy --auto-update --public
+lxc remote add minimal https://cloud-images.ubuntu.com/minimal/daily --protocol simplestreams --accept-certificate
+for I in $(lxc image list minimal: -cfl|awk '/more|CONTAIN/{print $4}'|sort -uV|sed -r '/^t.*|^x.*/!H;//p;$!d;g;s/\n//');do ((lxc image copy  minimal:${I} local: --alias ${I} --auto-update --public) &);done
+
+exit 0
