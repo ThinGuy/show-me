@@ -158,18 +158,19 @@ runcmd:
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.pem /etc/ssl/certs/show-me_host.pem
   - install -o 0 -g 0 -m 0600 /opt/show-me/all/pki/show-me_host.key /etc/ssl/private/show-me_host.key
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/ssl/certs/show-me_ca.crt
+  - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.pem /etc/ssl/certs/landscape_server.pem
+  - install -o 0 -g 0 -m 0600 /opt/show-me/all/pki/show-me_host.key /etc/ssl/private/landscape_server.key
+  - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/ssl/certs/landscape_server_ca.crt
   - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/show-me_file-service_init.sh /usr/local/bin/show-me_file-service_init.sh
   - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/show-me_finishing-script_all.sh /usr/local/bin/show-me_finishing-script_all.sh
-  - if [ -f /etc/ssl/certs/show-me_ca.crt ];then cp -a /etc/ssl/certs/show-me_ca.crt /usr/local/share/ca-certificates/show-me_ca.crt;fi
-  - if [ -f /etc/ssl/certs/show-me_ca.crt ];then ln -sf /etc/ssl/certs/show-me_ca.crt /etc/ssl/certs/landscape_server_ca.crt;fi
-  - if [ -f /etc/ssl/certs/show-me_host.pem ];then ln -sf /etc/ssl/certs/show-me_host.pem /etc/ssl/certs/landscape_server.pem;fi
-  - if [ -f /etc/ssl/private/show-me_host.key ];then ln -sf /etc/ssl/private/show-me_host.key /etc/ssl/certs/landscape_server.key;fi
-  - if [ -f /etc/ssl/certs/show-me_host.pem ];then ln -sf /etc/ssl/certs/show-me_ca.crt /etc/show-me/www/landscape_server.pem;fi
-  - if [ -f /etc/ssl/certs/show-me_ca.crt ];then ln -sf /etc/ssl/certs/show-me_ca.crt /etc/ssl/certs/landscape_server_ca.crt;fi
+  - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/show-me/www/show-me_ca.crt
+  - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.pem /etc/show-me/www/landscape_server.pem
+  - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/show-me_file-service_init.sh /usr/local/bin/show-me_file-service_init.sh
+  - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/show-me_finishing-script_all.sh /usr/local/bin/show-me_finishing-script_all.sh
   - update-ca-certificates --fresh --verbose
   - export PG_DBSSL_CRT=/etc/ssl/certs/landscape_server_ca.crt
-  - export PG_DBSSL_PEM=/etc/show-me/www/landscape_server.pem
-  - export PG_DBSSL_KEY=/etc/ssl/certs/landscape_server.key
+  - export PG_DBSSL_PEM=/etc/ssl/certs/landscape_server.pem
+  - export PG_DBSSL_KEY=/etc/ssl/private/landscape_server.key
   - su - postgres -c "psql postgres -c \"ALTER SYSTEM SET ssl to 'on';\""
   - su - postgres -c "psql postgres -c \"ALTER SYSTEM SET ssl_ca_file to '${PG_DBSSL_CRT}';\""
   - su - postgres -c "psql postgres -c \"ALTER SYSTEM SET ssl_cert_file to '${PG_DBSSL_PEM}';\""
