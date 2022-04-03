@@ -92,6 +92,7 @@ bootcmd:
   - ['cloud-init-per', 'once', 'net6', 'netplan', '--debug', 'generate']
   - ['cloud-init-per', 'once', 'net7', 'systemctl', 'restart', 'systemd-networkd', 'systemd-resolved', 'procps.service']
   - ['cloud-init-per', 'once', 'net8', 'netplan', '--debug', 'apply']
+  - ['cloud-init-per', 'once', 'net8', 'ip', 'addr', 'flush', 'ens5']
   - ['cloud-init-per', 'once', 'net9', 'netplan', '--debug', 'apply']
   - ['cloud-init-per', 'once', 'apt0', 'export', 'DEBIAN_FRONTEND=noninteractive']
   - ['cloud-init-per', 'once', 'apt1', 'apt-get', '--option=Acquire::ForceIPv4=true', 'update']
