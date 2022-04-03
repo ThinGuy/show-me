@@ -149,7 +149,7 @@ runcmd:
   - if [ -f /etc/ssl/certs/show-me_full-chain.pem ];then ln -sf /etc/ssl/certs/show-me_full-chain.pem /etc/show-me/www/.;fi 
   - if [ -f /etc/ssl/certs/show-me_basic-chain.pem ];then /etc/ssl/certs/show-me_basic-chain.pem /etc/show-me/www/.;fi 
   - update-ca-certificates --fresh --verbose
-  - if [ -f show-me_postgresql-init.sh ];thenshow-me_postgresql-init.sh;fi
+  - if [ -f /usr/local/bin/show-me_postgresql-init.sh ];then /usr/local/bin/show-me_postgresql-init.sh;fi
   - apt install maas -o Acquire::ForceIPv4=true -yqf --auto-remove --purge
   - maas init --force --mode=region --maas-url="${MAAS_URL}" --database-host=${MAAS_DBHOST} --database-name=${MAAS_DBNAME} --database-user=${MAAS_DBUSER} --database-pass=${MAAS_DBPASS} --database-port=${MAAS_DBPORT}
   - maas createadmin --username ${MAAS_PROFILE} --password ${MAAS_PASSWORD} --email ${MAAS_EMAIL} --ssh-import "${MAAS_IMPORTID}"
