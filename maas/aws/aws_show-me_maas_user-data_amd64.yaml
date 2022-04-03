@@ -127,15 +127,15 @@ runcmd:
   - curl -fSlL -o /opt/show-me/packer_1.8.0_linux_amd64.zip "https://releases.hashicorp.com/packer/1.8.0/packer_1.8.0_linux_${SHOW_ME_ARCH}.zip"
   - if [ -f /opt/show-me/packer_1.8.0_linux_${SHOW_ME_ARCH}.zip ];then unzip -qq -o -d /usr/local/bin /opt/show-me/packer_1.8.0_linux_${SHOW_ME_ARCH}.zip;fi
   - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/petname-helper.sh /usr/local/bin/petname-helper.sh
-  - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/petname-helper.sh /usr/local/bin/petname-helper.sh  
+  - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/petname-helper.sh /usr/local/bin/petname-helper.sh
   - install -o 0 -g 0 -m 0400 /opt/show-me/all/pki/ubuntu-show-me-id_rsa /home/$(id -un 1000)/.ssh/showme_rsa
   - install -o 0 -g 0 -m 0640 /opt/show-me/all/pki/ubuntu-show-me-id_rsa.pub /home/$(id -un 1000)/.ssh/showme_rsa.pub
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/ubuntu-show-me-id_rsa.pub /home/$(id -un 1000)/.ssh/authorized_keys
   - install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/petname2/
-  - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/show-me_maas_lxd-init.sh /usr/local/bin/show-me_maas_lxd-init.sh  
+  - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/show-me_maas_lxd-init.sh /usr/local/bin/show-me_maas_lxd-init.sh
   - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/show-me_postgresql-init.sh /usr/local/bin/show-me_postgresql-init.sh
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.crt /etc/ssl/certs/show-me_host.crt
-  - install -o 0 -g 0 -m 0600 /opt/show-me/all/pki/show-me_host.key /etc/ssl/private/show-me_host.key 
+  - install -o 0 -g 0 -m 0600 /opt/show-me/all/pki/show-me_host.key /etc/ssl/private/show-me_host.key
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/ssl/certs/show-me_ca.crt
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/ssl/certs/maas_ca.crt
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.crt /etc/ssl/certs/maas_host.crt
@@ -145,9 +145,9 @@ runcmd:
   - if [ -f /etc/ssl/certs/show-me_ca.crt ];then cp -a /etc/ssl/certs/show-me_ca.crt /usr/local/share/ca-certificates/show-me_ca.crt;fi
   - if [ -f /etc/ssl/certs/show-me_host.crt ];then ln -sf /etc/ssl/certs/show-me_ca.crt /etc/show-me/www/.;fi
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_full-chain.pem /etc/ssl/certs/show-me_full-chain.pem
-  - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_basic-chain.pem /etc/ssl/certs/show-me_basic-chain.pem   
-  - if [ -f /etc/ssl/certs/show-me_full-chain.pem ];then ln -sf /etc/ssl/certs/show-me_full-chain.pem /etc/show-me/www/.;fi 
-  - if [ -f /etc/ssl/certs/show-me_basic-chain.pem ];then /etc/ssl/certs/show-me_basic-chain.pem /etc/show-me/www/.;fi 
+  - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_basic-chain.pem /etc/ssl/certs/show-me_basic-chain.pem
+  - if [ -f /etc/ssl/certs/show-me_full-chain.pem ];then ln -sf /etc/ssl/certs/show-me_full-chain.pem /etc/show-me/www/.;fi
+  - if [ -f /etc/ssl/certs/show-me_basic-chain.pem ];then /etc/ssl/certs/show-me_basic-chain.pem /etc/show-me/www/.;fi
   - update-ca-certificates --fresh --verbose
   - if [ -f /usr/local/bin/show-me_postgresql-init.sh ];then /usr/local/bin/show-me_postgresql-init.sh;fi
   - apt install maas -o Acquire::ForceIPv4=true -yqf --auto-remove --purge

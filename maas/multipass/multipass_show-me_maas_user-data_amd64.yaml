@@ -163,7 +163,7 @@ runcmd:
   - install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/petname2/
   - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/show-me_maas_lxd-init.sh /usr/local/bin/show-me_maas_lxd-init.sh
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.crt /etc/ssl/certs/show-me_host.crt
-  - install -o 0 -g 0 -m 0600 /opt/show-me/all/pki/show-me_host.key /etc/ssl/private/show-me_host.key 
+  - install -o 0 -g 0 -m 0600 /opt/show-me/all/pki/show-me_host.key /etc/ssl/private/show-me_host.key
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/ssl/certs/show-me_ca.crt
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/ssl/certs/maas_ca.crt
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.crt /etc/ssl/certs/maas_host.crt
@@ -173,9 +173,9 @@ runcmd:
   - if [ -f /etc/ssl/certs/show-me_ca.crt ];then cp -a /etc/ssl/certs/show-me_ca.crt /usr/local/share/ca-certificates/show-me_ca.crt;fi
   - if [ -f /etc/ssl/certs/show-me_host.crt ];then ln -sf /etc/ssl/certs/show-me_ca.crt /etc/show-me/www/.;fi
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_full-chain.pem /etc/ssl/certs/show-me_full-chain.pem
-  - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_basic-chain.pem /etc/ssl/certs/show-me_basic-chain.pem   
-  - if [ -f /etc/ssl/certs/show-me_full-chain.pem ];then ln -sf /etc/ssl/certs/show-me_full-chain.pem /etc/show-me/www/.;fi 
-  - if [ -f /etc/ssl/certs/show-me_basic-chain.pem ];then /etc/ssl/certs/show-me_basic-chain.pem /etc/show-me/www/.;fi 
+  - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_basic-chain.pem /etc/ssl/certs/show-me_basic-chain.pem
+  - if [ -f /etc/ssl/certs/show-me_full-chain.pem ];then ln -sf /etc/ssl/certs/show-me_full-chain.pem /etc/show-me/www/.;fi
+  - if [ -f /etc/ssl/certs/show-me_basic-chain.pem ];then /etc/ssl/certs/show-me_basic-chain.pem /etc/show-me/www/.;fi
   - update-ca-certificates --fresh --verbose
   #### Begin Postgresql setup
   # Basic PostgreSQL setup
@@ -198,7 +198,7 @@ runcmd:
   - su - postgres -c "psql postgres -c \"ALTER SYSTEM SET max_prepared_transactions to '500';\""
   - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
   - su - postgres -c 'psql -P pager=off  postgres -xtc "select name,setting from pg_settings where name SIMILAR TO '"'"'listen%|max%(con|prep)%|ssl|ssl_(ca|cert|key)%'"'"';"'
-  - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'  
+  - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
   # PostgreSQL setup for Canonical Snap-Store-Proxy
   - export SSP_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export SSP_DBHBA="/etc/postgresql/${SSP_DBVER}/main/pg_hba.conf"
@@ -217,7 +217,7 @@ runcmd:
     SQL
   - echo "${SSP_DBHOST}:${SSP_DBPORT}:${SSP_DBNAME}:${SSP_DBUSER}:${SSP_DBPASS}"|su postgres -c 'tee 1>/dev/null /var/lib/postgresql/.pgpass.ssp'
   - chmod 0600 /var/lib/postgresql/.pgpass.ssp
-  - chown postgres:postgres /var/lib/postgresql/.pgpass.ssp   
+  - chown postgres:postgres /var/lib/postgresql/.pgpass.ssp
   - printf '%-08s%-016s%-016s%-024s%s\n' hostssl ${SSP_DBNAME} ${SSP_DBUSER} '::/0' md5 hostssl ${SSP_DBNAME} ${SSP_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${SSP_DBHBA}''
   - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
   # PostgreSQL setup for Canonical Candid
@@ -233,7 +233,7 @@ runcmd:
   - su - postgres -c 'psql -c "CREATE DATABASE '${CANDID_DBNAME}' WITH OWNER '"'"''${CANDID_DBUSER}''"'"';"'
   - echo "${CANDID_DBHOST}:${CANDID_DBPORT}:${CANDID_DBNAME}:${CANDID_DBUSER}:${CANDID_DBPASS}"|su postgres -c 'tee 1>/dev/null /var/lib/postgresql/.pgpass.candid'
   - chmod 0600 /var/lib/postgresql/.pgpass.candid
-  - chown postgres:postgres /var/lib/postgresql/.pgpass.candid 
+  - chown postgres:postgres /var/lib/postgresql/.pgpass.candid
   - printf '%-08s%-016s%-016s%-024s%s\n' hostssl ${CANDID_DBNAME} ${CANDID_DBUSER} '::/0' md5 hostssl ${CANDID_DBNAME} ${CANDID_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${CANDID_DBHBA}''
   - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
   # PostgreSQL setup for Landscape
@@ -250,7 +250,7 @@ runcmd:
   - echo "${LANDSCAPE_DBHOST}:${LANDSCAPE_DBPORT}:${LANDSCAPE_DBNAME}:${LANDSCAPE_DBUSER}:${LANDSCAPE_DBPASS}"|su postgres -c 'tee 1>/dev/null /var/lib/postgresql/.pgpass.landscape'
   - chmod 0600 /var/lib/postgresql/.pgpass.landscape
   - chown postgres:postgres /var/lib/postgresql/.pgpass.landscape
-  - printf '%-08s%-016s%-016s%-024s%s\n' hostssl ${LANDSCAPE_DBNAME} ${LANDSCAPE_DBUSER} '::/0' md5 hostssl ${LANDSCAPE_DBNAME} ${LANDSCAPE_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${LANDSCAPE_DBHBA}'' 
+  - printf '%-08s%-016s%-016s%-024s%s\n' hostssl ${LANDSCAPE_DBNAME} ${LANDSCAPE_DBUSER} '::/0' md5 hostssl ${LANDSCAPE_DBNAME} ${LANDSCAPE_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${LANDSCAPE_DBHBA}''
   - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
   # PostgreSQL setup for Canonical RBAC
   - export RBAC_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')

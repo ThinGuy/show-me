@@ -178,7 +178,7 @@ runcmd:
   - su - postgres -c "psql postgres -c \"ALTER SYSTEM SET listen_addresses to '*';\""
   - su - postgres -c "psql postgres -c \"ALTER SYSTEM SET max_connections to '500';\""
   - su - postgres -c "psql postgres -c \"ALTER SYSTEM SET max_prepared_transactions to '500';\""
-  - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'  
+  - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
   - apt install landscape-server-quickstart landscape-client -yqf --reinstall
   - if [ -f /etc/ssl/certs/show-me_host.pem ];then ln -sf /etc/ssl/certs/show-me_host.pem /etc/landscape/landscape_server.pem;fi
   - if [ -f /etc/ssl/certs/show-me_ca.crt ];then ln -sf /etc/ssl/certs/show-me_ca.crt /etc/landscape/landscape_server_ca.crt;fi
