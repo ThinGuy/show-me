@@ -12,12 +12,13 @@ export LXD_DISK_SIZE_MAAS=50
 export LXD_DISK_SIZE_LAND=20
 for A in maas landscape;do 
   for P in aws multipass;do
-    lxc 2>/dev/null profile create "${A}-on-${P}"
+    PROF="${A}-on-${P}"
+    lxc 2>/dev/null profile create ${PROF}
     [[ $P = aws ]] && { declare -ag NICS=(ens5); }
     [[ $P = multipass ]] && { declare -ag NICS=(enp0s3 enp0s8); }
     [[ $A = maas ]] && { export LXD_DISK_SIZE=${LXD_DISK_SIZE_MAAS}; }
     [[ $A = landscape ]] && { export LXD_DISK_SIZE=${LXD_DISK_SIZE_LAND}; }
-cat <<-EOF|sed -r 's/[ \t]+$//g'|sed -r '/^$/d'|tee 1>/dev/null lxd-profile_${A}-on-${P}_${SHOW_ME_ARCH}.yaml
+cat <<-EOF|sed -r 's/[ \t]+$//g'|sed -r '/^$/d'|tee ${PROG_DIR}/lxd-profile_${A}-on-${P}_${SHOW_ME_ARCH}.yaml|lxc profile edit ${PROF}
 config:
   boot.autostart: "false"
   migration.incremental.memory: "false"
@@ -65,5 +66,7 @@ fi)
     type: disk
 name: ${A}-on-${P}
 EOF
+
+[[ ${?} -eq 0 ]] && printf "\e[2G - Successfully created LXD Profile ${PROF}\x21\n"
 done
 done
