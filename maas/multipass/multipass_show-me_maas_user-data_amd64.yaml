@@ -133,20 +133,21 @@ runcmd:
   - export SHOW_ME_PNIC=br0
   - export SHOW_ME_ARCH='amd64'
   - export SHOW_ME_APP='maas'
-  - export SHOW_ME_SUBSTRT='multipass'
+  - export SHOW_ME_SUBSTRT='aws'
   - export SHOW_ME_GIT="https://github.com/ThinGuy/show-me.git"
   - export DEBIAN_FRONTEND=noninteractive
+  - "export PYTHONWARNINGS='ignore::DeprecationWarning'"
   - echo "export PYTHONWARNINGS='ignore::DeprecationWarning'"|tee -a 1>/dev/null /etc/environment
   - if [ -f /usr/bin/vim.basic ];then echo "export EDITOR='/usr/bin/vim.basic'"|tee -a 1>/dev/null /etc/environment;fi
-  - export DEFAULT_IP=$(ip -o -4 a show $(ip -o r l default|grep $SHOW_ME_PNIC|grep -m1 -oP "(?<=dev )[^ ]+")|grep -m1 -oP "(?<=inet )[^/]+")
-  - export PUBLIC_IP_LIST=$(printf "%s\n" $(dig +short myip.opendns.com @resolver1.opendns.com) $(dig TXT +short o-o.myaddr.l.google.com @ns1.google.com|sed 's/"//g') $(dig +short txt ch whoami.cloudflare @1.0.0.1|sed 's/"//g'))
-  - if [ "$(echo \"$PUBLIC_IP_LIST\"|wc -l)" = "3" -o "$(echo \"$PUBLIC_IP_LIST\"|wc -l)" = "2" ];then export PUBLIC_IP=$(echo "$PUBLIC_IP_LIST"|uniq);else export PUBLIC_IP="";fi
+  - export DEFAULT_IP="$(ip -o -4 a show $(ip -o r l default|grep ${SHOW_ME_PNIC}|grep -m1 -oP '(?<=dev )[^ ]+')|grep -m1 -oP '(?<=inet )[^/]+')"
+  - export PUBLIC_IP_LIST=$(printf '%s\n' $(dig +short myip.opendns.com @resolver1.opendns.com) $(dig TXT +short o-o.myaddr.l.google.com @ns1.google.com|sed -r 's/\x27//g') $(dig +short txt ch whoami.cloudflare @1.0.0.1|sed -r 's/\x27//g')|paste -sd',')
+  - if [ "$(echo $PUBLIC_IP_LIST|wc -l)" = "3" -o "$(echo $PUBLIC_IP_LIST|wc -l)" = "2" ];then export PUBLIC_IP="$(echo $PUBLIC_IP_LIST|uniq:)";else unset PUBLIC_IP;fi
   - if [ -n $DEFAULT_UP -o -n $PUBLIC_IP ];then sed -i -r "/127.0|$(hostname -s)/d" /etc/hosts;fi
   - if [ -n $DEFAULT_UP ];then sed -i -r "1s/^/127.0.0.1\tlocalhost\n${DEFAULT_IP}\t$(hostname -s).ubuntu-show.me $(hostname -s)\n/" /etc/hosts;fi
   - if [ -n $PUBLIC_IP ];then sed -r -i sed "/$(hostname -s)$/a $PUBLIC_IP\t$(hostname -s).ubuntu-show.me $(hostname -s)\n/";fi
-  - "if ! $(grep -qREI '^precedence.*96[ ]+100$' /etc/gai.conf);then echo 'precedence ::ffff:0:0/96  100'|tee 1>/dev/null -a /etc/gai.conf"
+  - if ! $(grep -qREI '^precedence.*96[ ]+100$' /etc/gai.conf);then printf '%s\x20%s\x20\x20%s\n' 'precedence' '::ffff:0:0/96' '100'|tee 1>/dev/null -a /etc/gai.conf;fi
   - systemctl restart systemd-networkd systemd-resolved procps.service
-  - for i in SHOW_ME_PNIC SHOW_ME_ARCH SHOW_ME_APP SHOW_ME_SUBSTRT SHOW_ME_GIT EDITOR PYTHONWARNINGS PUBLIC_IP DEFAULT_IP;do if [ -n "$(eval echo -n \"\$${i}\")" ];then printf "export ${i}=\"$(eval echo -n \$$i)\"\n";fi;done
+  - for i in SHOW_ME_PNIC SHOW_ME_ARCH SHOW_ME_APP SHOW_ME_SUBSTRT SHOW_ME_GIT EDITOR PYTHONWARNINGS PUBLIC_IP DEFAULT_IP;do if [ -n "$(eval echo -n \"\$${i}\")" ];then printf "export ${i}=\x22$(eval echo -n \$$i)\x22\n";fi;done|tee -a 1>/dev/null /etc/environment
   - sleep 6
   - apt update -o "Acquire::ForceIPv4=true"
   - mkdir -p /etc/show-me/www /etc/show-me/log
