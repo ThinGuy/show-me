@@ -14,7 +14,7 @@ for A in maas landscape;do
   for P in aws multipass;do
     lxc 2>/dev/null profile create "${A}-on-${P}"
     [[ $P = aws ]] && { declare -ag NICS=(ens5); }
-    [[ $P = multipass ]] { && declare -ag NICS=(enp0s3 enp0s8); }
+    [[ $P = multipass ]] && { declare -ag NICS=(enp0s3 enp0s8); }
     [[ $A = maas ]] && { export LXD_DISK_SIZE=${LXD_DISK_SIZE_MAAS}; }
     [[ $A = landscape ]] && { export LXD_DISK_SIZE=${LXD_DISK_SIZE_LAND}; }
 cat <<-EOF|sed -r 's/[ \t]+$//g'|sed -r '/^$/d'|tee 1>/dev/null lxd-profile_${A}-on-${P}_${SHOW_ME_ARCH}.yaml
