@@ -123,6 +123,7 @@ runcmd:
   - mkdir -p /etc/show-me/www /etc/show-me/log
   - if [ -d /opt/show-me ];then rm -rf /opt/show-me;fi
   - ping -c10 -w1 github.com
+  - sleep 10
   - git clone https://github.com/ThinGuy/show-me.git /opt/show-me
   - git clone https://github.com/canonical/packer-maas /opt/show-me/packer-maas
   - curl -fSlL -o /opt/show-me/packer_1.8.0_linux_amd64.zip "https://releases.hashicorp.com/packer/1.8.0/packer_1.8.0_linux_${SHOW_ME_ARCH}.zip"
@@ -151,6 +152,9 @@ runcmd:
   - if [ -f /etc/ssl/certs/show-me_basic-chain.pem ];then /etc/ssl/certs/show-me_basic-chain.pem /etc/show-me/www/.;fi
   - update-ca-certificates --fresh --verbose
   - if [ -f /usr/local/bin/show-me_postgresql-init.sh ];then /usr/local/bin/show-me_postgresql-init.sh;fi
+  #### END of Postgresql section
+  #### Begin Main Show-me App Section
+  - if [ -f /root/.show-me.rc ];then . /root/.show-me.rc;fi
   - apt install maas -o Acquire::ForceIPv4=true -yqf --auto-remove --purge
   - maas init --force --mode=region --maas-url="${MAAS_URL}" --database-host=${MAAS_DBHOST} --database-name=${MAAS_DBNAME} --database-user=${MAAS_DBUSER} --database-pass=${MAAS_DBPASS} --database-port=${MAAS_DBPORT}
   - maas createadmin --username ${MAAS_PROFILE} --password ${MAAS_PASSWORD} --email ${MAAS_EMAIL} --ssh-import "${MAAS_IMPORTID}"

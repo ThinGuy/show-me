@@ -148,11 +148,11 @@ runcmd:
   - if ! $(grep -qREI '^precedence.*96[ ]+100$' /etc/gai.conf);then printf '%s\x20%s\x20\x20%s\n' 'precedence' '::ffff:0:0/96' '100'|tee 1>/dev/null -a /etc/gai.conf;fi
   - systemctl restart systemd-networkd systemd-resolved procps.service
   - for i in SHOW_ME_PNIC SHOW_ME_ARCH SHOW_ME_APP SHOW_ME_SUBSTRT SHOW_ME_GIT EDITOR PYTHONWARNINGS PUBLIC_IP DEFAULT_IP;do if [ -n "$(eval echo -n \"\$${i}\")" ];then printf "export ${i}=\x22$(eval echo -n \$$i)\x22\n";fi;done|tee -a 1>/dev/null /etc/environment
-  - sleep 6
   - apt update -o "Acquire::ForceIPv4=true"
   - mkdir -p /etc/show-me/www /etc/show-me/log
   - if [ -d /opt/show-me ];then rm -rf /opt/show-me;fi
   - ping -c10 -w1 github.com
+  - sleep 10
   - git clone https://github.com/ThinGuy/show-me.git /opt/show-me
   - git clone https://github.com/canonical/packer-maas /opt/show-me/packer-maas
   - curl -fSlL -o /opt/show-me/packer_1.8.0_linux_amd64.zip "https://releases.hashicorp.com/packer/1.8.0/packer_1.8.0_linux_${SHOW_ME_ARCH}.zip"
@@ -289,10 +289,11 @@ runcmd:
   - cp -a /var/lib/postgresql/.pgpass* /home/$(id -un 1000)/;chown -R "$(id -un 1000):$(id -un 1000)" /home/$(id -un 1000)/\.*
   - printf '%-08s%-016s%-016s%-024s%s\n' hostssl ${MAAS_DBNAME} ${MAAS_DBUSER} '::/0' md5 hostssl ${MAAS_DBNAME} ${MAAS_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${MAAS_DBHBA}''
   - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
-  - for P in maas SSP RBAC CANDID LANDSCAPE PG SHOW_ME;do set|grep "^${P}_";done|sort -uV|tee ~/.show-me.rc|su - $(id -un 1000) -c 'tee ~/.show-me.rc'|su - postgres -c 'tee ~/.show-me.rc'
+  - for P in MAAS SSP RBAC CANDID LANDSCAPE PG SHOW_ME;do set|grep "^${P}_";done|sort -uV|tee ~/.show-me.rc|su - $(id -un 1000) -c 'tee ~/.show-me.rc'|su - postgres -c 'tee ~/.show-me.rc'
   - echo 'for RC in $(find ~/ -maxdepth 1 -type f -iname ".show-me*.rc");do source $RC;done'|tee -a /root/.bashrc |su - $(id -un 1000) -c 'tee -a ~/.bashrc'|su - postgres -c 'tee -a ~/.bashrc'
   #### END of Postgresql section
   #### Begin Main Show-me App Section
+  - if [ -f /root/.show-me.rc ];then . /root/.show-me.rc;fi
   - apt install maas -o Acquire::ForceIPv4=true -yqf --auto-remove --purge
   - maas init --force --mode=region --maas-url="${MAAS_URL}" --database-host=${MAAS_DBHOST} --database-name=${MAAS_DBNAME} --database-user=${MAAS_DBUSER} --database-pass=${MAAS_DBPASS} --database-port=${MAAS_DBPORT}
   - maas createadmin --username ${MAAS_PROFILE} --password ${MAAS_PASSWORD} --email ${MAAS_EMAIL} --ssh-import "${MAAS_IMPORTID}"
