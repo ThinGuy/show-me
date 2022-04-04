@@ -23,7 +23,7 @@ declare -ag ADJECTIVES=($(cat /usr/local/lib/show-me/petname2/${A:0:1}-adjective
     [[ ${Y} = 2 ]] && export W=nd;
     [[ ${Y} = 3 ]] && export W=rd;
     [[ ${Y} -ge 4 && ${Y} -le 10 ]] && W=th;
-    export NAME="-${R,,}-the-${ADVERBS[$RANDOM % ${#ADVERBS[@]}]}-${ADJECTIVES[$RANDOM % ${#ADJECTIVES[@]}]}-${NAMES[$RANDOM % ${#NAMES[@]}]}"
+    export NAME="${R,,}-the-${ADVERBS[$RANDOM % ${#ADVERBS[@]}]}-${ADJECTIVES[$RANDOM % ${#ADJECTIVES[@]}]}-${NAMES[$RANDOM % ${#NAMES[@]}]}"
     printf "Launching ${Y}${W} instance of ${R} as ${NAME}\n";
     ((lxc launch $I ${NAME} -p landscape-client &>>/tmp/add-clients.log) &)
     unset X Y NAME
