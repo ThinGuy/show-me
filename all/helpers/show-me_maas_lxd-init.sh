@@ -8,6 +8,13 @@ config:
   core.trust_password: ubuntu
 networks:
 - config:
+    ipv4.address: auto
+    ipv6.address: none
+  description: ""
+  managed: false
+  name: lxdbr0
+  type: ""
+- config:
     dns.domain: ubuntu-show.me
     dns.mode: dynamic
     ipv4.address: 10.10.11.254/24

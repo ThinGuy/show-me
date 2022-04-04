@@ -133,8 +133,10 @@ profiles:
   description: Landscape Client Profile
   devices:
     eth0:
+    eth0:
       name: eth0
-      network: lxdbr0
+      nictype: bridged
+      parent: lxdbr0
       type: nic
     root:
       path: /
