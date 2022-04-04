@@ -38,12 +38,12 @@ description: 'Simulate running ${A} on ${P}'
 devices:
 $(if [[ ${#NICS[@]} -eq 2 ]];then
 cat <<-NET2
- ${NICS[0]}:
+  ${NICS[0]}:
     name: ${NICS[0]}
     nictype: bridged
     parent: ${LXD_NIC_PARENT_0}
     type: nic
- ${NICS[1]}:
+  ${NICS[1]}:
     name: ${NICS[1]}
     nictype: bridged
     parent: ${LXD_NIC_PARENT_1}
@@ -51,7 +51,7 @@ cat <<-NET2
 NET2
 elif [[ ${#NICS[@]} -eq 1 ]];then
 cat <<-NET1
- ${NICS[0]}:
+  ${NICS[0]}:
     name: ${NICS[0]}
     nictype: bridged
     parent: ${LXD_NIC_PARENT_0}
