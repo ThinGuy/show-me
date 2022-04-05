@@ -48,7 +48,7 @@ bootcmd:
   - ['cloud-init-per', 'once', 'bc0', 'set', '-x']
   - ['cloud-init-per', 'once', 'net0', 'echo', 'network: {config: disabled}', '>', '/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg']
   - ['cloud-init-per', 'once', 'net1', 'sysctl', '-w', 'net.ipv4.ip_forward=1']
-  - ['cloud-init-per', 'once', 'net3', 'echo "precedence ::ffff:0:0/96  100"', '|', 'tee', '1>/dev/null', '-a', '/etc/gai.conf']
+  - ['cloud-init-per', 'once', 'net3', 'printf', '"%s\x20%s\x20\x20%s\n"', 'precedence', '::ffff:0:0/96', '100', 'tee', '-a', '/etc/gai.conf']
   - ['cloud-init-per', 'once', 'net4', 'systemctl', 'restart', 'systemd-networkd', 'systemd-resolved', 'procps.service']
   - |-
     cat <<-NETPLAN|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init.yaml
@@ -113,8 +113,7 @@ runcmd:
   - if [ $(echo "${PUBLIC_IP_LIST}"|uniq -D|wc -l) -eq 3 ];then export PUBLIC_IP=$(echo "${PUBLIC_IP_LIST}"|uniq -d);fi
   - if [ -n $DEFAULT_IP -o -n $PUBLIC_IP ];then sed -i -r "/127.0|$(hostname -s)/d" /etc/hosts;fi
   - if [ -n $DEFAULT_IP ];then sed -i -r "1s/^/127.0.0.1\tlocalhost\n${DEFAULT_IP}\t$(hostname -s).ubuntu-show.me $(hostname -s)\n/" /etc/hosts;fi
-  - if [ -n $PUBLIC_IP ];then sed -r -i sed "/$(hostname -s)$/a $PUBLIC_IP\t$(hostname -s).ubuntu-show.me $(hostname -s)\n/";fi
-  - if ! $(grep -qREI '^precedence.*96[ ]+100$' /etc/gai.conf);then printf '%s\x20%s\x20\x20%s\n' 'precedence' '::ffff:0:0/96' '100'|tee 1>/dev/null -a /etc/gai.conf;fi
+  - if [ -n $PUBLIC_IP ];then sed -r -i "/$(hostname -s)$/a $PUBLIC_IP\t$(hostname -s).ubuntu-show.me $(hostname -s)\n/";fi
   - systemctl restart systemd-networkd systemd-resolved procps.service
   - for i in SHOW_ME_PNIC SHOW_ME_ARCH SHOW_ME_APP SHOW_ME_SUBSTRT SHOW_ME_GIT EDITOR PYTHONWARNINGS PUBLIC_IP DEFAULT_IP;do if [ -n "$(eval echo -n \"\$${i}\")" ];then printf "export ${i}=\x22$(eval echo -n \$$i)\x22\n";fi;done|tee -a 1>/dev/null /etc/environment
   - mkdir -p /etc/show-me/www /etc/show-me/log
