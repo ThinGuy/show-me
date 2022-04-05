@@ -47,58 +47,59 @@ apt:
     #  keyid: 3AB6DCF1F234E78DAA9C104204E7FDC5684D4A1C
 bootcmd:
   - ['cloud-init-per', 'once', 'bc0', 'set', '-x']
-  - ['cloud-init-per', 'once', 'net0', 'echo', 'network: {config: disabled}', '>', '/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg']
-  - ['cloud-init-per', 'once', 'net1', 'sysctl', '-w', 'net.ipv4.ip_forward=1']
+#  - ['cloud-init-per', 'once', 'net0', 'echo', 'network: {config: disabled}', '>', '/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg']
+  - ['cloud-init-per', 'once', 'net1', 'sysctl', '-w', 'net.ipv4.ip_forward=1']  
+  - if [ "$(readlink -f /etc/resolv.conf)" = "/run/resolvconf/resolv.conf" ];then ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf;fi
   - ['cloud-init-per', 'once', 'net2', 'printf', '"%s\x20%s\x20\x20%s\n"', 'precedence', '::ffff:0:0/96', '100', '|', 'tee', '-a', '/etc/gai.conf']
-  - |-
-    cat <<-NETPLAN|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init.yaml
-    network:
-      version: 2
-      renderer: networkd
-      ethernets:
-        ens5:
-          dhcp4: false
-          dhcp6: false
-          optional: false
-          accept-ra: false
-          link-local: [ ]
-          match:
-            macaddress: '$(ip -o l show dev ens5|grep -oP "(?<=ether )[^ ]+")'
-          set-name: ens5
-      bridges:
-        br0:
-          macaddress: '$(ip -o l show dev ens5|grep -oP "(?<=ether )[^ ]+")'
-          interfaces: ['ens5']
-          link-local: [ ]
-          dhcp4: true
-          dhcp4-overrides:
-            use-dns: false
-            use-hostname: false
-            use-domains: false
-            route-metric: 1
-          dhcp6: false
-          optional: false
-          accept-ra: false
-          link-local: [ ]
-          nameservers:
-            addresses: [8.8.8.8,1.1.1.1]
-            search: [ubuntu-show.me]
-          parameters:
-            priority: 1
-            stp: false
-    NETPLAN
-  - ['cloud-init-per', 'once', 'net3', 'netplan', '--debug', 'generate']
-  - ['cloud-init-per', 'once', 'net4', 'netplan', '--debug', 'apply']
-  - ['cloud-init-per', 'once', 'net5', 'netplan', '--debug', 'apply']
+  #- |-
+  #  cat <<-NETPLAN|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init.yaml
+  #  network:
+  #    version: 2
+  #    renderer: networkd
+  #    ethernets:
+  #      ens5:
+  #        dhcp4: false
+  #        dhcp6: false
+  #        optional: false
+  #        accept-ra: false
+  #        link-local: [ ]
+  #        match:
+  #          macaddress: '$(ip -o l show dev ens5|grep -oP "(?<=ether )[^ ]+")'
+  #        set-name: ens5
+  #    bridges:
+  #      br0:
+  #        macaddress: '$(ip -o l show dev ens5|grep -oP "(?<=ether )[^ ]+")'
+  #        interfaces: ['ens5']
+  #        link-local: [ ]
+  #        dhcp4: true
+  #        dhcp4-overrides:
+  #          use-dns: false
+  #          use-hostname: false
+  #          use-domains: false
+  #          route-metric: 1
+  #        dhcp6: false
+  #        optional: false
+  #        accept-ra: false
+  #        link-local: [ ]
+  #        nameservers:
+  #          addresses: [8.8.8.8,1.1.1.1]
+  #          search: [ubuntu-show.me]
+  #        parameters:
+  #          priority: 1
+  #          stp: false
+  #  NETPLAN
+  #- ['cloud-init-per', 'once', 'net3', 'netplan', '--debug', 'generate']
+  #- ['cloud-init-per', 'once', 'net4', 'netplan', '--debug', 'apply']
+  #- ['cloud-init-per', 'once', 'net5', 'netplan', '--debug', 'apply']
   - ['cloud-init-per', 'once', 'net6', 'systemctl', 'restart', 'systemd-networkd', 'systemd-resolved', 'procps.service']
-  - ['cloud-init-per', 'once', 'net7', 'ip', 'addr', 'flush', 'ens5']
+  #- ['cloud-init-per', 'once', 'net7', 'ip', 'addr', 'flush', 'ens5']
   - ['cloud-init-per', 'once', 'apt1',  'DEBIAN_FRONTEND=noninteractive', 'apt-get', '--option=Acquire::ForceIPv4=true', 'update']
   - ['cloud-init-per', 'once', 'apt2',  'DEBIAN_FRONTEND=noninteractive', 'apt-get', 'dist-upgrade', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
   - ['cloud-init-per', 'once', 'apt3',  'DEBIAN_FRONTEND=noninteractive', 'apt-get', 'install', 'dnsutils', 'debconf-utils', 'dialog', 'gnupg', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
   - ['cloud-init-per', 'once', 'apt4',  'DEBIAN_FRONTEND=noninteractive', 'apt-get', 'remove', 'lxd', 'lxd-client', '--auto-remove', '--purge', '--assume-yes', '--quiet', '--fix-broken', '--option=Acquire::ForceIPv4=true']
 runcmd:
   - set -x
-  - export SHOW_ME_PNIC=br0
+  - export SHOW_ME_PNIC=ens5
   - export SHOW_ME_ARCH='amd64'
   - export SHOW_ME_APP='maas'
   - export SHOW_ME_SUBSTRT='aws'
@@ -115,6 +116,7 @@ runcmd:
   - if [ -n $PUBLIC_IP ];then sed -r -i "/$(hostname -s)$/a $PUBLIC_IP\t$(hostname -s).ubuntu-show.me $(hostname -s)\n/";fi
   - systemctl restart systemd-networkd systemd-resolved procps.service
   - for i in SHOW_ME_PNIC SHOW_ME_ARCH SHOW_ME_APP SHOW_ME_SUBSTRT SHOW_ME_GIT EDITOR PYTHONWARNINGS PUBLIC_IP DEFAULT_IP;do if [ -n "$(eval echo -n \"\$${i}\")" ];then printf "export ${i}=\"$(eval echo -n \$$i)\"\n";fi;done|tee -a 1>/dev/null /etc/environment
+  - . /etc/environment
   - sleep 6
   - apt update -o "Acquire::ForceIPv4=true"
   - mkdir -p /etc/show-me/www /etc/show-me/log
@@ -152,6 +154,13 @@ runcmd:
   #### END of Postgresql section
   #### Begin Main Show-me App Section
   - if [ -f /root/.show-me.rc ];then . /root/.show-me.rc;fi
+  - |-
+    cat <<SUDOERS|sed -r 's/[ \t]+$//g;/^$/d'|sudo tee 1>/dev/null /etc/sudoers.d/99-default-user
+    Defaults	env_reset
+    Defaults	env_keep+="CANDID_* DISPLAY EDITOR HOME LANDSCAPE_* LANG* MAAS_* PG_* PYTHONWARNINGS RBAC_* SHOW_ME* SSP_* XAUTHORITY XAUTHORIZATION *_IP *_PROXY *_proxy"
+    Defaults	secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:$HOME/.local/bin"
+    $(id -un 1000)		ALL=(ALL) NOPASSWD:ALL
+    SUDOERS
   # For Deb
   #- apt install maas -o Acquire::ForceIPv4=true -yqf --auto-remove --purge
   #- maas init --admin-username=${MAAS_PROFILE} --admin-password ${MAAS_PASSWORD} --admin-email=${MAAS_EMAIL} --admin-ssh-import=${MAAS_IMPORTID} --candid-agent-file="" --candid-domain="" --candid-admin-group="" --rbac-url="" --rbac-service-name=""

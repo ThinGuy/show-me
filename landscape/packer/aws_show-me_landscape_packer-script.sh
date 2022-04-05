@@ -5,7 +5,7 @@ sysctl -w net.ipv4.ip_forward=1
 printf "%s\x20%s\x20\x20%s\n" precedence '::ffff:0:0/96' 100 | tee -a /etc/gai.conf
 export APT_ARGS="--option=Acquire::ForceIPv4=true --assume-yes --quiet --auto-remove --purge"
 hostname landscape
-export SHOW_ME_PNIC=br0
+export SHOW_ME_PNIC=ens5
 export SHOW_ME_ARCH='amd64'
 export SHOW_ME_APP='landscape'
 export SHOW_ME_SUBSTRT='aws'
@@ -23,8 +23,16 @@ if [ -n $PUBLIC_IP ];then sudo sed -r -i "/$(hostname -s)$/a $PUBLIC_IP\t$(hostn
 printf '%s\n' LANG=en_US.UTF-8 LANGUAGE=en_US|sudo tee 1>/dev/null /etc/default/locale
 export LANG=en_US.UTF-8 LANGUAGE=en_US
 for i in DEFAULT_IP EDITOR LANG LANGUAGE PUBLIC_IP PYTHONWARNINGS SHOW_ME_APP SHOW_ME_ARCH SHOW_ME_GIT SHOW_ME_PNIC SHOW_ME_SUBSTRT;do if [ -n "$(eval echo -n \"\$${i}\")" ];then printf "export ${i}=\x22$(eval echo -n \$$i)\x22\n";fi;done|sudo tee -a 1>/dev/null /etc/environment
+cat <<SUDOERS|sed -r 's/[ \t]+$//g;/^$/d'|sudo tee 1>/dev/null /etc/sudoers.d/99-default-user
+Defaults	env_reset
+Defaults	env_keep+="CANDID_* DISPLAY EDITOR HOME LANDSCAPE_* LANG* MAAS_* PG_* PYTHONWARNINGS RBAC_* SHOW_ME* SSP_* XAUTHORITY XAUTHORIZATION *_IP *_PROXY *_proxy"
+Defaults	secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:$HOME/.local/bin"
+$(id -un 1000)		ALL=(ALL) NOPASSWD:ALL
+SUDOERS
 sudo bash -c 'source /etc/environment'
 sudo sh -c '. /etc/environment'
+. /etc/environment
+sudo systemctl restart systemd-networkd systemd-resolved procps.service
 sudo update-locale LANG=${LANG} LANGUAGE=${LAUNGUAGE}
 echo -en 'locales\tlocales/locales_to_be_generated\tmultiselect\ten_US ISO-8859-1, en_US.UTF-8 UTF-8'|sudo debconf-set-selections
 echo -en 'locales\tlocales/default_environment_locale\tselect\ten_US.UTF-8'|sudo debconf-set-selections
@@ -36,60 +44,12 @@ sudo DEBIAN_FRONTEND=noninteractive apt dist-upgrade ${APT_ARGS}
 sudo DEBIAN_FRONTEND=noninteractive apt install ${APT_ARGS} dnsutils, build-essential, debconf-utils, dialog, git, gnupg, jq, lynx, landscape-client, landscape-common, postgresql, postgresql-client, postgresql-common, software
 sudo apt-add-repository -y 'deb [arch=amd64] http://ppa.launchpad.net/landscape/19.10/ubuntu bionic main'
 sudo apt-key adv --recv --keyserver=hkp://keyserver.ubuntu.com 6E85A86E4652B4E6
-cat <<-NETPLAN|sed -r 's/[ \t]+$//g;/^$/d'|sudo tee 1>/dev/null /etc/netplan/50-cloud-init.yaml
-network:
-  version: 2
-  renderer: networkd
-  ethernets:
-    ens5:
-      dhcp4: false
-      dhcp6: false
-      optional: false
-      accept-ra: false
-      link-local: [ ]
-      match:
-        macaddress: '$(ip -o l show dev ens5|grep -oP "(?<=ether )[^ ]+")'
-      set-name: ens5
-  bridges:
-    br0:
-      macaddress: '$(ip -o l show dev ens5|grep -oP "(?<=ether )[^ ]+")'
-      interfaces: ['ens5']
-      link-local: [ ]
-      dhcp4: true
-      dhcp4-overrides:
-        use-dns: false
-        use-hostname: false
-        use-domains: false
-        route-metric: 1
-      dhcp6: false
-      optional: false
-      accept-ra: false
-      link-local: [ ]
-      nameservers:
-        addresses: [8.8.8.8,1.1.1.1]
-        search: [ubuntu-show.me]
-      parameters:
-        priority: 1
-        stp: false
-NETPLAN
-sudo netplan --debug generate
-sudo netplan --debug apply
-sudo netplan --debug apply
-sudo systemctl restart systemd-networkd systemd-resolved procps.service
-ip addr flush ens5
 sudo DEBIAN_FRONTEND=noninteractive apt-get --option=Acquire::ForceIPv4=true update
 sudo DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade --option=Acquire::ForceIPv4=true --assume-yes --quiet --auto-remove --purge
 sudo DEBIAN_FRONTEND=noninteractive apt-get install dnsutils debconf-utils dialog gnupg --option=Acquire::ForceIPv4=true --assume-yes --quiet --auto-remove --purge
 sudo DEBIAN_FRONTEND=noninteractive apt-get remove lxd lxd-client --auto-remove --purge --assume-yes --quiet --fix-broken --option=Acquire::ForceIPv4=true
-cat <<SUDOERS|sed -r 's/[ \t]+$//g;/^$/d'|sudo tee 1>/dev/null /etc/sudoers.d/99-default-user
-Defaults	env_reset
-Defaults	env_keep+="CANDID_* DISPLAY EDITOR HOME LANDSCAPE_* LANG* MAAS_* PG_* PYTHONWARNINGS RBAC_* SHOW_ME* SSP_* XAUTHORITY XAUTHORIZATION *_IP *_PROXY *_proxy"
-Defaults	secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:$HOME/.local/bin"
-$(id -un 1000)		ALL=(ALL) NOPASSWD:ALL
-SUDOERS
-sudo systemctl restart systemd-networkd systemd-resolved procps.service
 sudo mkdir -p /etc/show-me/www /etc/show-me/log
-if [ -d /opt/show-me ];then rm -rf /opt/show-me;fi
+if [ -d /opt/show-me ];then sudo rm -rf /opt/show-me;fi
 ping -c10 -w1 github.com
 sleep 10
 sudo git clone https://github.com/ThinGuy/show-me.git /opt/show-me
@@ -117,22 +77,22 @@ update-ca-certificates --fresh --verbose
 export PG_DBSSL_CRT=/etc/ssl/certs/landscape_server_ca.crt
 export PG_DBSSL_PEM=/etc/ssl/certs/landscape_server.pem
 export PG_DBSSL_KEY=/etc/ssl/private/landscape_server.key
-su - postgres -c "psql postgres -c \"ALTER SYSTEM SET ssl to 'on';\""
-su - postgres -c "psql postgres -c \"ALTER SYSTEM SET ssl_ca_file to '${PG_DBSSL_CRT}';\""
-su - postgres -c "psql postgres -c \"ALTER SYSTEM SET ssl_cert_file to '${PG_DBSSL_PEM}';\""
-su - postgres -c "psql postgres -c \"ALTER SYSTEM SET ssl_key_file to '${PG_DBSSL_KEY}';\""
-su - postgres -c "psql postgres -c \"ALTER SYSTEM SET listen_addresses to '*';\""
-su - postgres -c "psql postgres -c \"ALTER SYSTEM SET max_connections to '500';\""
-su - postgres -c "psql postgres -c \"ALTER SYSTEM SET max_prepared_transactions to '500';\""
-su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
+sudo su - postgres -c "psql postgres -c \"ALTER SYSTEM SET ssl to 'on';\""
+sudo su - postgres -c "psql postgres -c \"ALTER SYSTEM SET ssl_ca_file to '${PG_DBSSL_CRT}';\""
+sudo su - postgres -c "psql postgres -c \"ALTER SYSTEM SET ssl_cert_file to '${PG_DBSSL_PEM}';\""
+sudo su - postgres -c "psql postgres -c \"ALTER SYSTEM SET ssl_key_file to '${PG_DBSSL_KEY}';\""
+sudo su - postgres -c "psql postgres -c \"ALTER SYSTEM SET listen_addresses to '*';\""
+sudo su - postgres -c "psql postgres -c \"ALTER SYSTEM SET max_connections to '500';\""
+sudo su - postgres -c "psql postgres -c \"ALTER SYSTEM SET max_prepared_transactions to '500';\""
+sudo - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
 sudo apt install landscape-server-quickstart landscape-client -yqf --reinstall
-if [ -f /etc/ssl/certs/show-me_host.pem ];then ln -sf /etc/ssl/certs/show-me_host.pem /etc/landscape/landscape_server.pem;fi
-if [ -f /etc/ssl/certs/show-me_ca.crt ];then ln -sf /etc/ssl/certs/show-me_ca.crt /etc/landscape/landscape_server_ca.crt;fi
+if [ -f /etc/ssl/certs/show-me_host.pem ];then sudo ln -sf /etc/ssl/certs/show-me_host.pem /etc/landscape/landscape_server.pem;fi
+if [ -f /etc/ssl/certs/show-me_ca.crt ];then sudo ln -sf /etc/ssl/certs/show-me_ca.crt /etc/landscape/landscape_server_ca.crt;fi
 if [ -L /etc/ssl/certs/landscape_server.pem ];then echo "ssl_public_key = /etc/ssl/certs/landscape_server.pem"|sudo tee 1>/dev/null -a /etc/landscape/client.conf;fi
-if [ -f /usr/local/lib/show-me/landscape.lynx -a  -f /usr/local/bin/show-me_lynx-web-init.sh ];then  /usr/local/bin/show-me_lynx-web-init.sh;fi
-if [ -f /etc/landscape/client.conf ];then ln -sf /etc/landscape/client.conf /etc/show-me/www/landscape-client.conf;fi
-landscape-config -k /etc/landscape/landscape_server.pem -t $(hostname -s) -u "https://$(hostname -s).ubuntu-show.me/message-system" --ping-url "http://$(hostname -s).ubuntu-show.me/ping" -a standalone --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=show-me-demo,ubuntu --silent --log-level=debug
-if $(test -n "$(command 2>/dev/null -v lxd.lxc)");then su - $(id -un 1000) -c 'snap refresh lxd --channel latest/stable';else su - $(id -un 1000) -c 'snap install lxd';fi
-if [ -f /usr/local/bin/show-me_landscape_lxd-init.sh ];then /usr/local/bin/show-me_landscape_lxd-init.sh;fi
-if [ -f /usr/local/bin/show-me_file-service_init.sh ];then /usr/local/bin/show-me_file-service_init.sh;fi
-if [ -f /usr/local/bin/show-me/show-me_finishing-script_all.sh ];then /usr/local/bin/show-me/show-me_finishing-script_all.sh;fi
+if [ -f /usr/local/lib/show-me/landscape.lynx -a  -f /usr/local/bin/show-me_lynx-web-init.sh ];then sudo /usr/local/bin/show-me_lynx-web-init.sh;fi
+if [ -f /etc/landscape/client.conf ];then sudo ln -sf /etc/landscape/client.conf /etc/show-me/www/landscape-client.conf;fi
+sudo landscape-config -k /etc/landscape/landscape_server.pem -t $(hostname -s) -u "https://$(hostname -s).ubuntu-show.me/message-system" --ping-url "http://$(hostname -s).ubuntu-show.me/ping" -a standalone --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=show-me-demo,ubuntu --silent --log-level=debug
+if $(test -n "$(command 2>/dev/null -v lxd.lxc)");then su - $(id -un 1000) -c 'sudo snap refresh lxd --channel latest/stable';else su - $(id -un 1000) -c 'sudo snap install lxd';fi
+if [ -f /usr/local/bin/show-me_landscape_lxd-init.sh ];then sudo /usr/local/bin/show-me_landscape_lxd-init.sh;fi
+if [ -f /usr/local/bin/show-me_file-service_init.sh ];then sudo /usr/local/bin/show-me_file-service_init.sh;fi
+if [ -f /usr/local/bin/show-me/show-me_finishing-script_all.sh ];then sudo /usr/local/bin/show-me/show-me_finishing-script_all.sh;fi
