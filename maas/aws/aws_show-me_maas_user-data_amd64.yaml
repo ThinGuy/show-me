@@ -30,12 +30,12 @@ apt:
     };
   primary:
     - arches: [amd64]
-      uri: 'http://us.archive.ubuntu.com/ubuntu'
-      search: ['http://us.archive.ubuntu.com/ubuntu', 'http://us.archive.ubuntu.com/ubuntu']
+      uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
+      search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
   security:
     - arches: [amd64]
-      uri: 'http://us.archive.ubuntu.com/ubuntu'
-      search: ['http://us.archive.ubuntu.com/ubuntu', 'http://us.archive.ubuntu.com/ubuntu']
+      uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
+      search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
   sources_list: |
     deb [arch=amd64] $PRIMARY $RELEASE main universe restricted multiverse
     deb [arch=amd64] $PRIMARY $RELEASE-updates main universe restricted multiverse
