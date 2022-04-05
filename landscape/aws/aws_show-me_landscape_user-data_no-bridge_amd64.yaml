@@ -49,14 +49,14 @@ bootcmd:
   - ['cloud-init-per', 'once', 'net0', 'sysctl', '-w', 'net.ipv4.ip_forward=1']
   - ['cloud-init-per', 'once', 'net1', 'printf', '"%s\x20%s\x20\x20%s\n"', 'precedence', '::ffff:0:0/96', '100', '|', 'tee', '-a', '/etc/gai.conf']
   - ['cloud-init-per', 'once', 'net2', 'ln', '-s', '-f', '/run/systemd/resolve/resolv.conf', '/etc/resolv.conf']
-  - ['cloud-init-per', 'once', 'net3', 'systemctl', 'restart', 'systemd-networkd', 'systemd-resolved', 'procps.service']
-  - ['cloud-init-per', 'once', 'apt0', 'export', 'DEBIAN_FRONTEND=noninteractive']
-  - ['cloud-init-per', 'once', 'apt1', 'apt-get', '--option=Acquire::ForceIPv4=true', 'update']
-  - ['cloud-init-per', 'once', 'apt2', 'apt-get', 'dist-upgrade', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
-  - ['cloud-init-per', 'once', 'apt3', 'apt-get', 'install', 'dnsutils', 'debconf-utils', 'dialog', 'gnupg', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
-  - ['cloud-init-per', 'once', 'apt4', 'apt-get', 'remove', 'lxd', 'lxd-client', '--auto-remove', '--purge', '--assume-yes', '--quiet', '--fix-broken', '--option=Acquire::ForceIPv4=true']
+  - ['cloud-init-per', 'once', 'apt0', 'DEBIAN_FRONTEND=noninteractive', 'apt-get', '--option=Acquire::ForceIPv4=true', 'update']
+  - ['cloud-init-per', 'once', 'apt1', 'DEBIAN_FRONTEND=noninteractive', 'apt-get', 'dist-upgrade', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
+  - ['cloud-init-per', 'once', 'apt2', 'DEBIAN_FRONTEND=noninteractive', 'apt-get', 'install', 'dnsutils', 'debconf-utils', 'dialog', 'gnupg', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
+  - ['cloud-init-per', 'once', 'apt3', 'DEBIAN_FRONTEND=noninteractive', 'apt-get', 'remove', 'lxd', 'lxd-client', '--auto-remove', '--purge', '--assume-yes', '--quiet', '--fix-broken', '--option=Acquire::ForceIPv4=true']
 runcmd:
   - set -x
+  - systemctl restart systemd-networkd systemd-resolved procps.service
+  - sleep 5
   - export SHOW_ME_PNIC=ens5
   - export SHOW_ME_ARCH='amd64'
   - export SHOW_ME_APP='landscape'
