@@ -46,6 +46,7 @@ apt:
     #  source: 'deb [arch=amd64] https://ppa.launchpadcontent.net/maas/3.1/ubuntu focal main'
     #  keyid: 3AB6DCF1F234E78DAA9C104204E7FDC5684D4A1C
 bootcmd:
+  - export DEBIAN_FRONTEND=noninteractive
   - ['cloud-init-per', 'once', 'bc0', 'set', '-x']
   - ['cloud-init-per', 'once', 'net0', 'sysctl', '-w', 'net.ipv4.ip_forward=1']
   - ['cloud-init-per', 'once', 'net1', 'ln', '-s', '-f', '/run/systemd/resolve/resolv.conf', '/etc/resolv.conf']
@@ -123,10 +124,10 @@ bootcmd:
   - ['cloud-init-per', 'once', 'net6', 'ip', 'addr', 'flush', 'ens5']
   - ['cloud-init-per', 'once', 'net7', 'systemctl', 'restart', 'systemd-networkd', 'systemd-resolved', 'procps.service']
   - ['cloud-init-per', 'once', 'net8', 'echo', 'network: {config: disabled}', '>', '/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg']
-  - ['cloud-init-per', 'once', 'apt0',  'DEBIAN_FRONTEND=noninteractive', 'apt-get', '--option=Acquire::ForceIPv4=true', 'update']
-  - ['cloud-init-per', 'once', 'apt1',  'DEBIAN_FRONTEND=noninteractive', 'apt-get', 'dist-upgrade', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
-  - ['cloud-init-per', 'once', 'apt2',  'DEBIAN_FRONTEND=noninteractive', 'apt-get', 'install', 'dnsutils', 'debconf-utils', 'dialog', 'gnupg', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
-  - ['cloud-init-per', 'once', 'apt3',  'DEBIAN_FRONTEND=noninteractive', 'apt-get', 'remove', 'lxd', 'lxd-client', '--auto-remove', '--purge', '--assume-yes', '--quiet', '--fix-broken', '--option=Acquire::ForceIPv4=true']
+  - ['cloud-init-per', 'once', 'apt0',  'apt-get', '--option=Acquire::ForceIPv4=true', 'update']
+  - ['cloud-init-per', 'once', 'apt1',  'apt-get', 'dist-upgrade', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
+  - ['cloud-init-per', 'once', 'apt2',  'apt-get', 'install', 'dnsutils', 'debconf-utils', 'dialog', 'gnupg', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
+  - ['cloud-init-per', 'once', 'apt3',  'apt-get', 'remove', 'lxd', 'lxd-client', '--auto-remove', '--purge', '--assume-yes', '--quiet', '--fix-broken', '--option=Acquire::ForceIPv4=true']
 runcmd:
   - set -x
   - systemctl restart systemd-networkd systemd-resolved procps.service
