@@ -12,7 +12,7 @@ hostname: landscape
 locale: en_US.UTF-8
 package_update: true
 package_upgrade: true
-packages: [bind9-dnsutils, build-essential, debconf-ultils, dialog, git, gnupg, jq, lynx, landscape-client, landscape-common, postgresql-server, postgresql-client, postgresql-common, software-properties-common, ssl-cert, tree, unzip, vim]
+packages: [dnsutils, build-essential, debconf-utils, dialog, git, gnupg, jq, lynx, landscape-client, landscape-common, postgresql-server, postgresql-client, postgresql-common, software-properties-common, ssl-cert, tree, unzip, vim]
 apt:
   conf: |
     APT {
@@ -95,7 +95,7 @@ bootcmd:
   - ['cloud-init-per', 'once', 'net9', 'netplan', '--debug', 'apply']
   - ['cloud-init-per', 'once', 'apt1',  'DEBIAN_FRONTEND=noninteractive', 'apt-get', '--option=Acquire::ForceIPv4=true', 'update']
   - ['cloud-init-per', 'once', 'apt2',  'DEBIAN_FRONTEND=noninteractive', 'apt-get', 'dist-upgrade', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
-  - ['cloud-init-per', 'once', 'apt3',  'DEBIAN_FRONTEND=noninteractive', 'apt-get', 'install', 'bind9-dnsutils', 'debconf-utils', 'dialog', 'gnupg', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
+  - ['cloud-init-per', 'once', 'apt3',  'DEBIAN_FRONTEND=noninteractive', 'apt-get', 'install', 'dnsutils', 'debconf-utils', 'dialog', 'gnupg', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
   - ['cloud-init-per', 'once', 'apt4',  'DEBIAN_FRONTEND=noninteractive', 'apt-get', 'remove', 'lxd', 'lxd-client', '--auto-remove', '--purge', '--assume-yes', '--quiet', '--fix-broken', '--option=Acquire::ForceIPv4=true']
 runcmd:
   - set -x
