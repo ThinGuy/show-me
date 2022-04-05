@@ -1,2 +1,2 @@
 .DS_Store
-tools/lxd-profile.*.yaml
+lxd-profile.*.yaml
