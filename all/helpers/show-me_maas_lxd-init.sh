@@ -723,7 +723,7 @@ profiles:
         - systemctl restart procps.service
         - update-alternatives --set editor /usr/bin/vim.basic
         - "wget -qO -P /opt/show-me/ http://$DEFAULT_IP:9999/show-me_host.pem"
-        - for GROUP in docker kvm libvirt libvirt-qemu lxd maas;do if [ \"$(getent group $GROUP;echo \$?)" = "0" ];then usermod -a -G \$GROUP \$(id -un 1000);fi;done
+        - for GROUP in docker kvm libvirt libvirt-qemu lxd maas;do if [ "\$(getent group $GROUP;echo \$?)" = "0" ];then usermod -a -G \$GROUP \$(id -un 1000);fi;done
         - apt install maas-rack-controller -yqf --auto-remove --purge -o "Acquire::ForceIPv4=true"
         - maas-rack register --url "http://maas.ubuntu-show.me:5240/MAAS" --secret \$MAAS_SECRET
   description: maas-rack-4 profile
