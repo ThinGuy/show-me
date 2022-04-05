@@ -6,14 +6,13 @@ merge_how:
  - name: dict
    settings: [no_replace, recurse_list]
 manage_etc_hosts: false
-preserve_hostname: true
 prefer_fqdn_over_hostname: true
 fqdn: landscape.ubuntu-show.me
 hostname: landscape
 locale: en_US.UTF-8
-package_upgrade: true
 package_update: true
-packages: [dnsutils, build-essential, debconf-utils, dialog, git, gnupg, jq, lynx, landscape-client, landscape-common, postgresql-server, postgresql-client, postgresql-common, software-properties-common, ssl-cert, tree, unzip, vim]
+package_upgrade: true
+packages: [dnsutils, build-essential, debconf-utils, dialog, git, gnupg, jq, lynx, landscape-client, landscape-common, postgresql, postgresql-client, postgresql-common, software-properties-common, ssl-cert, tree, unzip, vim]
 apt:
   conf: |
     APT {
@@ -30,12 +29,12 @@ apt:
     };
   primary:
     - arches: [amd64]
-      uri: 'http://us.archive.ubuntu.com/ubuntu'
-      search: ['http://us.archive.ubuntu.com/ubuntu', 'http://us.archive.ubuntu.com/ubuntu']
+      uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
+      search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
   security:
     - arches: [amd64]
-      uri: 'http://us.archive.ubuntu.com/ubuntu'
-      search: ['http://us.archive.ubuntu.com/ubuntu', 'http://us.archive.ubuntu.com/ubuntu']
+      uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
+      search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
   sources_list: |
     deb [arch=amd64] $PRIMARY $RELEASE main universe restricted multiverse
     deb [arch=amd64] $PRIMARY $RELEASE-updates main universe restricted multiverse
@@ -47,82 +46,10 @@ apt:
       keyid: 6E85A86E4652B4E6
 bootcmd:
   - ['cloud-init-per', 'once', 'bc0', 'set', '-x']
-  - ['cloud-init-per', 'once', 'net0', 'echo', 'network: {config: disabled}', '>', '/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg']
-  - ['cloud-init-per', 'once', 'net1', 'sysctl', '-w', 'net.ipv4.ip_forward=1']
-  - ['cloud-init-per', 'once', 'net3', 'printf', '"%s\x20%s\x20\x20%s\n"', 'precedence', '::ffff:0:0/96', '100', '|', 'tee', '-a', '/etc/gai.conf']
-  - ['cloud-init-per', 'once', 'net4', 'systemctl', 'restart', 'systemd-networkd', 'systemd-resolved', 'procps.service']
-  - |-
-    cat <<-NETPLAN|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init.yaml
-    network:
-      version: 2
-      renderer: networkd
-      ethernets:
-        enp0s3:
-          dhcp4: false
-          dhcp6: false
-          optional: false
-          accept-ra: false
-          link-local: [ ]
-          match:
-            macaddress: '$(ip -o l show dev enp0s3|grep -oP "(?<=ether )[^ ]+")'
-          set-name: enp0s3
-        enp0s8:
-          dhcp4: false
-          dhcp6: false
-          optional: false
-          accept-ra: false
-          link-local: [ ]
-          match:
-            macaddress: '$(ip -o l show dev enp0s8|grep -oP "(?<=ether )[^ ]+")'
-          set-name: enp0s8
-      bridges:
-        br0:
-          macaddress: '$(ip -o l show dev enp0s8|grep -oP "(?<=ether )[^ ]+")'
-          interfaces: ['enp0s8']
-          link-local: [ ]
-          dhcp4: true
-          dhcp4-overrides:
-            use-dns: false
-            use-hostname: false
-            use-domains: false
-            route-metric: 1
-          dhcp6: false
-          optional: false
-          accept-ra: false
-          link-local: [ ]
-          nameservers:
-            addresses: [8.8.8.8,1.1.1.1]
-            search: [ubuntu-show.me]
-          parameters:
-            priority: 1
-            stp: false
-        br1:
-          macaddress: '$(ip -o l show dev enp0s3|grep -oP "(?<=ether )[^ ]+")'
-          interfaces: ['enp0s3']
-          link-local: [ ]
-          dhcp4: true
-          dhcp4-overrides:
-            use-dns: false
-            use-hostname: false
-            use-domains: false
-            use-routes: true
-            route-metric: 100
-          dhcp6: false
-          optional: false
-          accept-ra: false
-          link-local: [ ]
-          nameservers:
-            addresses: [8.8.8.8,1.1.1.1]
-            search: [ubuntu-show.me]
-          parameters:
-            priority: 100
-            stp: false
-    NETPLAN
-  - ['cloud-init-per', 'once', 'net5', 'echo', 'network: {config: disabled}', '>', '/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg']
-  - ['cloud-init-per', 'once', 'net6', 'netplan', '--debug', 'generate']
-  - ['cloud-init-per', 'once', 'net7', 'systemctl', 'restart', 'systemd-networkd', 'systemd-resolved', 'procps.service']
-  - ['cloud-init-per', 'once', 'net8', 'netplan', '--debug', 'apply']
-  - ['cloud-init-per', 'once', 'net9', 'netplan', '--debug', 'apply']
+  - ['cloud-init-per', 'once', 'net0', 'sysctl', '-w', 'net.ipv4.ip_forward=1']
+  - ['cloud-init-per', 'once', 'net1', 'printf', '"%s\x20%s\x20\x20%s\n"', 'precedence', '::ffff:0:0/96', '100', '|', 'tee', '-a', '/etc/gai.conf']
+  - ['cloud-init-per', 'once', 'net2', 'ln', '-s', '-f', '/run/systemd/resolve/resolv.conf', '/etc/resolv.conf']
+  - ['cloud-init-per', 'once', 'net3', 'systemctl', 'restart', 'systemd-networkd', 'systemd-resolved', 'procps.service']
   - ['cloud-init-per', 'once', 'apt0', 'export', 'DEBIAN_FRONTEND=noninteractive']
   - ['cloud-init-per', 'once', 'apt1', 'apt-get', '--option=Acquire::ForceIPv4=true', 'update']
   - ['cloud-init-per', 'once', 'apt2', 'apt-get', 'dist-upgrade', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
@@ -130,10 +57,10 @@ bootcmd:
   - ['cloud-init-per', 'once', 'apt4', 'apt-get', 'remove', 'lxd', 'lxd-client', '--auto-remove', '--purge', '--assume-yes', '--quiet', '--fix-broken', '--option=Acquire::ForceIPv4=true']
 runcmd:
   - set -x
-  - export SHOW_ME_PNIC=br0
+  - export SHOW_ME_PNIC=ens5
   - export SHOW_ME_ARCH='amd64'
-  - export SHOW_ME_APP='maas'
-  - export SHOW_ME_SUBSTRT='multipass'
+  - export SHOW_ME_APP='landscape'
+  - export SHOW_ME_SUBSTRT='aws'
   - export SHOW_ME_GIT="https://github.com/ThinGuy/show-me.git"
   - export DEBIAN_FRONTEND=noninteractive
   - "export PYTHONWARNINGS='ignore::DeprecationWarning'"
@@ -148,19 +75,20 @@ runcmd:
   - systemctl restart systemd-networkd systemd-resolved procps.service
   - for i in SHOW_ME_PNIC SHOW_ME_ARCH SHOW_ME_APP SHOW_ME_SUBSTRT SHOW_ME_GIT EDITOR PYTHONWARNINGS PUBLIC_IP DEFAULT_IP;do if [ -n "$(eval echo -n \"\$${i}\")" ];then printf "export ${i}=\x22$(eval echo -n \$$i)\x22\n";fi;done|tee -a 1>/dev/null /etc/environment
   - . /etc/environment
+  - mkdir -p /etc/show-me/www /etc/show-me/log
   - if [ -d /opt/show-me ];then rm -rf /opt/show-me;fi
   - ping -c10 -w1 github.com
   - sleep 10
   - git clone https://github.com/ThinGuy/show-me.git /opt/show-me
-  - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/petname-helper.sh /usr/local/bin/petname-helper.sh
+  - install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/petname-helper.sh /usr/local/bin/petname-helper.sh
   - install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/show-me_lynx-web-init.sh /usr/local/bin/show-me_lynx-web-init.sh
   - install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/add-landscape-clients.sh/usr/local/bin/add-landscape-clients.sh
   - install -o 0 -g 0 -m 0400 /opt/show-me/all/pki/ubuntu-show-me-id_rsa /home/$(id -un 1000)/.ssh/showme_rsa
   - install -o 0 -g 0 -m 0640 /opt/show-me/all/pki/ubuntu-show-me-id_rsa.pub /home/$(id -un 1000)/.ssh/showme_rsa.pub
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/ubuntu-show-me-id_rsa.pub /home/$(id -un 1000)/.ssh/authorized_keys
   - install -o 0 -g 0 -m 0644 -D /opt/show-me/all/helpers/landscape.lynx /usr/local/lib/show-me/landscape.lynx
-  - install -o 0 -g 0 -m 0754 -d /usr/local/lib/show-me/petname2/
-  - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/show-me_landscape_lxd-init.sh /usr/local/bin/show-me_landscape_lxd-init.sh
+  - install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/petname2/
+  - install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/show-me_landscape_lxd-init.sh /usr/local/bin/show-me_landscape_lxd-init.sh
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.pem /etc/ssl/certs/show-me_host.pem
   - install -o 0 -g 0 -m 0600 /opt/show-me/all/pki/show-me_host.key /etc/ssl/private/show-me_host.key
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/ssl/certs/show-me_ca.crt
@@ -171,8 +99,6 @@ runcmd:
   - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/show-me_finishing-script_all.sh /usr/local/bin/show-me_finishing-script_all.sh
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/show-me/www/show-me_ca.crt
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.pem /etc/show-me/www/landscape_server.pem
-  - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/show-me_file-service_init.sh /usr/local/bin/show-me_file-service_init.sh
-  - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/show-me_finishing-script_all.sh /usr/local/bin/show-me_finishing-script_all.sh
   - update-ca-certificates --fresh --verbose
   - export PG_DBSSL_CRT=/etc/ssl/certs/landscape_server_ca.crt
   - export PG_DBSSL_PEM=/etc/ssl/certs/landscape_server.pem
@@ -185,9 +111,8 @@ runcmd:
   - su - postgres -c "psql postgres -c \"ALTER SYSTEM SET max_connections to '500';\""
   - su - postgres -c "psql postgres -c \"ALTER SYSTEM SET max_prepared_transactions to '500';\""
   - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
-  - if [ -f /root/.show-me.rc ];then . /root/.show-me.rc;fi
   - |-
-    cat <<SUDOERS|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/sudoers.d/99-default-user
+    cat <<SUDOERS|sed -r 's/[ \t]+$//g;/^$/d'|sudo tee 1>/dev/null /etc/sudoers.d/99-default-user
     Defaults	env_reset
     Defaults	env_keep+="CANDID_* DISPLAY EDITOR HOME LANDSCAPE_* LANG* MAAS_* PG_* PYTHONWARNINGS RBAC_* SHOW_ME* SSP_* XAUTHORITY XAUTHORIZATION *_IP *_PROXY *_proxy"
     Defaults	secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:$HOME/.local/bin"

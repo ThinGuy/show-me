@@ -41,96 +41,26 @@ apt:
     deb [arch=amd64] $PRIMARY $RELEASE-updates main universe restricted multiverse
     deb [arch=amd64] $SECURITY $RELEASE-security main universe restricted multiverse
     deb [arch=amd64] $PRIMARY $RELEASE-backports main universe restricted multiverse
-  sources:
+  #sources:
     #maas-ubuntu-3_1-focal.list:
     #  source: 'deb [arch=amd64] https://ppa.launchpadcontent.net/maas/3.1/ubuntu focal main'
     #  keyid: 3AB6DCF1F234E78DAA9C104204E7FDC5684D4A1C
 bootcmd:
   - ['cloud-init-per', 'once', 'bc0', 'set', '-x']
-  - ['cloud-init-per', 'once', 'net0', 'echo', 'network: {config: disabled}', '>', '/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg']
-  - ['cloud-init-per', 'once', 'net1', 'sysctl', '-w', 'net.ipv4.ip_forward=1']
+  - ['cloud-init-per', 'once', 'net0', 'sysctl', '-w', 'net.ipv4.ip_forward=1']
+  - ['cloud-init-per', 'once', 'net1', 'printf', '"%s\x20%s\x20\x20%s\n"', 'precedence', '::ffff:0:0/96', '100', '|', 'tee', '-a', '/etc/gai.conf']
   - ['cloud-init-per', 'once', 'net2', 'ln', '-s', '-f', '/run/systemd/resolve/resolv.conf', '/etc/resolv.conf']
-  - ['cloud-init-per', 'once', 'net3', 'printf', '"%s\x20%s\x20\x20%s\n"', 'precedence', '::ffff:0:0/96', '100', '|', 'tee', '-a', '/etc/gai.conf']
-  - |-
-    cat <<-NETPLAN|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init.yaml
-    network:
-      version: 2
-      renderer: networkd
-      ethernets:
-        enp0s3:
-          dhcp4: false
-          dhcp6: false
-          optional: false
-          accept-ra: false
-          link-local: [ ]
-          match:
-            macaddress: '$(ip -o l show dev enp0s3|grep -oP "(?<=ether )[^ ]+")'
-          set-name: enp0s3
-        enp0s8:
-          dhcp4: false
-          dhcp6: false
-          optional: false
-          accept-ra: false
-          link-local: [ ]
-          match:
-            macaddress: '$(ip -o l show dev enp0s8|grep -oP "(?<=ether )[^ ]+")'
-          set-name: enp0s8
-      bridges:
-        br0:
-          macaddress: '$(ip -o l show dev enp0s8|grep -oP "(?<=ether )[^ ]+")'
-          interfaces: ['enp0s8']
-          link-local: [ ]
-          dhcp4: true
-          dhcp4-overrides:
-            use-dns: false
-            use-hostname: false
-            use-domains: false
-            route-metric: 1
-          dhcp6: false
-          optional: false
-          accept-ra: false
-          link-local: [ ]
-          nameservers:
-            addresses: [8.8.8.8,1.1.1.1]
-            search: [ubuntu-show.me]
-          parameters:
-            priority: 1
-            stp: false
-        br1:
-          macaddress: '$(ip -o l show dev enp0s3|grep -oP "(?<=ether )[^ ]+")'
-          interfaces: ['enp0s3']
-          link-local: [ ]
-          dhcp4: true
-          dhcp4-overrides:
-            use-dns: false
-            use-hostname: false
-            use-domains: false
-            use-routes: true
-            route-metric: 100
-          dhcp6: false
-          optional: false
-          accept-ra: false
-          link-local: [ ]
-          nameservers:
-            addresses: [8.8.8.8,1.1.1.1]
-            search: [ubuntu-show.me]
-          parameters:
-            priority: 100
-            stp: false
-    NETPLAN
-  - ['cloud-init-per', 'once', 'net4', 'ln', '-s', '-f', '/run/systemd/resolve/resolv.conf', '/etc/resolv.conf']    
-  - ['cloud-init-per', 'once', 'net5', 'netplan', '--debug', 'generate']
-  - ['cloud-init-per', 'once', 'net6', 'netplan', '--debug', 'apply']
-  - ['cloud-init-per', 'once', 'net7', 'netplan', '--debug', 'apply']
-  - ['cloud-init-per', 'once', 'net8', 'systemctl', 'restart', 'systemd-networkd', 'systemd-resolved', 'procps.service']
-  - ['cloud-init-per', 'once', 'net9', 'ip', 'addr', 'flush', 'ens5']
-  - ['cloud-init-per', 'once', 'apt0',  'DEBIAN_FRONTEND=noninteractive', 'apt-get', '--option=Acquire::ForceIPv4=true', 'update']
-  - ['cloud-init-per', 'once', 'apt1',  'DEBIAN_FRONTEND=noninteractive', 'apt-get', 'dist-upgrade', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
-  - ['cloud-init-per', 'once', 'apt2',  'DEBIAN_FRONTEND=noninteractive', 'apt-get', 'install', 'dnsutils', 'debconf-utils', 'dialog', 'gnupg', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
-  - ['cloud-init-per', 'once', 'apt3',  'DEBIAN_FRONTEND=noninteractive', 'apt-get', 'remove', 'lxd', 'lxd-client', '--auto-remove', '--purge', '--assume-yes', '--quiet', '--fix-broken', '--option=Acquire::ForceIPv4=true']
+  - ['cloud-init-per', 'once', 'net3', 'systemctl', 'restart', 'systemd-networkd', 'systemd-resolved', 'procps.service']
+  - ['cloud-init-per', 'once', 'apt0', 'export', 'DEBIAN_FRONTEND=noninteractive']
+  - ['cloud-init-per', 'once', 'apt1', 'apt-get', '--option=Acquire::ForceIPv4=true', 'update']
+  - ['cloud-init-per', 'once', 'apt2', 'apt-get', 'dist-upgrade', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
+  - ['cloud-init-per', 'once', 'apt3', 'apt-get', 'install', 'dnsutils', 'debconf-utils', 'dialog', 'gnupg', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
+  - ['cloud-init-per', 'once', 'apt4', 'apt-get', 'remove', 'lxd', 'lxd-client', '--auto-remove', '--purge', '--assume-yes', '--quiet', '--fix-broken', '--option=Acquire::ForceIPv4=true']
 runcmd:
   - set -x
-  - export SHOW_ME_PNIC=br0
+  - export SHOW_ME_PNIC=enp0s8runcmd:
+  - set -x
+  - export SHOW_ME_PNIC=enp0s8
   - export SHOW_ME_ARCH='amd64'
   - export SHOW_ME_APP='maas'
   - export SHOW_ME_SUBSTRT='aws'
@@ -178,8 +108,8 @@ runcmd:
   - if [ -f /etc/ssl/certs/show-me_full-chain.pem ];then ln -sf /etc/ssl/certs/show-me_full-chain.pem /etc/show-me/www/.;fi
   - if [ -f /etc/ssl/certs/show-me_basic-chain.pem ];then /etc/ssl/certs/show-me_basic-chain.pem /etc/show-me/www/.;fi
   - update-ca-certificates --fresh --verbose
-  ### Begin Postgresql setup
-   Basic PostgreSQL setup
+  #### Begin Postgresql setup
+  # Basic PostgreSQL setup
   - export PG_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export PG_DBHBA="/etc/postgresql/${PG_DBVER}/main/pg_hba.conf"
   - export PG_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
@@ -200,7 +130,7 @@ runcmd:
   - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
   - su - postgres -c 'psql -P pager=off  postgres -xtc "select name,setting from pg_settings where name SIMILAR TO '"'"'listen%|max%(con|prep)%|ssl|ssl_(ca|cert|key)%'"'"';"'
   - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
-   PostgreSQL setup for Canonical Snap-Store-Proxy
+  # PostgreSQL setup for Canonical Snap-Store-Proxy
   - export SSP_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export SSP_DBHBA="/etc/postgresql/${SSP_DBVER}/main/pg_hba.conf"
   - export SSP_DBHOST=maas.ubuntu-show.me
@@ -221,7 +151,7 @@ runcmd:
   - chown postgres:postgres /var/lib/postgresql/.pgpass.ssp
   - printf '%-08s%-016s%-016s%-024s%s\n' hostssl ${SSP_DBNAME} ${SSP_DBUSER} '::/0' md5 hostssl ${SSP_DBNAME} ${SSP_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${SSP_DBHBA}''
   - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
-   PostgreSQL setup for Canonical Candid
+  # PostgreSQL setup for Canonical Candid
   - export CANDID_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export CANDID_DBHBA="/etc/postgresql/${CANDID_DBVER}/main/pg_hba.conf"
   - export CANDID_DBHOST='maas.ubuntu-show.me'
@@ -237,7 +167,7 @@ runcmd:
   - chown postgres:postgres /var/lib/postgresql/.pgpass.candid
   - printf '%-08s%-016s%-016s%-024s%s\n' hostssl ${CANDID_DBNAME} ${CANDID_DBUSER} '::/0' md5 hostssl ${CANDID_DBNAME} ${CANDID_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${CANDID_DBHBA}''
   - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
-   PostgreSQL setup for Landscape
+  # PostgreSQL setup for Landscape
   - export LANDSCAPE_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export LANDSCAPE_DBHBA="/etc/postgresql/${LANDSCAPE_DBVER}/main/pg_hba.conf"
   - export LANDSCAPE_DBHOST='maas.ubuntu-show.me'
@@ -253,7 +183,7 @@ runcmd:
   - chown postgres:postgres /var/lib/postgresql/.pgpass.landscape
   - printf '%-08s%-016s%-016s%-024s%s\n' hostssl ${LANDSCAPE_DBNAME} ${LANDSCAPE_DBUSER} '::/0' md5 hostssl ${LANDSCAPE_DBNAME} ${LANDSCAPE_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${LANDSCAPE_DBHBA}''
   - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
-   PostgreSQL setup for Canonical RBAC
+  # PostgreSQL setup for Canonical RBAC
   - export RBAC_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export RBAC_DBHBA="/etc/postgresql/${RBAC_DBVER}/main/pg_hba.conf"
   - export RBAC_DBHOST='maas.ubuntu-show.me'
@@ -267,7 +197,7 @@ runcmd:
   - echo "${RBAC_DBHOST}:${RBAC_DBPORT}:${RBAC_DBNAME}:${RBAC_DBUSER}:${RBAC_DBPASS}"|su postgres -c 'tee 1>/dev/null /var/lib/postgresql/.pgpass.rbac'
   - printf '%-08s%-016s%-016s%-024s%s\n' hostssl ${RBAC_DBNAME} ${RBAC_DBUSER} '::/0' md5 hostssl ${RBAC_DBNAME} ${RBAC_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${RBAC_DBHBA}''
   - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
-   PostgreSQL setup for Canonical MAAS
+  # PostgreSQL setup for Canonical MAAS
   - export MAAS_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
   - export MAAS_PROFILE="maas-admin"
   - export MAAS_PASSWORD="ubuntu"
@@ -291,8 +221,8 @@ runcmd:
   - su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
   - for P in MAAS SSP RBAC CANDID LANDSCAPE PG SHOW_ME;do set|grep "^${P}_";done|sort -uV|tee ~/.show-me.rc|su - $(id -un 1000) -c 'tee ~/.show-me.rc'|su - postgres -c 'tee ~/.show-me.rc'
   - echo 'for RC in $(find ~/ -maxdepth 1 -type f -iname ".show-me*.rc");do source $RC;done'|tee -a /root/.bashrc |su - $(id -un 1000) -c 'tee -a ~/.bashrc'|su - postgres -c 'tee -a ~/.bashrc'
-  ### END of Postgresql section
-  ### Begin Main Show-me App Section
+  #### END of Postgresql section
+  #### Begin Main Show-me App Section
   - if [ -f /root/.show-me.rc ];then . /root/.show-me.rc;fi
   - |-
     cat <<SUDOERS|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/sudoers.d/99-default-user
@@ -301,12 +231,12 @@ runcmd:
     Defaults	secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:$HOME/.local/bin"
     $(id -un 1000)		ALL=(ALL) NOPASSWD:ALL
     SUDOERS
-   For Deb
-  - apt install maas -o Acquire::ForceIPv4=true -yqf --auto-remove --purge
-  - maas init --admin-username=${MAAS_PROFILE} --admin-password ${MAAS_PASSWORD} --admin-email=${MAAS_EMAIL} --admin-ssh-import=${MAAS_IMPORTID} --candid-agent-file="" --candid-domain="" --candid-admin-group="" --rbac-url="" --rbac-service-name=""
-  - /usr/bin/maas login ${MAAS_PROFILE} ${MAAS_URL} \$(sudo /usr/bin/maas apikey --username=${MAAS_PROFILE})
-  - su - $(id -un 1000) -c '/usr/bin/maas login '${MAAS_PROFILE}' '${MAAS_URL}' $(sudo /usr/bin/maas apikey --username='${MAAS_PROFILE}')'
-   For snap
+  # For Deb
+  #- apt install maas -o Acquire::ForceIPv4=true -yqf --auto-remove --purge
+  #- maas init --admin-username=${MAAS_PROFILE} --admin-password ${MAAS_PASSWORD} --admin-email=${MAAS_EMAIL} --admin-ssh-import=${MAAS_IMPORTID} --candid-agent-file="" --candid-domain="" --candid-admin-group="" --rbac-url="" --rbac-service-name=""
+  #- /usr/bin/maas login ${MAAS_PROFILE} ${MAAS_URL} \$(sudo /usr/bin/maas apikey --username=${MAAS_PROFILE})
+  #- su - $(id -un 1000) -c '/usr/bin/maas login '${MAAS_PROFILE}' '${MAAS_URL}' $(sudo /usr/bin/maas apikey --username='${MAAS_PROFILE}')'
+  # For snap
   - snap install maas
   - /snap/bin/maas init --force --mode=region --maas-url="${MAAS_URL}" --database-host=${MAAS_DBHOST} --database-name=${MAAS_DBNAME} --database-user=${MAAS_DBUSER} --database-pass=${MAAS_DBPASS} --database-port=${MAAS_DBPORT}
   - /snap/bin/maas createadmin --username ${MAAS_PROFILE} --password ${MAAS_PASSWORD} --email ${MAAS_EMAIL} --ssh-import "${MAAS_IMPORTID}"
