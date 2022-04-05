@@ -142,7 +142,7 @@ runcmd:
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.pem /etc/show-me/www/landscape_server.pem
   - update-ca-certificates --fresh --verbose
   - export PG_DBSSL_CRT=/etc/ssl/certs/landscape_server_ca.crt
-  - export PG_DBSSL_PEM=/etc/sll/certs/landscape_server.pem
+  - export PG_DBSSL_PEM=/etc/ssl/certs/landscape_server.pem
   - export PG_DBSSL_KEY=/etc/ssl/private/landscape_server.key
   - su - postgres -c "psql postgres -c \"ALTER SYSTEM SET ssl to 'on';\""
   - su - postgres -c "psql postgres -c \"ALTER SYSTEM SET ssl_ca_file to '${PG_DBSSL_CRT}';\""
