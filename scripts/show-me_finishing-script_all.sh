@@ -1,7 +1,10 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # vim: set et ts=2 sw=2 filetype=bash :
+
+{ [[ $SM_DEBUG ]] &>/dev/null; } && { { set -x; } &>/dev/null; }
 [[ $EUID -ne 0 ]] && { echo "${0##*/} must be run as root or via sudo";exit 1; } || { true; }
 
 #Reserved for future use
 
 exit 0
+{ [[ $SM_DEBUG ]] &>/dev/null; } && { { set +x; } &>/dev/null; }

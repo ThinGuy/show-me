@@ -1,4 +1,7 @@
 #!/bin/bash
+# vim: set et ts=2 sw=2 filetype=bash :
+
+{ [[ $SM_DEBUG ]] &>/dev/null; } && { { set -x; } &>/dev/null; }
 
 #### Begin Postgresql setup
 
@@ -122,3 +125,4 @@ echo 'for RC in $(find ~/ -maxdepth 1 -type f -iname ".show-me*.rc");do source $
 #### END of Postgresql section
 
 exit 0
+{ [[ $SM_DEBUG ]] &>/dev/null; } && { { set +x; } &>/dev/null; }

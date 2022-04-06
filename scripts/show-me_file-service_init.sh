@@ -1,5 +1,7 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # vim: set et ts=2 sw=2 filetype=bash :
+
+{ [[ $SM_DEBUG ]] &>/dev/null; } && { { set -x; } &>/dev/null; }
 [[ $EUID -ne 0 ]] && { echo "${0##*/} must be run as root or via sudo";exit 1; } || { true; }
 
 
@@ -36,3 +38,4 @@ done
 [[ $(systemctl -q is-active show-me-file.service;echo $?) -eq 0 ]] && { printf "\n\e[4G\e[0;1;38;2;0;255;0mSuccess\x21\e[0m The Show-Me-File Service is now available\e[0m\n";true;export RC=0; } || { printf "\n\e[4G\e[0;1;38;2;255;0;0mERROR\e[0m: Failed to start Show-Me-File Service\e[0m\n";false;export RC=1; }
 exit ${RC}
 
+{ [[ $SM_DEBUG ]] &>/dev/null; } && { { set +x; } &>/dev/null; }
