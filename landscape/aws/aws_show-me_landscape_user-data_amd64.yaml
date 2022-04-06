@@ -6,9 +6,7 @@ merge_how:
  - name: dict
    settings: [no_replace, recurse_list]
 manage_etc_hosts: false
-prefer_fqdn_over_hostname: true
-fqdn: landscape.ubuntu-show.me
-hostname: landscape
+timezone: America/Los_Angeles
 locale: en_US.UTF-8
 package_update: true
 package_upgrade: true
@@ -46,7 +44,21 @@ apt:
       keyid: 6E85A86E4652B4E6
 bootcmd:
   - export DEBIAN_FRONTEND=noninteractive
-  - ['cloud-init-per', 'once', 'bc0', 'set', '-x']
+  - set -x
+  - export SHOW_ME_INIC=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
+  - export INTERNAL_IP=$(ip -o -4 a show $(ip -o r l default|grep ${SHOW_ME_INIC}|grep -m1 -oP "(?<=dev )[^ ]+")|grep -m1 -oP "(?<=inet )[^/]+")
+  - export IFQDN=$(hostname -s).us-west-1.compute.internal
+  - export IHOST=${IFQDN%%.*}
+  - exoirt IDOMAIN=${IFQDN#*.}
+  - export PUBLIC_IP=$(dig +short myip.opendns.com @resolver1.opendns.com)
+  - export PFQDN=$(dig +short -x $PUBLIC_IP|sed 's,\.$,,g')
+  - export PHOST=${PFQDN%%.*}
+  - export PDOMAIN=${PFQDN#*.}
+  - sed -r -i "/127.0|$(hostname -s)/d" /etc/hosts
+  - sed -r -i "1s/^/127.0.0.1\tlocalhost\n${PUBLIC_IP}\t${PHOST}.${PDOMAIN} ${PHOST}\n${INTERNAL_IP}\t${IHOST}.${IDOMAIN} ${IHOST}\n/" /etc/hosts
+  - hostname ${PHOST}
+  - echo ${PHOST}|tee 1>/devnull /etc/hostname
+  - systemctl restart systemd-resolved
   - ['cloud-init-per', 'once', 'net0', 'sysctl', '-w', 'net.ipv4.ip_forward=1']
   - ['cloud-init-per', 'once', 'net1', 'ln', '-s', '-f', '/run/systemd/resolve/resolv.conf', '/etc/resolv.conf']
   - ['cloud-init-per', 'once', 'net2', 'printf', '"%s\x20%s\x20\x20%s\n"', 'precedence', '::ffff:0:0/96', '100', '|', 'tee', '-a', '/etc/gai.conf']
@@ -56,33 +68,32 @@ bootcmd:
       version: 2
       renderer: networkd
       ethernets:
-        ens5:
+        ${SHOW_ME_INIC}:
           dhcp4: false
           dhcp6: false
           optional: false
           accept-ra: false
           link-local: [ ]
           match:
-            macaddress: '$(ip -o l show dev ens5|grep -oP "(?<=ether )[^ ]+")'
-          set-name: ens5
+            macaddress: '$(ip -o l show dev ${SHOW_ME_INIC}|grep -oP "(?<=ether )[^ ]+")'
+          set-name: ${SHOW_ME_INIC}
       bridges:
         br0:
-          macaddress: '$(ip -o l show dev ens5|grep -oP "(?<=ether )[^ ]+")'
-          interfaces: ['ens5']
+          macaddress: '$(ip -o l show dev ${SHOW_ME_INIC}grep -oP "(?<=ether )[^ ]+")'
+          interfaces: ['${SHOW_ME_INIC}']
           link-local: [ ]
           dhcp4: true
           dhcp4-overrides:
-            use-dns: false
             use-hostname: false
+            hostname: ${PHOST}
             use-domains: false
-            route-metric: 1
           dhcp6: false
           optional: false
           accept-ra: false
           link-local: [ ]
           nameservers:
-            addresses: [8.8.8.8,1.1.1.1]
-            search: [ubuntu-show.me]
+            addresses: [169.254.169.253,1.1.1.1]
+            search: [~us-west-1.compute.amazonaws.com,us-west-1.compute.internal]
           parameters:
             priority: 1
             stp: false
@@ -91,8 +102,7 @@ bootcmd:
   - ['cloud-init-per', 'once', 'net4', 'netplan', '--debug', 'generate']
   - ['cloud-init-per', 'once', 'net5', 'netplan', '--debug', 'apply']
   - ['cloud-init-per', 'once', 'net6', 'ip', 'addr', 'flush', 'ens5']
-  - ['cloud-init-per', 'once', 'net7', 'systemctl', 'restart', 'systemd-networkd', 'systemd-resolved', 'procps.service']
-  - ['cloud-init-per', 'once', 'net8', 'echo', 'network: {config: disabled}', '>', '/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg']
+  - ['cloud-init-per', 'once', 'net7',, 'echo', 'network: {config: disabled}', '>', '/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg']
   - ['cloud-init-per', 'once', 'apt0',  'apt-get', '--option=Acquire::ForceIPv4=true', 'update']
   - ['cloud-init-per', 'once', 'apt1',  'apt-get', 'dist-upgrade', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
   - ['cloud-init-per', 'once', 'apt2',  'apt-get', 'install', 'dnsutils', 'debconf-utils', 'dialog', 'gnupg', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
@@ -109,18 +119,25 @@ runcmd:
   - "export PYTHONWARNINGS='ignore::DeprecationWarning'"
   - echo "export PYTHONWARNINGS='ignore::DeprecationWarning'"|tee -a 1>/dev/null /etc/environment
   - if [ -f /usr/bin/vim.basic ];then echo "export EDITOR='/usr/bin/vim.basic'"|tee -a 1>/dev/null /etc/environment;fi
-  - export DEFAULT_IP="$(ip -o -4 a show $(ip -o r l default|grep ${SHOW_ME_PNIC}|grep -m1 -oP '(?<=dev )[^ ]+')|grep -m1 -oP '(?<=inet )[^/]+')"
-  - export PUBLIC_IP_LIST="$(printf '%s\n' $(dig +short myip.opendns.com @resolver1.opendns.com) $(dig TXT +short o-o.myaddr.l.google.com @ns1.google.com|sed -r 's/\x22//g') $(dig +short txt ch whoami.cloudflare @1.0.0.1|sed -r 's/\x22//g'))"
-  - if [ $(echo "${PUBLIC_IP_LIST}"|uniq -D|wc -l) -eq 3 ];then export PUBLIC_IP=$(echo "${PUBLIC_IP_LIST}"|uniq -d);fi
-  - if [ -n $DEFAULT_IP -o -n $PUBLIC_IP ];then sed -i -r "/127.0|$(hostname -s)/d" /etc/hosts;fi
-  - if [ -n $DEFAULT_IP ];then sed -i -r "1s/^/127.0.0.1\tlocalhost\n${DEFAULT_IP}\t$(hostname -s).ubuntu-show.me $(hostname -s)\n/" /etc/hosts;fi
-  - if [ -n $PUBLIC_IP ];then sed -r -i "/$(hostname -s)$/a $PUBLIC_IP\t$(hostname -s).ubuntu-show.me $(hostname -s)\n/";fi
-  - systemctl restart systemd-networkd systemd-resolved procps.service
-  - for i in SHOW_ME_PNIC SHOW_ME_ARCH SHOW_ME_APP SHOW_ME_SUBSTRT SHOW_ME_GIT EDITOR PYTHONWARNINGS PUBLIC_IP DEFAULT_IP;do if [ -n "$(eval echo -n \"\$${i}\")" ];then printf "export ${i}=\x22$(eval echo -n \$$i)\x22\n";fi;done|tee -a 1>/dev/null /etc/environment
+  - export SHOW_ME_PNIC=br0
+  - export INTERNAL_IP=$(ip -o -4 a show $(ip -o r l default|grep ${SHOW_ME_PNIC}|grep -m1 -oP "(?<=dev )[^ ]+")|grep -m1 -oP "(?<=inet )[^/]+")
+  - export IFQDN=$(hostname -s).us-west-1.compute.internal
+  - export IHOST=${IFQDN%%.*}
+  - exoirt IDOMAIN=${IFQDN#*.}
+  - export PUBLIC_IP=$(dig +short myip.opendns.com @resolver1.opendns.com)
+  - export PFQDN=$(dig +short -x $PUBLIC_IP|sed 's,\.$,,g')
+  - export PHOST=${PFQDN%%.*}
+  - export PDOMAIN=${PFQDN#*.}
+  - sed -r -i "/127.0|$(hostname -s)/d" /etc/hosts
+  - sed -r -i "1s/^/127.0.0.1\tlocalhost\n${PUBLIC_IP}\t${PHOST}.${PDOMAIN} ${PHOST}\n${INTERNAL_IP}\t${IHOST}.${IDOMAIN} ${IHOST}\n/" /etc/hosts
+  - hostname ${PHOST}
+  - echo ${PHOST}|tee 1>/devnull /etc/hostname
+  - systemctl restart systemd-resolved
+  - for i in SHOW_ME_PNIC SHOW_ME_ARCH SHOW_ME_APP SHOW_ME_SUBSTRT SHOW_ME_GIT EDITOR PYTHONWARNINGS PUBLIC_IP INTERNAL_IP;do if [ -n "$(eval echo -n \"\$${i}\")" ];then printf "export ${i}=\x22$(eval echo -n \$$i)\x22\n";fi;done|tee -a 1>/dev/null /etc/environment
   - . /etc/environment
   - mkdir -p /etc/show-me/www /etc/show-me/log
   - if [ -d /opt/show-me ];then rm -rf /opt/show-me;fi
-  - ping -c10 -w1 github.com
+  - ping -c10 -w5 github.com
   - sleep 10
   - git clone https://github.com/ThinGuy/show-me.git /opt/show-me
   - install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/petname-helper.sh /usr/local/bin/petname-helper.sh
@@ -142,6 +159,7 @@ runcmd:
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/show-me/www/show-me_ca.crt
   - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.pem /etc/show-me/www/landscape_server.pem
   - update-ca-certificates --fresh --verbose
+  - if [ -f /home/$(id -un 1000)/.ssh/showme_rsa.pub ];then su $(id -un 1000) -c 'cat /home/$(id -un 1000)/.ssh/showme_rsa.pub|tee -a 1>/dev/null /home/$(id -un 1000)/.ssh/authorized_keys';fi
   - export PG_DBSSL_CRT=/etc/ssl/certs/landscape_server_ca.crt
   - export PG_DBSSL_PEM=/etc/ssl/certs/landscape_server.pem
   - export PG_DBSSL_KEY=/etc/ssl/private/landscape_server.key
