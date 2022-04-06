@@ -10,7 +10,7 @@ timezone: America/Los_Angeles
 locale: en_US.UTF-8
 package_update: true
 package_upgrade: true
-packages: [dnsutils, build-essential, debconf-utils, dialog, git, gnupg, jq, lynx, landscape-client, landscape-common, postgresql, postgresql-client, postgresql-common, software-properties-common, ssl-cert, tree, unzip, vim]
+packages: [dnsutils, build-essential, debconf-utils, dialog, git, gnupg, haproxy, jq, lynx, software-properties-common, ssl-cert, tree, unzip, vim]
 apt:
   conf: |
     APT {
@@ -45,38 +45,41 @@ apt:
 bootcmd:
   - set -x
   - export SM_DNS="9.9.9.9,1.1.1.1,'2620:fe::fe','2606:4700:4700::1111'"
-  - export SM_BR=br0
   - export SM_ETH=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
   - export SM_DOMAIN="ubuntu-show.me"
   - export SM_APP="landscape"
-  - export SM_BR=br0
-  - export SM_ARCH='amd64'
+  - export SM_BR="br0"
+  - export SM_ARCH="amd64"
   - export SM_GIT="https://github.com/ThinGuy/show-me.git"
-  - (echo ${SM_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf'
-  - export CLOUD=$(dmidecode -s bios-vendor|awk '{print tolower($1)}')
-  - [ "${CLOUD}" = "amazon" ] && export MDURL="http://169.254.169.254/latest/meta-data"
-  - [ "${CLOUD}" = "amazon" ] && export SM_SUBSTRT='aws'
+  - (echo ${SM_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf
+  - export CLOUD="$(dmidecode -s bios-vendor|awk '{print tolower($1)}')"
+  - [ "${CLOUD}" = "amazon" ] && { export MDURL="http://169.254.169.254/latest/meta-data"; }
+  - [ "${CLOUD}" = "amazon" ] && { export SM_SUBSTRT="aws"; }
   - export MDURL="http://169.254.169.254/latest/meta-data"
   - export DEBIAN_FRONTEND=noninteractive
-  - (sudo dmidecode -s 2>&1|awk '/^[ \t]+/{gsub(/^[ \t]+/,"");print}'|xargs -rn1 -P1 sudo bash -c 'P=${0/-/_};printf "MACHINE_${P^^}=\x22$(dmidecode -s $0|grep -vi not)\x22\n"')|tee 1>/dev/null /root/.machine.rc
-  - if [ -f /root/.machine.rc ];then . /root/.machine.rc;fi
-  - export CLOUD_LOCAL_IPV4=$(curl -s $MDURL/local-ipv4)
-  - export CLOUD_PUBLIC_IP=$(curl -s $MDURL/public-ipv4)
-  - export CLOUD_REGION=$(curl -s $MDURL/placement/region) #us-west-1
-  - export CLOUD_AZ=$(curl -s $MDURL/placement/availability-zone) #us-west-1a
-  - export CLOUD_AZ_ID=$(curl -s $MDURL/placement/availability-zone-id)
-  - export CLOUD_LOCAL_HOSTNAME=$(curl -s $MDURL/local-hostname)
-  - export CLOUD_PUBLIC_HOSTNAME=$(curl -s $MDURL/public-hostname)
-  - export CLOUD_PRIMARY_MAC_ADDR=$(curl -sSlL ${MDURL}/mac|grep -m1)
-  - export CLOUD_PUBLIC_TLD=$(curl -sSlL ${MDURL}/services/domain)
+  - eval $((set|grep -E '^CANDID_|^CLOUD_|^LANDSCAPE_|^MAAS_|^MACHINE_|^PG_|^RBAC_|^SHOW_ME|^SHOW_ME_|^SM_|^SSP_')|sed -r 's/^/export /g;s/\\x22//g;s/\\\x27//g')
+  - export CLOUD_API_TOKEN="$(http://169.254.169.254/latest/api/token)"
+  - export CLOUD_AMI_ID="$(curl -sSlL ${MDURL}/ami-id)
+  - export CLOUD_LOCAL_IPV4="$(curl -sSlL $MDURL/local-ipv4)"
+  - export CLOUD_PUBLIC_IPV4="$(curl -sSlL $MDURL/public-ipv4)"
+  - export CLOUD_PUBLIC_IPV4="$(curl -sSlL $MDURL/public-ipv4)"
+  - export CLOUD_PUBLIC_IPV4_CHECK="$(dig +short myip.opendns.com @resolver1.opendns.com)"
+  - [ -z "${CLOUD_PUBLIC_IPV4}" -a -n "${CLOUD_PUBLIC_IPV4_CHECK}" ] && { export CLOUD_PUBLIC_IPV4="${CLOUD_PUBLIC_IPV4_CHECK}"; } 
+  - export CLOUD_REGION="$(curl -sSlL $MDURL/placement/region)"
+  - export CLOUD_AZ="$(curl -sSlL $MDURL/placement/availability-zone)"
+  - export CLOUD_AZ_ID="$(curl -sSlL $MDURL/placement/availability-zone-id)"
+  - export CLOUD_LOCAL_HOSTNAME="$(curl -sSlL $MDURL/local-hostname)"
+  - export CLOUD_PUBLIC_HOSTNAME="$(curl -sSlL $MDURL/public-hostname)"
+  - export CLOUD_PUBLIC_FQDN_CHECK="$(dig +short -x $(dig +short myip.opendns.com @resolver1.opendns.com) @resolver1.opendns.com|sed 's,\.$,,g')
+  - [ -z "${CLOUD_PUBLIC_HOSTNAME}" -a -n "${CLOUD_PUBLIC_FQDN_CHECK}" ] && { export CLOUD_PUBLIC_HOSTNAME="${CLOUD_PUBLIC_FQDN_CHECK%%.*}"; } 
+  - export CLOUD_PRIMARY_MAC_ADDR="$(curl -sSlL ${MDURL}/mac)"
+  - export CLOUD_PUBLIC_TLD="$(curl -sSlL ${MDURL}/services/domain)"
   - export CLOUD_LOCAL_TLD="internal"
-  - export CLOUD_PUBLIC_FQDN="${CLOUD_PUBLIC_HOSTNAME}.${CLOUD_AZ}.compute.${CLOUD_PUBLIC_TLD}
-  - export CLOUD_PUBLIC_DOMAIN="${CLOUD_AZ}.compute.${CLOUD_PUBLIC_TLD}
-  - export CLOUD_LOCAL_DOMAIN="${CLOUD_AZ}.compute.internal
-  - export CLOUD_PARTITION=$(curl -sSlL ${MDURL}/services/partition)
-  - export CLOUD_LOCAL_FQDN=${CLOUD_LOCAL_HOSTNAME}.${CLOUD_AZ}.compute.${CLOUD_LOCAL_TLD}
-  - export CLOUD_PUBLIC_IPV4_CHECK=$(dig +short myip.opendns.com @resolver1.opendns.com)
-  - export CLOUD_PUBLIC_FQDN_CHECK=$(dig +short -x $CLOUD_PUBLIC_IPV4|sed 's,\.$,,g')
+  - export CLOUD_PUBLIC_FQDN="${CLOUD_PUBLIC_HOSTNAME}.${CLOUD_REGION}.compute.${CLOUD_PUBLIC_TLD}"
+  - export CLOUD_PUBLIC_DOMAIN="${CLOUD_REGION}.compute.${CLOUD_PUBLIC_TLD}"
+  - export CLOUD_LOCAL_DOMAIN="${CLOUD_REGION}.compute.${CLOUD_LOCAL_TLD}"
+  - export CLOUD_PARTITION="$(curl -sSlL ${MDURL}/services/partition)"
+  - export CLOUD_LOCAL_FQDN="${CLOUD_LOCAL_HOSTNAME}.${CLOUD_REGION}.compute.${CLOUD_LOCAL_TLD}"
   - hostname ${CLOUD_PUBLIC_FQDN}
   - echo ${CLOUD_PUBLIC_FQDN}|tee 1>/devnull /etc/hostname
   - sed -r -i "/127.0|${CLOUD_LOCAL_HOSTNAME}|${CLOUD_LOCAL_IPV4}/d" /etc/hosts
@@ -124,7 +127,6 @@ bootcmd:
             use-hostname: false
             hostname: ${CLOUD_PUBLIC_FQDN}
             use-dns: false
-            use-domains: false
             route-metric: 1
           dhcp6: false
           optional: false
@@ -147,7 +149,7 @@ bootcmd:
   - apt-get dist-upgrade --option="Acquire::ForceIPv4=true" --assume-yes --quiet --auto-remove --purge
   - apt-get install dnsutils debconf-utils dialog gnupg --option="Acquire::ForceIPv4=true" --assume-yes --quiet --auto-remove --purge
   - apt-get remove lxd lxd-client --auto-remove --purge --assume-yes --quiet --fix-broken --option="Acquire::ForceIPv4=true"
-  - (set|grep -E '^CANDID_|^CLOUD_|^LANDSCAPE_|^MAAS_|^MACHINE_|^PG_|^RBAC_|^SHOW_ME|^SHOW_ME_|^SM_|^SSP_')|tee 1>/dev/null /root/.show-me.rc
+  - ((set|grep -E '^CANDID_|^CLOUD_|^LANDSCAPE_|^MAAS_|^MACHINE_|^PG_|^RBAC_|^SHOW_ME|^SHOW_ME_|^SM_|^SSP_')|sed -r 's/^/export /g;s/\\x22//g;s/\\\x27//g')|tee 1>/dev/null /root/.show-me.rc
   - if [ -f /root/.show-me.rc ];then . /root/.show-me.rc;fi
 runcmd:
   - set -x
@@ -170,11 +172,15 @@ runcmd:
   - install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_host.pem /etc/ssl/certs/show-me_host.pem
   - install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_host.key /etc/ssl/private/show-me_host.key
   - install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /etc/ssl/certs/show-me_ca.crt
+  - install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_basic-chain.pem /etc/ssl/private/show-me_basic-chain.pem
+  - install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_full-chain.pem /etc/ssl/private/show-me_full-chain.pem   
+  - install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_basic-chain.pem /etc/ssl/private/landscape-server_basic-chain.pem
+  - install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_full-chain.pem /etc/ssl/private/landscape-server_full-chain.pem    
   - install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_host.pem /etc/ssl/certs/landscape_server.pem
   - install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_host.key /etc/ssl/private/landscape_server.key
   - install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /etc/ssl/certs/landscape_server_ca.crt
-  - install -o 0 -g 0 -m 0754 /opt/show-me/scripts/show-me_file-service_init.sh /usr/local/bin/show-me_file-service_init.sh
-  - install -o 0 -g 0 -m 0754 /opt/show-me/scripts/show-me_finishing-script_all.sh /usr/local/bin/show-me_finishing-script_all.sh
+  - install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_file-service_init.sh /usr/local/bin/show-me_file-service_init.sh
+  - install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_finishing-script_all.sh /usr/local/bin/show-me_finishing-script_all.sh
   - install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /etc/show-me/www/show-me_ca.crt
   - install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_host.pem /etc/show-me/www/landscape_server.pem
   - update-ca-certificates --fresh --verbose

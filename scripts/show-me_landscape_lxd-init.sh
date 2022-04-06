@@ -2,6 +2,7 @@
 # vim: set et ts=2 sw=2 filetype=bash :
 
 { [[ $SM_DEBUG ]] &>/dev/null; } && { { set -x; } &>/dev/null; }
+
 [[ $EUID -ne 0 ]] && { echo "${0##*/} must be run as root or via sudo";exit 1; } || { true; }
 
 cat <<-PRESEED|sed -r 's/[ \t]+$//g;/^$/d'|lxd init --preseed -

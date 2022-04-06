@@ -130,22 +130,22 @@ runcmd:
   - git clone https://github.com/canonical/packer-maas /opt/show-me/packer-maas
   - curl -fSlL -o /opt/show-me/packer_1.8.0_linux_amd64.zip "https://releases.hashicorp.com/packer/1.8.0/packer_1.8.0_linux_${SM_ARCH}.zip"
   - if [ -f /opt/show-me/packer_1.8.0_linux_${SM_ARCH}.zip ];then unzip -qq -o -d /usr/local/bin /opt/show-me/packer_1.8.0_linux_${SM_ARCH}.zip;fi
-  - install -o 0 -g 0 -m 0754 /opt/show-me/scripts/petname-helper.sh /usr/local/bin/petname-helper.sh
-  - install -o 0 -g 0 -m 0754 /opt/show-me/scripts/petname-helper.sh /usr/local/bin/petname-helper.sh
+  - install -o 0 -g 0 -m 0755 /opt/show-me/scripts/petname-helper.sh /usr/local/bin/petname-helper.sh
+  - install -o 0 -g 0 -m 0755 /opt/show-me/scripts/petname-helper.sh /usr/local/bin/petname-helper.sh
   - install -o 0 -g 0 -m 0400 /opt/show-me/pki/show-me-id_rsa /home/$(id -un 1000)/.ssh/showme_rsa
   - install -o 0 -g 0 -m 0640 /opt/show-me/pki/show-me-id_rsa.pub /home/$(id -un 1000)/.ssh/showme_rsa.pub
   - install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me-id_rsa.pub /home/$(id -un 1000)/.ssh/authorized_keys
   - install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/petname2/
-  - install -o 0 -g 0 -m 0754 /opt/show-me/scripts/show-me_maas_lxd-init.sh /usr/local/bin/show-me_maas_lxd-init.sh
-  - install -o 0 -g 0 -m 0754 /opt/show-me/scripts/show-me_postgresql-init.sh /usr/local/bin/show-me_postgresql-init.sh
+  - install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_maas_lxd-init.sh /usr/local/bin/show-me_maas_lxd-init.sh
+  - install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_postgresql-init.sh /usr/local/bin/show-me_postgresql-init.sh
   - install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_host.crt /etc/ssl/certs/show-me_host.crt
   - install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_host.key /etc/ssl/private/show-me_host.key
   - install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /etc/ssl/certs/show-me_ca.crt
   - install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /etc/ssl/certs/maas_ca.crt
   - install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_host.crt /etc/ssl/certs/maas_host.crt
   - install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_host.key /etc/ssl/private/maas_host.key
-  - install -o 0 -g 0 -m 0754 /opt/show-me/scripts/show-me_file-service_init.sh /usr/local/bin/show-me_file-service_init.sh
-  - install -o 0 -g 0 -m 0754 /opt/show-me/scripts/show-me_finishing-script_all.sh /usr/local/bin/show-me_finishing-script_all.sh
+  - install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_file-service_init.sh /usr/local/bin/show-me_file-service_init.sh
+  - install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_finishing-script_all.sh /usr/local/bin/show-me_finishing-script_all.sh
   - if [ -f /etc/ssl/certs/show-me_ca.crt ];then cp -a /etc/ssl/certs/show-me_ca.crt /usr/local/share/ca-certificates/show-me_ca.crt;fi
   - if [ -f /etc/ssl/certs/show-me_host.crt ];then ln -sf /etc/ssl/certs/show-me_ca.crt /etc/show-me/www/.;fi
   - install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_full-chain.pem /etc/ssl/certs/show-me_full-chain.pem
