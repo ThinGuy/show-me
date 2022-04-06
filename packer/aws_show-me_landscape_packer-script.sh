@@ -54,25 +54,25 @@ ping -c10 -w1 github.com
 sleep 10
 sudo git clone https://github.com/ThinGuy/show-me.git /opt/show-me
 sleep 10
-sudo install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/petname-helper.sh /usr/local/bin/petname-helper.sh
-sudo install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/show-me_lynx-web-init.sh /usr/local/bin/show-me_lynx-web-init.sh
-sudo install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/add-landscape-clients.sh/usr/local/bin/add-landscape-clients.sh
-sudo install -o 0 -g 0 -m 0400 /opt/show-me/all/pki/ubuntu-show-me-id_rsa /home/$(id -un 1000)/.ssh/showme_rsa
-sudo install -o 0 -g 0 -m 0640 /opt/show-me/all/pki/ubuntu-show-me-id_rsa.pub /home/$(id -un 1000)/.ssh/showme_rsa.pub
-sudo install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/ubuntu-show-me-id_rsa.pub /home/$(id -un 1000)/.ssh/authorized_keys
-sudo install -o 0 -g 0 -m 0644 -D /opt/show-me/all/helpers/landscape.lynx /usr/local/lib/show-me/landscape.lynx
+sudo install -o 0 -g 0 -m 0755 /opt/show-me/scripts/petname-helper.sh /usr/local/bin/petname-helper.sh
+sudo install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_lynx-web-init.sh /usr/local/bin/show-me_lynx-web-init.sh
+sudo install -o 0 -g 0 -m 0755 /opt/show-me/scripts/add-landscape-clients.sh/usr/local/bin/add-landscape-clients.sh
+sudo install -o 0 -g 0 -m 0400 /opt/show-me/pki/show-me-id_rsa /home/$(id -un 1000)/.ssh/showme_rsa
+sudo install -o 0 -g 0 -m 0640 /opt/show-me/pki/show-me-id_rsa.pub /home/$(id -un 1000)/.ssh/showme_rsa.pub
+sudo install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me-id_rsa.pub /home/$(id -un 1000)/.ssh/authorized_keys
+sudo install -o 0 -g 0 -m 0644 -D /opt/show-me/scripts/landscape.lynx /usr/local/lib/show-me/landscape.lynx
 sudo install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/petname2/
-sudo install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/show-me_landscape_lxd-init.sh /usr/local/bin/show-me_landscape_lxd-init.sh
-sudo install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.pem /etc/ssl/certs/show-me_host.pem
-sudo install -o 0 -g 0 -m 0600 /opt/show-me/all/pki/show-me_host.key /etc/ssl/private/show-me_host.key
-sudo install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/ssl/certs/show-me_ca.crt
-sudo install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.pem /etc/ssl/certs/landscape_server.pem
-sudo install -o 0 -g 0 -m 0600 /opt/show-me/all/pki/show-me_host.key /etc/ssl/private/landscape_server.key
-sudo install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/ssl/certs/landscape_server_ca.crt
-sudo install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/show-me_file-service_init.sh /usr/local/bin/show-me_file-service_init.sh
-sudo install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/show-me_finishing-script_all.sh /usr/local/bin/show-me_finishing-script_all.sh
-sudo install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/show-me/www/show-me_ca.crt
-sudo install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.pem /etc/show-me/www/landscape_server.pem
+sudo install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_landscape_lxd-init.sh /usr/local/bin/show-me_landscape_lxd-init.sh
+sudo install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_host.pem /etc/ssl/certs/show-me_host.pem
+sudo install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_host.key /etc/ssl/private/show-me_host.key
+sudo install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /etc/ssl/certs/show-me_ca.crt
+sudo install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_host.pem /etc/ssl/certs/landscape_server.pem
+sudo install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_host.key /etc/ssl/private/landscape_server.key
+sudo install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /etc/ssl/certs/landscape_server_ca.crt
+sudo install -o 0 -g 0 -m 0754 /opt/show-me/scripts/show-me_file-service_init.sh /usr/local/bin/show-me_file-service_init.sh
+sudo install -o 0 -g 0 -m 0754 /opt/show-me/scripts/show-me_finishing-script_all.sh /usr/local/bin/show-me_finishing-script_all.sh
+sudo install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /etc/show-me/www/show-me_ca.crt
+sudo install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_host.pem /etc/show-me/www/landscape_server.pem
 update-ca-certificates --fresh --verbose
 export PG_DBSSL_CRT=/etc/ssl/certs/landscape_server_ca.crt
 export PG_DBSSL_PEM=/etc/ssl/certs/landscape_server.pem

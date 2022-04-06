@@ -142,24 +142,24 @@ runcmd:
   - ping -c10 -w5 github.com
   - sleep 10
   - git clone https://github.com/ThinGuy/show-me.git /opt/show-me
-  - install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/petname-helper.sh /usr/local/bin/petname-helper.sh
-  - install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/show-me_lynx-web-init.sh /usr/local/bin/show-me_lynx-web-init.sh
-  - install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/add-landscape-clients.sh/usr/local/bin/add-landscape-clients.sh
-  - install -o 1000 -g 1000 -m 0400 /opt/show-me/all/pki/ubuntu-show-me-id_rsa /home/$(id -un 1000)/.ssh/showme_rsa
-  - install -o 1000 -g 1000 -m 0640 /opt/show-me/all/pki/ubuntu-show-me-id_rsa.pub /home/$(id -un 1000)/.ssh/showme_rsa.pub
-  - install -o 0 -g 0 -m 0644 -D /opt/show-me/all/helpers/landscape.lynx /usr/local/lib/show-me/landscape.lynx
+  - install -o 0 -g 0 -m 0755 /opt/show-me/scripts/petname-helper.sh /usr/local/bin/petname-helper.sh
+  - install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_lynx-web-init.sh /usr/local/bin/show-me_lynx-web-init.sh
+  - install -o 0 -g 0 -m 0755 /opt/show-me/scripts/add-landscape-clients.sh/usr/local/bin/add-landscape-clients.sh
+  - install -o 1000 -g 1000 -m 0400 /opt/show-me/pki/show-me-id_rsa /home/$(id -un 1000)/.ssh/showme_rsa
+  - install -o 1000 -g 1000 -m 0640 /opt/show-me/pki/show-me-id_rsa.pub /home/$(id -un 1000)/.ssh/showme_rsa.pub
+  - install -o 0 -g 0 -m 0644 -D /opt/show-me/scripts/landscape.lynx /usr/local/lib/show-me/landscape.lynx
   - install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/petname2/
-  - install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/show-me_landscape_lxd-init.sh /usr/local/bin/show-me_landscape_lxd-init.sh
-  - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.pem /etc/ssl/certs/show-me_host.pem
-  - install -o 0 -g 0 -m 0600 /opt/show-me/all/pki/show-me_host.key /etc/ssl/private/show-me_host.key
-  - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/ssl/certs/show-me_ca.crt
-  - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.pem /etc/ssl/certs/landscape_server.pem
-  - install -o 0 -g 0 -m 0600 /opt/show-me/all/pki/show-me_host.key /etc/ssl/private/landscape_server.key
-  - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/ssl/certs/landscape_server_ca.crt
-  - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/show-me_file-service_init.sh /usr/local/bin/show-me_file-service_init.sh
-  - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/show-me_finishing-script_all.sh /usr/local/bin/show-me_finishing-script_all.sh
-  - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/show-me/www/show-me_ca.crt
-  - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.pem /etc/show-me/www/landscape_server.pem
+  - install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_landscape_lxd-init.sh /usr/local/bin/show-me_landscape_lxd-init.sh
+  - install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_host.pem /etc/ssl/certs/show-me_host.pem
+  - install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_host.key /etc/ssl/private/show-me_host.key
+  - install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /etc/ssl/certs/show-me_ca.crt
+  - install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_host.pem /etc/ssl/certs/landscape_server.pem
+  - install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_host.key /etc/ssl/private/landscape_server.key
+  - install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /etc/ssl/certs/landscape_server_ca.crt
+  - install -o 0 -g 0 -m 0754 /opt/show-me/scripts/show-me_file-service_init.sh /usr/local/bin/show-me_file-service_init.sh
+  - install -o 0 -g 0 -m 0754 /opt/show-me/scripts/show-me_finishing-script_all.sh /usr/local/bin/show-me_finishing-script_all.sh
+  - install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /etc/show-me/www/show-me_ca.crt
+  - install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_host.pem /etc/show-me/www/landscape_server.pem
   - update-ca-certificates --fresh --verbose
   - if [ -f /home/$(id -un 1000)/.ssh/showme_rsa.pub ];then su $(id -un 1000) -c 'cat /home/$(id -un 1000)/.ssh/showme_rsa.pub|tee -a 1>/dev/null /home/$(id -un 1000)/.ssh/authorized_keys';fi
   - if [ -f /home/$(id -un 1000)/.showme.rc ];then . /home/$(id -un 1000)/.showme.rc;fi

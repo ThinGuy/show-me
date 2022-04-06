@@ -2,7 +2,7 @@
 # vim: set et ts=2 sw=2 filetype=bash :
 [[ $EUID -ne 0 ]] && { echo "${0##*/} must be run as root or via sudo";exit 1; } || { true; }
 
-sudo lxd init --preseed < /opt/show-me/all/helpers/show-me_mass_lxd-init.yaml
+sudo lxd init --preseed < /opt/show-me/scripts/show-me_mass_lxd-init.yaml
 
 lxc image copy ubuntu-daily:focal local: --alias maas-controller-focal --alias focal --auto-update --public
 lxc image copy ubuntu-daily:jammy local: --alias maas-controller-jammy --aliase jammt=y --auto-update --public
