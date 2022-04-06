@@ -103,7 +103,7 @@ bootcmd:
   - ['cloud-init-per', 'once', 'net4', 'netplan', '--debug', 'generate']
   - ['cloud-init-per', 'once', 'net5', 'netplan', '--debug', 'apply']
   - ['cloud-init-per', 'once', 'net6', 'ip', 'addr', 'flush', 'ens5']
-  - ['cloud-init-per', 'once', 'net7',, 'echo', 'network: {config: disabled}', '>', '/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg']
+  - ['cloud-init-per', 'once', 'net7', 'echo', 'network: {config: disabled}', '>', '/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg']
   - ['cloud-init-per', 'once', 'apt0',  'apt-get', '--option=Acquire::ForceIPv4=true', 'update']
   - ['cloud-init-per', 'once', 'apt1',  'apt-get', 'dist-upgrade', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
   - ['cloud-init-per', 'once', 'apt2',  'apt-get', 'install', 'dnsutils', 'debconf-utils', 'dialog', 'gnupg', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']

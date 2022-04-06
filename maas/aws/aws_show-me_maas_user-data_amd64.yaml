@@ -170,7 +170,7 @@ runcmd:
   #- /usr/bin/maas login ${MAAS_PROFILE} ${MAAS_URL} \$(sudo /usr/bin/maas apikey --username=${MAAS_PROFILE})
   #- su - $(id -un 1000) -c '/usr/bin/maas login '${MAAS_PROFILE}' '${MAAS_URL}' $(sudo /usr/bin/maas apikey --username='${MAAS_PROFILE}')'
   # For snap
-  - snap install maas
+  - snap install maas --channel=3.2=/beta
   - /snap/bin/maas init --force region --maas-url="${MAAS_URL}" --database-host=${MAAS_DBHOST} --database-name=${MAAS_DBNAME} --database-user=${MAAS_DBUSER} --database-pass=${MAAS_DBPASS} --database-port=${MAAS_DBPORT}
   - /snap/bin/maas createadmin --username ${MAAS_PROFILE} --password ${MAAS_PASSWORD} --email ${MAAS_EMAIL} --ssh-import "${MAAS_IMPORTID}"
   - /snap/bin/maas login ${MAAS_PROFILE} ${MAAS_URL} $(/snap/bin/maas apikey --username=${MAAS_PROFILE})
