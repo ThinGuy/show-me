@@ -56,7 +56,7 @@ sudo git clone https://github.com/ThinGuy/show-me.git /opt/show-me
 sleep 10
 sudo install -o 0 -g 0 -m 0755 /opt/show-me/scripts/petname-helper.sh /usr/local/bin/petname-helper.sh
 sudo install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_lynx-web-init.sh /usr/local/bin/show-me_lynx-web-init.sh
-sudo install -o 0 -g 0 -m 0755 /opt/show-me/scripts/add-landscape-clients.sh/usr/local/bin/add-landscape-clients.sh
+sudo install -o 0 -g 0 -m 0755 /opt/show-me/scripts/add-landscape-clients.sh /usr/local/bin/add-landscape-clients.sh
 sudo install -o 0 -g 0 -m 0400 /opt/show-me/pki/show-me-id_rsa /home/$(id -un 1000)/.ssh/showme_rsa
 sudo install -o 0 -g 0 -m 0640 /opt/show-me/pki/show-me-id_rsa.pub /home/$(id -un 1000)/.ssh/showme_rsa.pub
 sudo install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me-id_rsa.pub /home/$(id -un 1000)/.ssh/authorized_keys
