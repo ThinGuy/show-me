@@ -43,99 +43,116 @@ apt:
       source: 'deb [arch=amd64] http://ppa.launchpad.net/landscape/19.10/ubuntu bionic main'
       keyid: 6E85A86E4652B4E6
 bootcmd:
-  - export DEBIAN_FRONTEND=noninteractive
   - set -x
-  - export SM_BRNIC=br0
-  - export SM_INIC=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
-  - export INTERNAL_IP=$(ip -o -4 a show $(ip -o r l default|grep ${SM_INIC}|grep -m1 -oP "(?<=dev )[^ ]+")|grep -m1 -oP "(?<=inet )[^/]+")
-  - export IFQDN=$(hostname -s).us-west-1.compute.internal
-  - export IHOST=${IFQDN%%.*}
-  - exoirt IDOMAIN=${IFQDN#*.}
-  - export PUBLIC_IP=$(dig +short myip.opendns.com @resolver1.opendns.com)
-  - export PFQDN=$(dig +short -x $PUBLIC_IP|sed 's,\.$,,g')
-  - export PHOST=${PFQDN%%.*}
-  - export PDOMAIN=${PFQDN#*.}
-  - sed -r -i "/127.0|$(hostname -s)/d" /etc/hosts
-  - sed -r -i "1s/^/127.0.0.1\tlocalhost\n${PUBLIC_IP}\t${PHOST}.${PDOMAIN} ${PHOST}\n${INTERNAL_IP}\t${IHOST}.${IDOMAIN} ${IHOST}\n/" /etc/hosts
-  - hostname ${PHOST}
-  - echo ${PHOST}|tee 1>/devnull /etc/hostname
+  - export SM_DNS="9.9.9.9,1.1.1.1,'2620:fe::fe','2606:4700:4700::1111'"
+  - export SM_BR=br0
+  - export SM_ETH=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
+  - export SM_DOMAIN="ubuntu-show.me"
+  - export SM_APP="landscape"
+  - export SM_BR=br0
+  - export SM_ARCH='amd64'
+  - export SM_GIT="https://github.com/ThinGuy/show-me.git"
+  - (echo ${SM_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf'
+  - export CLOUD=$(dmidecode -s bios-vendor|awk '{print tolower($1)}')
+  - [ "${CLOUD}" = "amazon" ] && export MDURL="http://169.254.169.254/latest/meta-data"
+  - [ "${CLOUD}" = "amazon" ] && export SM_SUBSTRT='aws'
+  - export MDURL="http://169.254.169.254/latest/meta-data"
+  - export DEBIAN_FRONTEND=noninteractive
+  - (sudo dmidecode -s 2>&1|awk '/^[ \t]+/{gsub(/^[ \t]+/,"");print}'|xargs -rn1 -P1 sudo bash -c 'P=${0/-/_};printf "MACHINE_${P^^}=\x22$(dmidecode -s $0|grep -vi not)\x22\n"')|tee 1>/dev/null /root/.machine.rc
+  - if [ -f /root/.machine.rc ];then . /root/.machine.rc;fi
+  - export CLOUD_LOCAL_IPV4=$(curl -s $MDURL/local-ipv4)
+  - export CLOUD_PUBLIC_IP=$(curl -s $MDURL/public-ipv4)
+  - export CLOUD_REGION=$(curl -s $MDURL/placement/region) #us-west-1
+  - export CLOUD_AZ=$(curl -s $MDURL/placement/availability-zone) #us-west-1a
+  - export CLOUD_AZ_ID=$(curl -s $MDURL/placement/availability-zone-id)
+  - export CLOUD_LOCAL_HOSTNAME=$(curl -s $MDURL/local-hostname)
+  - export CLOUD_PUBLIC_HOSTNAME=$(curl -s $MDURL/public-hostname)
+  - export CLOUD_PRIMARY_MAC_ADDR=$(curl -sSlL ${MDURL}/mac|grep -m1)
+  - export CLOUD_PUBLIC_TLD=$(curl -sSlL ${MDURL}/services/domain)
+  - export CLOUD_LOCAL_TLD="internal"
+  - export CLOUD_PUBLIC_FQDN="${CLOUD_PUBLIC_HOSTNAME}.${CLOUD_AZ}.compute.${CLOUD_PUBLIC_TLD}
+  - export CLOUD_PUBLIC_DOMAIN="${CLOUD_AZ}.compute.${CLOUD_PUBLIC_TLD}
+  - export CLOUD_LOCAL_DOMAIN="${CLOUD_AZ}.compute.internal
+  - export CLOUD_PARTITION=$(curl -sSlL ${MDURL}/services/partition)
+  - export CLOUD_LOCAL_FQDN=${CLOUD_LOCAL_HOSTNAME}.${CLOUD_AZ}.compute.${CLOUD_LOCAL_TLD}
+  - export CLOUD_PUBLIC_IPV4_CHECK=$(dig +short myip.opendns.com @resolver1.opendns.com)
+  - export CLOUD_PUBLIC_FQDN_CHECK=$(dig +short -x $CLOUD_PUBLIC_IPV4|sed 's,\.$,,g')
+  - hostname ${CLOUD_PUBLIC_FQDN}
+  - echo ${CLOUD_PUBLIC_FQDN}|tee 1>/devnull /etc/hostname
+  - sed -r -i "/127.0|${CLOUD_LOCAL_HOSTNAME}|${CLOUD_LOCAL_IPV4}/d" /etc/hosts
+  - sed -r -i "1s/^/127.0.0.1\tlocalhost\n${CLOUD_PUBLIC_IPV4}\t${CLOUD_PUBLIC_FQDN} ${CLOUD_PUBLIC_HOSTNAME}\n${CLOUD_LOCAL_IPV4}\t${CLOUD_LOCAL_FQDN} ${CLOUD_LOCAL_HOSTNAME}\n/" /etc/hosts
+  - sysctl', '-w', 'net.ipv4.ip_forward=1
+  - |-
+    cat <<-RESOLVED|sed '/^$/d'|tee 1>/dev/null /etc/systemd/resolved.conf.d/sm-resolved.conf
+    [Resolve]
+    DNS=$(echo -n $SM_DNS|sed 's/,/ /g;s/\x27//g)
+    FallbackDNS=149.112.112.112 149.112.112.112 2620:fe::9 2606:4700:4700::1001
+    Domains=${CLOUD_PUBLIC_DOMAIN} ${CLOUD_LOCAL_DOMAIN} ~${SM_DOMAIN}
+    LLMNR=yes
+    MulticastDNS=yes
+    DNSSEC=allow-downgrade
+    $([ "$(lsb_release -sr|sed 's/\.//g')" -ge "2004" ] && echo -n DNSOverTLS=opportunistic)
+    Cache=no-negative
+    DNSStubListener=no
+    $([ "$(lsb_release -sr|sed 's/\.//g')" -ge "2004" ] && echo -n ReadEtcHosts=yes)
+    RESOLVED
+  - ln', '-s', '-f', '/run/systemd/resolve/resolv.conf', '/etc/resolv.conf
+  - "printf '%s\x20%s\x20\x20%s\n' precedence '::ffff:0:0/96' 100|tee -a /etc/gai.conf"
   - systemctl restart systemd-resolved
-  - ['cloud-init-per', 'once', 'net0', 'sysctl', '-w', 'net.ipv4.ip_forward=1']
-  - ['cloud-init-per', 'once', 'net1', 'ln', '-s', '-f', '/run/systemd/resolve/resolv.conf', '/etc/resolv.conf']
-  - ['cloud-init-per', 'once', 'net2', 'printf', '"%s\x20%s\x20\x20%s\n"', 'precedence', '::ffff:0:0/96', '100', '|', 'tee', '-a', '/etc/gai.conf']
   - |-
     cat <<-NETPLAN|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init.yaml
     network:
       version: 2
       renderer: networkd
       ethernets:
-        ${SM_INIC}:
+        ${SM_ETH}:
           dhcp4: false
           dhcp6: false
           optional: false
           accept-ra: false
           link-local: [ ]
           match:
-            macaddress: '$(ip -o l show dev ${SM_INIC}|grep -oP "(?<=ether )[^ ]+")'
-          set-name: ${SM_INIC}
+            macaddress: '${CLOUD_PRIMARY_MAC_ADDR}'
+          set-name: ${SM_ETH}
       bridges:
-        ${SM_BRNIC}:
-          macaddress: '$(ip -o l show dev ${SM_INIC}grep -oP "(?<=ether )[^ ]+")'
-          interfaces: ['${SM_INIC}']
+        ${SM_BR}:
+          macaddress: '${CLOUD_PRIMARY_MAC_ADDR}'
+          interfaces: ['${SM_ETH}']
           link-local: [ ]
           dhcp4: true
           dhcp4-overrides:
             use-hostname: false
-            hostname: ${PHOST}
+            hostname: ${CLOUD_PUBLIC_FQDN}
             use-dns: false
             use-domains: false
+            route-metric: 1
           dhcp6: false
           optional: false
           accept-ra: false
           link-local: [ ]
           nameservers:
-            addresses: [169.254.169.253,1.1.1.1]
-            search: [~us-west-1.compute.amazonaws.com,us-west-1.compute.internal]
+            addresses: [${SM_DNS}]
+            search: [${CLOUD_PUBLIC_DOMAIN},${CLOUD_LOCAL_DOMAIN},~${SM_DOMAIN}]
           parameters:
             priority: 1
             stp: false
     NETPLAN
-  - ['cloud-init-per', 'once', 'net3', 'ln', '-s', '-f', '/run/systemd/resolve/resolv.conf', '/etc/resolv.conf']    
-  - ['cloud-init-per', 'once', 'net4', 'netplan', '--debug', 'generate']
-  - ['cloud-init-per', 'once', 'net5', 'netplan', '--debug', 'apply']
-  - ['cloud-init-per', 'once', 'net6', 'ip', 'addr', 'flush', 'ens5']
-  - ['cloud-init-per', 'once', 'net7', 'echo', 'network: {config: disabled}', '>', '/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg']
-  - ['cloud-init-per', 'once', 'apt0',  'apt-get', '--option=Acquire::ForceIPv4=true', 'update']
-  - ['cloud-init-per', 'once', 'apt1',  'apt-get', 'dist-upgrade', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
-  - ['cloud-init-per', 'once', 'apt2',  'apt-get', 'install', 'dnsutils', 'debconf-utils', 'dialog', 'gnupg', '--option=Acquire::ForceIPv4=true', '--assume-yes', '--quiet', '--auto-remove', '--purge']
-  - ['cloud-init-per', 'once', 'apt3',  'apt-get', 'remove', 'lxd', 'lxd-client', '--auto-remove', '--purge', '--assume-yes', '--quiet', '--fix-broken', '--option=Acquire::ForceIPv4=true']
+  - ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+  - netplan --debug generate 
+  - netplan --debug apply 
+  - ip addr flush ${SM_ETH} 
+  - "echo 'network: {config: disabled}' >/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg"
+  - systemctl restart systemd-resolved
+  - apt-get --option="Acquire::ForceIPv4=true" update
+  - apt-get dist-upgrade --option="Acquire::ForceIPv4=true" --assume-yes --quiet --auto-remove --purge
+  - apt-get install dnsutils debconf-utils dialog gnupg --option="Acquire::ForceIPv4=true" --assume-yes --quiet --auto-remove --purge
+  - apt-get remove lxd lxd-client --auto-remove --purge --assume-yes --quiet --fix-broken --option="Acquire::ForceIPv4=true"
+  - (set|grep -E '^CANDID_|^CLOUD_|^LANDSCAPE_|^MAAS_|^MACHINE_|^PG_|^RBAC_|^SHOW_ME|^SHOW_ME_|^SM_|^SSP_')|tee 1>/dev/null /root/.show-me.rc
+  - if [ -f /root/.show-me.rc ];then . /root/.show-me.rc;fi
 runcmd:
   - set -x
-  - sleep 5
-  - export SM_BRNIC=br0
-  - export SM_ARCH='amd64'
-  - export SM_APP='landscape'
-  - export SM_SUBSTRT='aws'
-  - export SM_GIT="https://github.com/ThinGuy/show-me.git"
-  - export DEBIAN_FRONTEND=noninteractive
-  - "export PYTHONWARNINGS='ignore::DeprecationWarning'"
-  - echo "export PYTHONWARNINGS='ignore::DeprecationWarning'"|tee -a 1>/dev/null /etc/environment
-  - if [ -f /usr/bin/vim.basic ];then echo "export EDITOR='/usr/bin/vim.basic'"|tee -a 1>/dev/null /etc/environment;fi
-  - export SM_BRNIC=br0
-  - export INTERNAL_IP=$(ip -o -4 a show $(ip -o r l default|grep ${SM_BRNIC}|grep -m1 -oP "(?<=dev )[^ ]+")|grep -m1 -oP "(?<=inet )[^/]+")
-  - export IFQDN=$(hostname -s).us-west-1.compute.internal
-  - export IHOST=${IFQDN%%.*}
-  - exoirt IDOMAIN=${IFQDN#*.}
-  - export PUBLIC_IP=$(dig +short myip.opendns.com @resolver1.opendns.com)
-  - export PFQDN=$(dig +short -x $PUBLIC_IP|sed 's,\.$,,g')
-  - export PHOST=${PFQDN%%.*}
-  - export PDOMAIN=${PFQDN#*.}
-  - sed -r -i "/127.0|$(hostname -s)/d" /etc/hosts
-  - sed -r -i "1s/^/127.0.0.1\tlocalhost\n${PUBLIC_IP}\t${PHOST}.${PDOMAIN} ${PHOST}\n${INTERNAL_IP}\t${IHOST}.${IDOMAIN} ${IHOST}\n/" /etc/hosts
-  - hostname ${PHOST}
-  - echo ${PHOST}|tee 1>/devnull /etc/hostname
-  - systemctl restart systemd-resolved
-  - for i in SM_BRNIC SM_ARCH SM_APP SM_SUBSTRT SM_GIT EDITOR PYTHONWARNINGS PUBLIC_IP INTERNAL_IP;do if [ -n "$(eval echo -n \"\$${i}\")" ];then printf "export ${i}=\x22$(eval echo -n \$$i)\x22\n";fi;done|tee -a 1>/dev/null /etc/environment
+  - if [ -f /root/.show-me.rc ];then . /root/.show-me.rc;fi
+  - for i in SM_BR SM_ARCH SM_APP SM_SUBSTRT SM_GIT EDITOR PYTHONWARNINGS CLOUD_PUBLIC_IPV4 LOCAL_IP;do if [ -n "$(eval echo -n \"\$${i}\")" ];then printf "export ${i}=\x22$(eval echo -n \$$i)\x22\n";fi;done|tee -a 1>/dev/null /etc/environment
   - . /etc/environment
   - mkdir -p /etc/show-me/www /etc/show-me/log
   - if [ -d /opt/show-me ];then rm -rf /opt/show-me;fi
@@ -164,11 +181,8 @@ runcmd:
   - if [ -f /home/$(id -un 1000)/.ssh/showme_rsa.pub ];then su $(id -un 1000) -c 'cat /home/$(id -un 1000)/.ssh/showme_rsa.pub|tee -a 1>/dev/null /home/$(id -un 1000)/.ssh/authorized_keys';fi
   - if [ -f /home/$(id -un 1000)/.showme.rc ];then . /home/$(id -un 1000)/.showme.rc;fi
   - |-
-    cat <<-'SUDOERS'|sed -r -i 's/[ \t]+$//g;/^$/d'|sudo tee 1>/dev/null /etc/sudoers.d/99-default-user
-    Defaults	env_reset
-    Defaults	env_keep+="CANDID_* DISPLAY EDITOR HOME LANDSCAPE_* LANG* MAAS_* PG_* PYTHONWARNINGS RBAC_* SHOW_ME* SSP_* XAUTHORITY XAUTHORIZATION *_IP *_PROXY *_proxy"
-    Defaults	secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:$HOME/.local/bin"
-    $(id -un 1000)		ALL=(ALL) NOPASSWD:ALL
+    cat <<-SUDOERS|sed -r -i 's/[ \t]+$//g;/^$/d'|sudo tee 1>/dev/null /etc/sudoers.d/99-keep-vars
+    Defaults    env_keep+="CANDID_* CLOUD_* DISPLAY EDITOR HOME LANDSCAPE_* LANG MAAS_* MACHINE_* PG_* PYTHONWARNINGS RBAC_* SHOW_ME SHOW_ME_* SM_* SSP_* XAUTHORITY XAUTHORIZATION *_PROXY *_proxy"
     SUDOERS
   - apt install landscape-server-quickstart landscape-client -yqf
   - if [ -f /etc/ssl/certs/show-me_host.pem ];then ln -sf /etc/ssl/certs/show-me_host.pem /etc/landscape/landscape_server.pem;fi
@@ -176,7 +190,7 @@ runcmd:
   - if [ -L /etc/ssl/certs/landscape_server.pem ];then echo "ssl_public_key = /etc/ssl/certs/landscape_server.pem"|tee 1>/dev/null -a /etc/landscape/client.conf;fi
   - if [ -f /usr/local/lib/show-me/landscape.lynx -a  -f /usr/local/bin/show-me_lynx-web-init.sh ];then  /usr/local/bin/show-me_lynx-web-init.sh;fi
   - if [ -f /etc/landscape/client.conf ];then ln -sf /etc/landscape/client.conf /etc/show-me/www/landscape-client.conf;fi
-  - landscape-config -k /etc/landscape/landscape_server.pem -t $(hostname -s) -u "https://$(hostname -s).ubuntu-show.me/message-system" --ping-url "http://$(hostname -s).ubuntu-show.me/ping" -a standalone --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=show-me-demo,ubuntu --silent --log-level=debug
+  - landscape-config -k /etc/landscape/landscape_server.pem -t $(hostname -s) -u "https://$(hostname -s).${SM_DOMAIN}/message-system" --ping-url "http://$(hostname -s).${SM_DOMAIN}/ping" -a standalone --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=show-me-demo,ubuntu --silent --log-level=debug
   - if $(test -n "$(command 2>/dev/null -v lxd.lxc)");then su - $(id -un 1000) -c 'sudo snap refresh lxd --channel latest/stable';else su - $(id -un 1000) -c 'sudo snap install lxd';fi
   - if [ -f /usr/local/bin/show-me_landscape_lxd-init.sh ];then /usr/local/bin/show-me_landscape_lxd-init.sh;fi
   - if [ -f /usr/local/bin/show-me_file-service_init.sh ];then /usr/local/bin/show-me_file-service_init.sh;fi
