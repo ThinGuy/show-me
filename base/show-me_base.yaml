@@ -10,7 +10,7 @@ timezone: America/Los_Angeles
 locale: en_US.UTF-8
 package_update: true
 package_upgrade: true
-packages: [dnsutils, build-essential, debconf-utils, dialog, git, gnupg, jq, lynx, landscape-client, landscape-common, postgresql, postgresql-client, postgresql-common, software-properties-common, ssl-cert, tree, unzip, vim]
+packages: [dnsutils, build-essential, debconf-utils, dialog, git, gnupg, jq, lynx, landscape-client, software-properties-common, ssl-cert, tree, unzip, vim]
 apt:
   conf: |
     APT {
@@ -87,7 +87,6 @@ bootcmd:
           dhcp4-overrides:
             use-hostname: false
             hostname: ${PHOST}
-            use-dns: false
             use-domains: false
           dhcp6: false
           optional: false
@@ -141,27 +140,6 @@ runcmd:
   - if [ -d /opt/show-me ];then rm -rf /opt/show-me;fi
   - ping -c10 -w5 github.com
   - sleep 10
-  - git clone https://github.com/ThinGuy/show-me.git /opt/show-me
-  - install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/petname-helper.sh /usr/local/bin/petname-helper.sh
-  - install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/show-me_lynx-web-init.sh /usr/local/bin/show-me_lynx-web-init.sh
-  - install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/add-landscape-clients.sh/usr/local/bin/add-landscape-clients.sh
-  - install -o 1000 -g 1000 -m 0400 /opt/show-me/all/pki/ubuntu-show-me-id_rsa /home/$(id -un 1000)/.ssh/showme_rsa
-  - install -o 1000 -g 1000 -m 0640 /opt/show-me/all/pki/ubuntu-show-me-id_rsa.pub /home/$(id -un 1000)/.ssh/showme_rsa.pub
-  - install -o 0 -g 0 -m 0644 -D /opt/show-me/all/helpers/landscape.lynx /usr/local/lib/show-me/landscape.lynx
-  - install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/petname2/
-  - install -o 0 -g 0 -m 0755 /opt/show-me/all/helpers/show-me_landscape_lxd-init.sh /usr/local/bin/show-me_landscape_lxd-init.sh
-  - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.pem /etc/ssl/certs/show-me_host.pem
-  - install -o 0 -g 0 -m 0600 /opt/show-me/all/pki/show-me_host.key /etc/ssl/private/show-me_host.key
-  - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/ssl/certs/show-me_ca.crt
-  - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.pem /etc/ssl/certs/landscape_server.pem
-  - install -o 0 -g 0 -m 0600 /opt/show-me/all/pki/show-me_host.key /etc/ssl/private/landscape_server.key
-  - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/ssl/certs/landscape_server_ca.crt
-  - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/show-me_file-service_init.sh /usr/local/bin/show-me_file-service_init.sh
-  - install -o 0 -g 0 -m 0754 /opt/show-me/all/helpers/show-me_finishing-script_all.sh /usr/local/bin/show-me_finishing-script_all.sh
-  - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_ca.crt /etc/show-me/www/show-me_ca.crt
-  - install -o 0 -g 0 -m 0644 /opt/show-me/all/pki/show-me_host.pem /etc/show-me/www/landscape_server.pem
-  - update-ca-certificates --fresh --verbose
-  - if [ -f /home/$(id -un 1000)/.ssh/showme_rsa.pub ];then su $(id -un 1000) -c 'cat /home/$(id -un 1000)/.ssh/showme_rsa.pub|tee -a 1>/dev/null /home/$(id -un 1000)/.ssh/authorized_keys';fi
   - if [ -f /home/$(id -un 1000)/.showme.rc ];then . /home/$(id -un 1000)/.showme.rc;fi
   - |-
     cat <<-'SUDOERS'|sed -r -i 's/[ \t]+$//g;/^$/d'|sudo tee 1>/dev/null /etc/sudoers.d/99-default-user
@@ -170,14 +148,4 @@ runcmd:
     Defaults	secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:$HOME/.local/bin"
     $(id -un 1000)		ALL=(ALL) NOPASSWD:ALL
     SUDOERS
-  - apt install landscape-server-quickstart landscape-client -yqf
-  - if [ -f /etc/ssl/certs/show-me_host.pem ];then ln -sf /etc/ssl/certs/show-me_host.pem /etc/landscape/landscape_server.pem;fi
-  - if [ -f /etc/ssl/certs/show-me_ca.crt ];then ln -sf /etc/ssl/certs/show-me_ca.crt /etc/landscape/landscape_server_ca.crt;fi
-  - if [ -L /etc/ssl/certs/landscape_server.pem ];then echo "ssl_public_key = /etc/ssl/certs/landscape_server.pem"|tee 1>/dev/null -a /etc/landscape/client.conf;fi
-  - if [ -f /usr/local/lib/show-me/landscape.lynx -a  -f /usr/local/bin/show-me_lynx-web-init.sh ];then  /usr/local/bin/show-me_lynx-web-init.sh;fi
-  - if [ -f /etc/landscape/client.conf ];then ln -sf /etc/landscape/client.conf /etc/show-me/www/landscape-client.conf;fi
-  - landscape-config -k /etc/landscape/landscape_server.pem -t $(hostname -s) -u "https://$(hostname -s).ubuntu-show.me/message-system" --ping-url "http://$(hostname -s).ubuntu-show.me/ping" -a standalone --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=show-me-demo,ubuntu --silent --log-level=debug
-  - if $(test -n "$(command 2>/dev/null -v lxd.lxc)");then su - $(id -un 1000) -c 'sudo snap refresh lxd --channel latest/stable';else su - $(id -un 1000) -c 'sudo snap install lxd';fi
-  - if [ -f /usr/local/bin/show-me_landscape_lxd-init.sh ];then /usr/local/bin/show-me_landscape_lxd-init.sh;fi
-  - if [ -f /usr/local/bin/show-me_file-service_init.sh ];then /usr/local/bin/show-me_file-service_init.sh;fi
-  - if [ -f /usr/local/bin/show-me/show-me_finishing-script_all.sh ];then /usr/local/bin/show-me/show-me_finishing-script_all.sh;fi
+
