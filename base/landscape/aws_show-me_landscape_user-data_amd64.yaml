@@ -58,7 +58,7 @@ bootcmd:
   - export CLOUD_VENDOR="$(dmidecode -s bios-vendor|awk '{print tolower($1)}')"
   - "[ "${CLOUD_VENDOR}" = "amazon" ] && { export SM_SUBSTRT=aws CLOUD_METADATA_URL=http://169.254.169.254/latest/meta-data CLOUD_API_URL=http://169.254.169.254/latest/api; }"
   - "(echo ${SM_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf"
-  - export CLOUD_API_TOKEN=$(curl -sSX PUT "${CLOUD_API_URL}/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+  - export CLOUD_API_TOKEN="$(curl -sSX PUT "${CLOUD_API_URL}/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")"
   - export CLOUD_AMI_ID="$(curl -sSlL ${CLOUD_METADATA_URL}/ami-id)"
   - export CLOUD_LOCAL_IPV4="$(curl -sSlL $CLOUD_METADATA_URL/local-ipv4)"
   - export CLOUD_PUBLIC_IPV4="$(curl -sSlL $CLOUD_METADATA_URL/public-ipv4)"
@@ -81,6 +81,7 @@ bootcmd:
   - export CLOUD_LOCAL_DOMAIN="${CLOUD_REGION}.compute.${CLOUD_LOCAL_TLD}"
   - export CLOUD_PARTITION="$(curl -sSlL ${CLOUD_METADATA_URL}/services/partition)"
   - export CLOUD_LOCAL_FQDN="${CLOUD_LOCAL_HOSTNAME}.${CLOUD_REGION}.compute.${CLOUD_LOCAL_TLD}"
+  - export CLOUD_REPO_FQDN="${CLOUD_REGION}.${CLOUD_PUBLIC_SLD}.archive.ubuntu.com"
   - export CLOUD_INSTANCE_ID="$(curl -sSlL http://169.254.169.254/latest/meta-data/instance-id)"
   - "if [ /etc/cloud/cloud.cfg ];then sed 's/preserve_hostname: false/preserve_hostname: true/g' -i /etc/cloud/cloud.cfg;fi"
   - [ "$(lsb_release -sr|sed 's/\.//g')" -lt "2004" ] && { hostnamectl set-hostname ${CLOUD_PUBLIC_FQDN}; } || { hostnamectl hostname ${CLOUD_PUBLIC_FQDN}; }
@@ -89,6 +90,7 @@ bootcmd:
   - printf "127.0.0.1\t${CLOUD_PUBLIC_HOSTNAME}.localdomain ${CLOUD_PUBLIC_HOSTNAME} localhost4 localhost4.localdomain4 localhost.localdomain localhost\n${CLOUD_PUBLIC_IPV4}\t${CLOUD_PUBLIC_FQDN} ${CLOUD_PUBLIC_HOSTNAME}\n#${CLOUD_LOCAL_IPV4}\t${CLOUD_LOCAL_FQDN} ${CLOUD_LOCAL_HOSTNAME}\n" /etc/hosts
   - sysctl -w net.ipv4.ip_forward=1
   - install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me
+  - eval "$(dmidecode -s 2>&1|awk '/^[ \t]+/{gsub(/^[ \t]+/,"");print}'|xargs -rn1 -P0 bash -c 'P="${0//-/_}";P=${P^^};export P=${P//-/_};printf "export MACHINE_${P}=\x22$(dmidecode -s $0|grep -vi '"'"'not'"'"')\x22\n"'|sed 's/""$//g')"
   - ((set|grep -E '^CANDID_|^CLOUD_|^LANDSCAPE_|^MAAS_|^MACHINE_|^PG_|^RBAC_|^SHOW_ME|^SHOW_ME_|^SM_|^SSP_')|sed -r 's/^/export /g;s/\\x22//g;s/\\\x27//g;s/=/=\x22/1;s/$/\x22/g'|sort -uV)|tee /usr/local/lib/show-me/.show-me.rc
   - if [ -f /usr/local/lib/show-me/.show-me.rc ];then cp /usr/local/lib/show-me/.show-me.rc /root/.;su $(id -un 1000) -c 'cp /usr/local/lib/show-me/.show-me.rc ~/';echo '[ -r ~/.show-me.rc ] && . ~/.show-me.rc'|tee -a /root/.bashrc|su $(id -un 1000) -c 'tee -a ~/.bashrc';fi
   - |-

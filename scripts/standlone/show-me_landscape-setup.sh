@@ -15,7 +15,7 @@ export SM_BR="br0"
 export SM_ARCH="amd64"
 export SM_GIT="https://github.com/ThinGuy/show-me.git"
 (echo ${SM_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf
-eval "$(dmidecode -s 2>&1|awk '/^[ \t]+/{gsub(/^[ \t]+/,"");print}'|xargs -rn1 -P0 bash -c 'P="${0//-/_}";P=${P^^};export P=${P//-/_};printf "export MACHINE_${P}=\x22$(dmidecode -s $0|grep 
+eval "$(dmidecode -s 2>&1|awk '/^[ \t]+/{gsub(/^[ \t]+/,"");print}'|xargs -rn1 -P0 bash -c 'P="${0//-/_}";P=${P^^};export P=${P//-/_};printf "export MACHINE_${P}=\x22$(dmidecode -s $0|grep -vi '"'"'not'"'"')\x22\n"'|sed 's/""$//g')"
 export CLOUD_VENDOR="$(dmidecode -s bios-vendor|awk '{print tolower($1)}')"
 [ "${CLOUD_VENDOR}" = "amazon" ] && { export SM_SUBSTRT="aws" CLOUD_METADATA_URL="http://169.254.169.254/latest/meta-data" CLOUD_API_URL="http://169.254.169.254/latest/api" ; }
 (echo ${SM_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf
@@ -31,7 +31,7 @@ export CLOUD_AZ="$(curl -sSlL ${CLOUD_METADATA_URL}/placement/availability-zone)
 export CLOUD_AZ_ID="$(curl -sSlL ${CLOUD_METADATA_URL}/placement/availability-zone-id)"
 export CLOUD_LOCAL_HOSTNAME="$(curl -sSlL ${CLOUD_METADATA_URL}/local-hostname)"
 export CLOUD_PUBLIC_HOSTNAME="$(curl -sSlL ${CLOUD_METADATA_URL}/public-hostname)"
-export CLOUD_PUBLIC_FQDN_CHECK="$(dig +short -x $(dig +short myip.opendns.com @resolver1.opendns.com) @resolver1.opendns.com|sed 's,\.$,,g')"
+export CLOUD_PUBLIC_FQDN_CHECK="$(dig +short -x $(dig +short myip.opendns.com @resolver1.opendns.com) @resolver1.opendns.com|sed 's,\.$,,g')
 [ -z "${CLOUD_PUBLIC_HOSTNAME}" -a -n "${CLOUD_PUBLIC_FQDN_CHECK}" ] && { export CLOUD_PUBLIC_HOSTNAME="${CLOUD_PUBLIC_FQDN_CHECK%%.*}"; } 
 export CLOUD_PRIMARY_MAC_ADDR="$(curl -sSlL ${CLOUD_METADATA_URL}/mac)"
 export CLOUD_PUBLIC_TLD="$(curl -sSlL ${CLOUD_METADATA_URL}/services/domain)"
@@ -110,7 +110,6 @@ netplan --debug generate
 netplan --debug apply 
 netplan --debug apply
 (echo ${SM_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf
-systemctl restart systemd-resolved
 cat <<REPOS|sed -r 's/[ \t]+$//g'|tee 1>/dev/null /etc/apt/sources.list
 deb [arch=${SM_ARCH}] http://${CLOUD_REPO_FQDN}/ubuntu/ $(lsb_release -cs) main restricted universe multiverse
 deb [arch=${SM_ARCH}] http://${CLOUD_REPO_FQDN}/ubuntu/ $(lsb_release -cs)-updates main restricted universe multiverse

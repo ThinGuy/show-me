@@ -4,6 +4,9 @@
 { [[ $SM_DEBUG ]] &>/dev/null; } && { { set -x; } &>/dev/null; }
 [[ $EUID -ne 0 ]] && { echo "${0##*/} must be run as root or via sudo";exit 1; } || { true; }
 
+export SM_DNS="9.9.9.9,1.1.1.1,8.8.8.8"
+(echo ${SM_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf
+
 
 cat <<-'EOD'|sed -r 's/[ \t]+$//g'|tee 1>/dev/null /etc/systemd/system/show-me-file.service
 [Unit]

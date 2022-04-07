@@ -3,6 +3,8 @@
 
 { [[ $SM_DEBUG ]] &>/dev/null; } && { { set -x; } &>/dev/null; }
 
+export SM_DNS="9.9.9.9,1.1.1.1,8.8.8.8"
+(echo ${SM_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf
 
 export SM_APP=${1:-landscape}
 
