@@ -112,7 +112,7 @@ netplan --debug generate
 netplan --debug generate
 netplan --debug apply 
 netplan --debug apply
-(echo ${SM_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf
+(echo ${SM_DNS}|sed 's/,/\n/g'|sed -r '/\:\:/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf
 cat <<REPOS|sed -r 's/[ \t]+$//g'|tee 1>/dev/null /etc/apt/sources.list
 deb [arch=${SM_ARCH}] http://${CLOUD_REPO_FQDN}/ubuntu/ $(lsb_release -cs) main restricted universe multiverse
 deb [arch=${SM_ARCH}] http://${CLOUD_REPO_FQDN}/ubuntu/ $(lsb_release -cs)-updates main restricted universe multiverse
@@ -166,12 +166,13 @@ install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /etc/show-me/www/show-
 install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_host.pem /etc/show-me/www/landscape_server.pem
 update-ca-certificates --fresh --verbose
 if [ -f /home/$(id -un 1000)/.ssh/showme_rsa.pub ];then su $(id -un 1000) -c 'cat /home/$(id -un 1000)/.ssh/showme_rsa.pub|tee -a 1>/dev/null /home/$(id -un 1000)/.ssh/authorized_keys';fi
+(echo ${SM_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf
 cat <<-'SUDOERS'|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/sudoers.d/100-keep-params
 Defaults env_keep+="CANDID_* CLOUD_* DISPLAY EDITOR HOME LANDSCAPE_* LANG* LC_* MAAS_* MACHINE_* PG_* PYTHONWARNINGS RBAC_* SHOW_ME_* SM_* SSP_* XAUTHORITY XAUTHORIZATION *_PROXY *_proxy"
 SUDOERS
 (echo ${SM_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf
 apt-key adv --recv --keyserver keyserver.ubuntu.com 6E85A86E4652B4E6
-echo 'deb [arch=amd64] http://ppa.launchpad.net/19.10/ubuntu bionic main'|tee 1>/dev/null /etc/apt/sources.list.d/landscape-ubuntu-19_10-bionic.list
+echo 'deb [arch=amd64] https://ppa.launchpad.net/19.10/ubuntu bionic main'|tee 1>/dev/null /etc/apt/sources.list.d/landscape-ubuntu-19_10-bionic.list
 (echo ${SM_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf
 DEBIAN_FRONTEND=noninteractive apt -o "Acquire::ForceIPv4=true" update
 DEBIAN_FRONTEND=noninteractive apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
