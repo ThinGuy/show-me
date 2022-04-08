@@ -5,7 +5,6 @@ merge_how:
    settings: [append]
  - name: dict
    settings: [no_replace, recurse_list]
-manage_etc_hosts: false
 preserve_hostname: true
 timezone: America/Los_Angeles
 locale: en_US.UTF-8
@@ -47,41 +46,40 @@ bootcmd:
   - set -x
   - [ -z "${LANG}" ] && { export LANG="en_US.UTF-8";export LANGUAGE="en_US"; }
   - export DEBIAN_FRONTEND=noninteractive
-  - export SM_DNS="9.9.9.9,1.1.1.1,8.8.8.8"
-  - export SM_ETH=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
-  - export SM_DOMAIN="ubuntu-show.me"
-  - export SM_APP="landscape"
-  - export SM_BR="br0"
-  - export SM_ARCH="amd64"
-  - "export SM_GIT=https://github.com/ThinGuy/show-me.git"
-  - "(echo ${SM_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf"
+  - export CLOUD_DNS="9.9.9.9,1.1.1.1,8.8.8.8"
+  - export CLOUD_ETH=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
+  - export CLOUD_DOMAIN="ubuntu-show.me"
+  - export CLOUD_APP="landscape"
+  - export CLOUD_BRIDGE="br0"
+  - export CLOUD_ARCH="amd64"
+  - "export CLOUD_APP_GIT=https://github.com/ThinGuy/show-me.git"
+  - "(echo ${CLOUD_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf"
   - export CLOUD_VENDOR="$(dmidecode -s bios-vendor|awk '{print tolower($1)}')"
-  - "[ "${CLOUD_VENDOR}" = "amazon" ] && { export SM_SUBSTRT=aws CLOUD_METADATA_URL=http://169.254.169.254/latest/meta-data CLOUD_API_URL=http://169.254.169.254/latest/api; }"
-  - "(echo ${SM_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf"
+  - "[ "${CLOUD_VENDOR}" = "amazon" ] && { export CLOUD_SERVICES_PARTITION=aws CLOUD_METADATA_URL=http://169.254.169.254/latest/meta-data CLOUD_API_URL=http://169.254.169.254/latest/api; }"
+  - "(echo ${CLOUD_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf"
   - export CLOUD_API_TOKEN="$(curl -sSX PUT "${CLOUD_API_URL}/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")"
   - export CLOUD_AMI_ID="$(curl -sSlL ${CLOUD_METADATA_URL}/ami-id)"
-  - export CLOUD_LOCAL_IPV4="$(curl -sSlL $CLOUD_METADATA_URL/local-ipv4)"
-  - export CLOUD_PUBLIC_IPV4="$(curl -sSlL $CLOUD_METADATA_URL/public-ipv4)"
-  - export CLOUD_PUBLIC_IPV4="$(curl -sSlL $CLOUD_METADATA_URL/public-ipv4)"
+  - export CLOUD_LOCAL_IPV4="$(curl -sSlL ${CLOUD_METADATA_URL}/local-ipv4)"
+  - export CLOUD_PUBLIC_IPV4="$(curl -sSlL ${CLOUD_METADATA_URL}/public-ipv4)"
   - export CLOUD_PUBLIC_IPV4_CHECK="$(dig +short myip.opendns.com @resolver1.opendns.com)"
   - [ -z "${CLOUD_PUBLIC_IPV4}" -a -n "${CLOUD_PUBLIC_IPV4_CHECK}" ] && { export CLOUD_PUBLIC_IPV4="${CLOUD_PUBLIC_IPV4_CHECK}"; } 
-  - export CLOUD_REGION="$(curl -sSlL $CLOUD_METADATA_URL/placement/region)"
-  - export CLOUD_AZ="$(curl -sSlL $CLOUD_METADATA_URL/placement/availability-zone)"
-  - export CLOUD_AZ_ID="$(curl -sSlL $CLOUD_METADATA_URL/placement/availability-zone-id)"
-  - export CLOUD_LOCAL_HOSTNAME="$(curl -sSlL $CLOUD_METADATA_URL/local-hostname)"
-  - export CLOUD_PUBLIC_HOSTNAME="$(curl -sSlL $CLOUD_METADATA_URL/public-hostname)"
+  - export CLOUD_REGION="$(curl -sSlL ${CLOUD_METADATA_URL}/placement/region)"
+  - export CLOUD_AZ="$(curl -sSlL ${CLOUD_METADATA_URL}/placement/availability-zone)"
+  - export CLOUD_AZ_ID="$(curl -sSlL ${CLOUD_METADATA_URL}/placement/availability-zone-id)"
+  - export CLOUD_LOCAL_HOSTNAME="$(curl -sSlL ${CLOUD_METADATA_URL}/local-hostname)"
+  - export CLOUD_PUBLIC_HOSTNAME="$(curl -sSlL ${CLOUD_METADATA_URL}/public-hostname)"
   - export CLOUD_PUBLIC_FQDN_CHECK="$(dig +short -x $(dig +short myip.opendns.com @resolver1.opendns.com) @resolver1.opendns.com|sed 's,\.$,,g')
   - [ -z "${CLOUD_PUBLIC_HOSTNAME}" -a -n "${CLOUD_PUBLIC_FQDN_CHECK}" ] && { export CLOUD_PUBLIC_HOSTNAME="${CLOUD_PUBLIC_FQDN_CHECK%%.*}"; } 
-  - export CLOUD_PRIMARY_MAC_ADDR="$(curl -sSlL ${CLOUD_METADATA_URL}/mac)"
-  - export CLOUD_PUBLIC_TLD="$(curl -sSlL ${CLOUD_METADATA_URL}/services/domain)"
-  - export CLOUD_PUBLIC_SLD="$(dmidecode -s bios-vendor|awk '{print tolower($2)}')"
-  - export CLOUD_LOCAL_TLD="internal"
-  - export CLOUD_PUBLIC_FQDN="${CLOUD_PUBLIC_HOSTNAME}.${CLOUD_REGION}.compute.${CLOUD_PUBLIC_TLD}"
-  - export CLOUD_PUBLIC_DOMAIN="${CLOUD_REGION}.compute.${CLOUD_PUBLIC_TLD}"
-  - export CLOUD_LOCAL_DOMAIN="${CLOUD_REGION}.compute.${CLOUD_LOCAL_TLD}"
+  - export CLOUD_MAC="$(curl -sSlL ${CLOUD_METADATA_URL}/mac)"
+  - export CLOUD_SERVICES_DOMAIN="$(curl -sSlL ${CLOUD_METADATA_URL}/services/domain)"
+  - export CLOUD_SERVICES_SUBDOMAIN="$(dmidecode -s bios-vendor|awk '{print tolower($2)}')"
+  - export CLOUD_SERVICES_LOCAL_DOMAIN="internal"
+  - export CLOUD_PUBLIC_FQDN="${CLOUD_PUBLIC_HOSTNAME}.${CLOUD_PLACEMENT_REGION}.compute.${CLOUD_SERVICES_DOMAIN}"
+  - export CLOUD_PUBLIC_DOMAIN="${CLOUD_PLACEMENT_REGION}.compute.${CLOUD_SERVICES_DOMAIN}"
+  - export CLOUD_LOCAL_DOMAIN="${CLOUD_PLACEMENT_REGION}.compute.${CLOUD_SERVICES_LOCAL_DOMAIN}"
   - export CLOUD_PARTITION="$(curl -sSlL ${CLOUD_METADATA_URL}/services/partition)"
-  - export CLOUD_LOCAL_FQDN="${CLOUD_LOCAL_HOSTNAME}.${CLOUD_REGION}.compute.${CLOUD_LOCAL_TLD}"
-  - export CLOUD_REPO_FQDN="${CLOUD_REGION}.${CLOUD_PUBLIC_SLD}.archive.ubuntu.com"
+  - export CLOUD_LOCAL_FQDN="${CLOUD_LOCAL_HOSTNAME}.${CLOUD_PLACEMENT_REGION}.compute.${CLOUD_SERVICES_LOCAL_DOMAIN}"
+  - export CLOUD_REPO_FQDN="${CLOUD_PLACEMENT_REGION}.${CLOUD_SERVICES_SUBDOMAIN}.archive.ubuntu.com"
   - export CLOUD_INSTANCE_ID="$(curl -sSlL http://169.254.169.254/latest/meta-data/instance-id)"
   - "if [ /etc/cloud/cloud.cfg ];then sed 's/preserve_hostname: false/preserve_hostname: true/g' -i /etc/cloud/cloud.cfg;fi"
   - [ "$(lsb_release -sr|sed 's/\.//g')" -lt "2004" ] && { hostnamectl set-hostname ${CLOUD_PUBLIC_FQDN}; } || { hostnamectl hostname ${CLOUD_PUBLIC_FQDN}; }
@@ -96,9 +94,9 @@ bootcmd:
   - |-
     cat <<-RESOLVED|sed '/^$/d'|tee 1>/dev/null /etc/systemd/resolved.conf.d/sm-resolved.conf
     [Resolve]
-    DNS=$(echo -n $SM_DNS|sed 's/,/ /g;s/\x27//g)
+    DNS=$(echo -n $CLOUD_DNS|sed 's/,/ /g;s/\x27//g)
     FallbackDNS=149.112.112.112 149.112.112.112 8.8.8.8
-    Domains=${CLOUD_PUBLIC_DOMAIN} ${CLOUD_LOCAL_DOMAIN} ~${SM_DOMAIN}
+    Domains=${CLOUD_PUBLIC_DOMAIN} ${CLOUD_LOCAL_DOMAIN} ~${CLOUD_DOMAIN}
     LLMNR=yes
     MulticastDNS=yes
     DNSSEC=allow-downgrade
@@ -115,19 +113,19 @@ bootcmd:
       version: 2
       renderer: networkd
       ethernets:
-        ${SM_ETH}:
+        ${CLOUD_ETH}:
           dhcp4: false
           dhcp6: false
           optional: false
           accept-ra: false
           link-local: [ ]
           match:
-            macaddress: '${CLOUD_PRIMARY_MAC_ADDR}'
-          set-name: ${SM_ETH}
+            macaddress: '${CLOUD_MAC}'
+          set-name: ${CLOUD_ETH}
       bridges:
-        ${SM_BR}:
-          macaddress: '${CLOUD_PRIMARY_MAC_ADDR}'
-          interfaces: ['${SM_ETH}']
+        ${CLOUD_BRIDGE}:
+          macaddress: '${CLOUD_MAC}'
+          interfaces: ['${CLOUD_ETH}']
           link-local: [ ]
           dhcp4: true
           dhcp4-overrides:
@@ -140,8 +138,8 @@ bootcmd:
           accept-ra: false
           link-local: [ ]
           nameservers:
-            addresses: [${SM_DNS}]
-            search: [${CLOUD_PUBLIC_DOMAIN},${CLOUD_LOCAL_DOMAIN},~${SM_DOMAIN}]
+            addresses: [${CLOUD_DNS}]
+            search: [${CLOUD_PUBLIC_DOMAIN},${CLOUD_LOCAL_DOMAIN},~${CLOUD_DOMAIN}]
           parameters:
             priority: 1
             stp: false
@@ -153,11 +151,11 @@ bootcmd:
   - systemctl restart systemd-resolved
   - |-
     cat <<REPOS|sed -r 's/[ \t]+$//g'|tee 1>/dev/null /etc/apt/sources.list
-    deb [arch=${SM_ARCH}] http://${CLOUD_REPO_FQDN}/ubuntu/ $(lsb_release -cs) main restricted universe multiverse
-    deb [arch=${SM_ARCH}] http://${CLOUD_REPO_FQDN}/ubuntu/ $(lsb_release -cs)-updates main restricted universe multiverse
-    deb [arch=${SM_ARCH}] http://${CLOUD_REPO_FQDN}/ubuntu/ $(lsb_release -cs)-backports main restricted universe multiverse
-    deb [arch=${SM_ARCH}] http://${CLOUD_REPO_FQDN}/ubuntu/ $(lsb_release -cs)-security main restricted universe multiverse
-    deb [arch=${SM_ARCH}] http://archive.canonical.com/ubuntu $(lsb_release -cs) partner
+    deb [arch=${CLOUD_ARCH}] http://${CLOUD_REPO_FQDN}/ubuntu/ $(lsb_release -cs) main restricted universe multiverse
+    deb [arch=${CLOUD_ARCH}] http://${CLOUD_REPO_FQDN}/ubuntu/ $(lsb_release -cs)-updates main restricted universe multiverse
+    deb [arch=${CLOUD_ARCH}] http://${CLOUD_REPO_FQDN}/ubuntu/ $(lsb_release -cs)-backports main restricted universe multiverse
+    deb [arch=${CLOUD_ARCH}] http://${CLOUD_REPO_FQDN}/ubuntu/ $(lsb_release -cs)-security main restricted universe multiverse
+    deb [arch=${CLOUD_ARCH}] http://archive.canonical.com/ubuntu $(lsb_release -cs) partner
     REPOS
   - apt -o "Acquire::ForceIPv4=true" update
   - apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
@@ -211,7 +209,7 @@ runcmd:
     cat <<-'SUDOERS'|sed -r 's/[ \t]+$//g;/^$/d'|sudo tee 1>/dev/null /etc/sudoers.d/100-keep-params
     Defaults env_keep+="CANDID_* CLOUD_* DISPLAY EDITOR HOME LANDSCAPE_* LANG* LC_* MAAS_* MACHINE_* PG_* PYTHONWARNINGS RBAC_* SHOW_ME_* SM_* SSP_* XAUTHORITY XAUTHORIZATION *_PROXY *_proxy"
     SUDOERS
-(echo ${SM_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf
+(echo ${CLOUD_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf
   - DEBIAN_FRONTEND=noninteractive apt -o "Acquire::ForceIPv4=true" update
   - DEBIAN_FRONTEND=noninteractive apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
   - DEBIAN_FRONTEND=noninteractive apt install libcurl4-gnutls-dev python-pycurl-doc python3-pycurl-dbg -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
@@ -223,7 +221,7 @@ runcmd:
   - apt install landscape-server-quickstart -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
   - if [ -f /usr/local/lib/show-me/landscape.lynx -a -f /usr/local/bin/show-me_lynx-web-init.sh ];then /usr/local/bin/show-me_lynx-web-init.sh;fi
   - if [ -f /etc/landscape/client.conf ];then ln -sf /etc/landscape/client.conf /etc/show-me/www/landscape-client.conf;fi
-  - landscape-config -k /etc/landscape/landscape_server.pem -t $(hostname -s) -u "https://$(hostname -s).${SM_DOMAIN}/message-system" --ping-url "http://$(hostname -s).${SM_DOMAIN}/ping" -a standalone --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=show-me-demo,ubuntu --silent --log-level=debug
+  - landscape-config -k /etc/landscape/landscape_server.pem -t $(hostname -s) -u "https://$(hostname -s).${CLOUD_DOMAIN}/message-system" --ping-url "http://$(hostname -s).${CLOUD_DOMAIN}/ping" -a standalone --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=show-me-demo,ubuntu --silent --log-level=debug
   - if $(test -n "$(command 2>/dev/null -v lxd.lxc)");then su - $(id -un 1000) -c 'sudo snap refresh lxd --channel latest/stable';else su - $(id -un 1000) -c 'sudo snap install lxd';fi
   - if [ -f /usr/local/bin/show-me_landscape_lxd-init.sh ];then /usr/local/bin/show-me_landscape_lxd-init.sh;fi
   - if [ -f /usr/local/bin/show-me_file-service_init.sh ];then /usr/local/bin/show-me_file-service_init.sh;fi

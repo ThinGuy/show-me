@@ -1,10 +1,8 @@
 #!/bin/bash
 # vim: set et ts=2 sw=2 filetype=bash :
 
-{ [[ $SM_DEBUG ]] &>/dev/null; } && { { set -x; } &>/dev/null; }
+{ [[ $CLOUD_DEBUG ]] &>/dev/null; } && { { set -x; } &>/dev/null; }
 
-export SM_DNS="9.9.9.9,1.1.1.1,8.8.8.8"
-(echo ${SM_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf
 
 [[ ! -f /usr/local/lib/show-me/petname2 && -x /usr/local/bin/petname-helper.sh ]] && { mkdir -p /usr/local/lib/show-me/petname2;/usr/local/bin/petname-helper.sh; }
 [[ -f  /usr/local/lib/show-me/petname2/f-names.txt && -x /usr/local/bin/petname-helper.sh ]] && { true; } || { printf "\n\e[4G\e[0;1;38;2;255;0;0mError\x21\e[0m Issues with the petname-helper script, please report this problem.\e[0m\n";false;exit 1; }
@@ -36,4 +34,4 @@ declare -ag ADJECTIVES=($(cat /usr/local/lib/show-me/petname2/${A:0:1}-adjective
   done
 done
 exit ${?}
-{ [[ $SM_DEBUG ]] &>/dev/null; } && { { set +x; } &>/dev/null; }
+{ [[ $CLOUD_DEBUG ]] &>/dev/null; } && { { set +x; } &>/dev/null; }

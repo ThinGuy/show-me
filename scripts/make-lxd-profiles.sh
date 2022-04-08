@@ -1,13 +1,13 @@
 #!/bin/bash
 # vim: set et ts=2 sw=2 filetype=bash :
 
-{ [[ $SM_DEBUG ]] &>/dev/null; } && { { set -x; } &>/dev/null; }
+{ [[ $CLOUD_DEBUG ]] &>/dev/null; } && { { set -x; } &>/dev/null; }
 export PROG_DIR="$( cd $(dirname ${0})/.. && pwd )"
 
 if [ ! $(lxc &>/dev/null profile device get default eth0 network;echo $?) -o ! $(lxc &>/dev/null profile device get default root pool;echo $?) ];then printf 1>&2 "\n\nLXD is not configured\x21  Please run lxd init\n\n";exit 1;fi
 
 export PROG_DIR="$( cd $(dirname ${0})/.. && pwd )"
-export SM_ARCH=$(dpkg --print-architecture)
+export CLOUD_ARCH=$(dpkg --print-architecture)
 export LXD_DISK_POOL=default
 export LXD_NIC_PARENT_0=lxdbr0
 export LXD_NIC_PARENT_1=br-bond0
@@ -21,7 +21,7 @@ for A in maas landscape;do
     [[ $P = multipass ]] && { declare -ag NICS=(enp0s3 enp0s8); }
     [[ $A = maas ]] && { export LXD_DISK_SIZE=${LXD_DISK_SIZE_MAAS}; }
     [[ $A = landscape ]] && { export LXD_DISK_SIZE=${LXD_DISK_SIZE_LAND}; }
-cat <<-EOF|sed -r 's/[ \t]+$//g'|sed -r '/^$/d'|tee ${PROG_DIR}/lxd-profile_${A}-on-${P}_${SM_ARCH}.yaml|lxc profile edit ${PROF}
+cat <<-EOF|sed -r 's/[ \t]+$//g'|sed -r '/^$/d'|tee ${PROG_DIR}/lxd-profile_${A}-on-${P}_${CLOUD_ARCH}.yaml|lxc profile edit ${PROF}
 config:
   boot.autostart: "false"
   migration.incremental.memory: "false"
@@ -35,7 +35,7 @@ config:
         accept-ra: false
         optional: no
   user.user-data: |
-$(cat <<-'YAML'|sed -r 's/^/    /g;s/[ \t]+$//g' < ${PROG_DIR}/${A}/${P}/${P}_show-me_${A}_user-data_${SM_ARCH}.yaml
+$(cat <<-'YAML'|sed -r 's/^/    /g;s/[ \t]+$//g' < ${PROG_DIR}/${A}/${P}/${P}_show-me_${A}_user-data_${CLOUD_ARCH}.yaml
 YAML
 )
 description: 'Simulate running ${A} on ${P}'
@@ -73,4 +73,4 @@ EOF
 [[ ${?} -eq 0 ]] && printf "\e[2G - Successfully created LXD Profile ${PROF}\x21\n"
 done
 done
-{ [[ $SM_DEBUG ]] &>/dev/null; } && { { set +x; } &>/dev/null; }
+{ [[ $CLOUD_DEBUG ]] &>/dev/null; } && { { set +x; } &>/dev/null; }

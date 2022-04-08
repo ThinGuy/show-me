@@ -1,7 +1,7 @@
 #!/bin/bash
 # vim: set et ts=2 sw=2 filetype=bash :
 
-{ [[ $SM_DEBUG ]] &>/dev/null; } && { { set -x; } &>/dev/null; }
+{ [[ $CLOUD_DEBUG ]] &>/dev/null; } && { { set -x; } &>/dev/null; }
 
 [[ $EUID -ne 0 ]] && { echo "${0##*/} must be run as root or via sudo";exit 1; } || { true; }
 
@@ -151,8 +151,6 @@ projects: []
 cluster: null
 PRESEED
 
-export SM_DNS="9.9.9.9,1.1.1.1,8.8.8.8"
-(echo ${SM_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf
 
 lxc remote add minimal https://cloud-images.ubuntu.com/minimal/daily --protocol simplestreams --accept-certificate
 for I in $(lxc image list minimal: -cfl|awk '/more|CONTAIN/{print $4}'|sort -uV|sed -r '/^t.*|^x.*/!H;//p;$!d;g;s/\n//');do lxc image copy  minimal:${I} local: --alias ${I} --auto-update --public;done
@@ -160,4 +158,4 @@ for I in $(lxc image list minimal: -cfl|awk '/more|CONTAIN/{print $4}'|sort -uV|
 
 
 exit 0
-{ [[ $SM_DEBUG ]] &>/dev/null; } && { { set +x; } &>/dev/null; }
+{ [[ $CLOUD_DEBUG ]] &>/dev/null; } && { { set +x; } &>/dev/null; }

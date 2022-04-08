@@ -1,11 +1,9 @@
 #!/bin/bash
 # vim: set et ts=2 sw=2 filetype=bash :
 
-{ [[ $SM_DEBUG ]] &>/dev/null; } && { { set -x; } &>/dev/null; }
+{ [[ $CLOUD_DEBUG ]] &>/dev/null; } && { { set -x; } &>/dev/null; }
 [[ $EUID -ne 0 ]] && { echo "${0##*/} must be run as root or via sudo";exit 1; } || { true; }
 
-export SM_DNS="9.9.9.9,1.1.1.1,8.8.8.8"
-(echo ${SM_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf
 
 
 cat <<-'EOD'|sed -r 's/[ \t]+$//g'|tee 1>/dev/null /etc/systemd/system/show-me-file.service
@@ -41,4 +39,4 @@ done
 [[ $(systemctl -q is-active show-me-file.service;echo $?) -eq 0 ]] && { printf "\n\e[4G\e[0;1;38;2;0;255;0mSuccess\x21\e[0m The Show-Me-File Service is now available\e[0m\n";true;export RC=0; } || { printf "\n\e[4G\e[0;1;38;2;255;0;0mERROR\e[0m: Failed to start Show-Me-File Service\e[0m\n";false;export RC=1; }
 exit ${RC}
 
-{ [[ $SM_DEBUG ]] &>/dev/null; } && { { set +x; } &>/dev/null; }
+{ [[ $CLOUD_DEBUG ]] &>/dev/null; } && { { set +x; } &>/dev/null; }

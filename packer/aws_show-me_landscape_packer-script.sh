@@ -5,16 +5,16 @@ sysctl -w net.ipv4.ip_forward=1
 printf "%s\x20%s\x20\x20%s\n" precedence '::ffff:0:0/96' 100 | tee -a /etc/gai.conf
 export APT_ARGS="--option=Acquire::ForceIPv4=true --assume-yes --quiet --auto-remove --purge"
 hostname landscape
-export SM_PNIC=ens5
-export SM_ARCH='amd64'
-export SM_APP='landscape'
-export SM_SUBSTRT='aws'
-export SM_GIT="https://github.com/ThinGuy/show-me.git"
+export CLOUD_BRIDGE=ens5
+export CLOUD_ARCH='amd64'
+export CLOUD_APP='landscape'
+export CLOUD_PARTITION='aws'
+export CLOUD_APP_GIT="https://github.com/ThinGuy/show-me.git"
 export DEBIAN_FRONTEND=noninteractive
 "export PYTHONWARNINGS='ignore::DeprecationWarning'"
 echo "export PYTHONWARNINGS='ignore::DeprecationWarning'"|sudo tee -a 1>/dev/null /etc/environment
 if [ -f /usr/bin/vim.basic ];then echo "export EDITOR='/usr/bin/vim.basic'"|sudo tee -a 1>/dev/null /etc/environment;fi
-export DEFAULT_IP="$(ip -o -4 a show $(ip -o r l default|grep ${SM_PNIC}|grep -m1 -oP '(?<=dev )[^ ]+')|grep -m1 -oP '(?<=inet )[^/]+')"
+export DEFAULT_IP="$(ip -o -4 a show $(ip -o r l default|grep ${CLOUD_BRIDGE}|grep -m1 -oP '(?<=dev )[^ ]+')|grep -m1 -oP '(?<=inet )[^/]+')"
 export PUBLIC_IP_LIST="$(printf '%s\n' $(dig +short myip.opendns.com @resolver1.opendns.com) $(dig TXT +short o-o.myaddr.l.google.com @ns1.google.com|sed -r 's/\x22//g') $(dig +short txt ch whoami.cloudflare @1.0.0.1|sed -r 's/\x22//g'))"
 if [ $(echo "${PUBLIC_IP_LIST}"|uniq -D|wc -l) -eq 3 ];then export PUBLIC_IP=$(echo "${PUBLIC_IP_LIST}"|uniq -d);fi
 if [ -n $DEFAULT_IP -o -n $PUBLIC_IP ];then sudo sed -i -r "/127.0|$(hostname -s)/d" /etc/hosts;fi
@@ -22,7 +22,7 @@ if [ -n $DEFAULT_IP ];then sudo sed -i -r "1s/^/127.0.0.1\tlocalhost\n${DEFAULT_
 if [ -n $PUBLIC_IP ];then sudo sed -r -i "/$(hostname -s)$/a $PUBLIC_IP\t$(hostname -s).ubuntu-show.me $(hostname -s)\n/";fi
 printf '%s\n' LANG=en_US.UTF-8 LANGUAGE=en_US|sudo tee 1>/dev/null /etc/default/locale
 export LANG=en_US.UTF-8 LANGUAGE=en_US
-for i in DEFAULT_IP EDITOR LANG LANGUAGE PUBLIC_IP PYTHONWARNINGS SM_APP SM_ARCH SM_GIT SM_PNIC SM_SUBSTRT;do if [ -n "$(eval echo -n \"\$${i}\")" ];then printf "export ${i}=\x22$(eval echo -n \$$i)\x22\n";fi;done|sudo tee -a 1>/dev/null /etc/environment
+for i in DEFAULT_IP EDITOR LANG LANGUAGE PUBLIC_IP PYTHONWARNINGS CLOUD_APP CLOUD_ARCH CLOUD_APP_GIT CLOUD_BRIDGE CLOUD_PARTITION;do if [ -n "$(eval echo -n \"\$${i}\")" ];then printf "export ${i}=\x22$(eval echo -n \$$i)\x22\n";fi;done|sudo tee -a 1>/dev/null /etc/environment
 cat <<SUDOERS|sed -r 's/[ \t]+$//g;/^$/d'|sudo tee 1>/dev/null /etc/sudoers.d/99-default-user
 Defaults	env_reset
 Defaults	env_keep+="CANDID_* DISPLAY EDITOR HOME LANDSCAPE_* LANG* MAAS_* PG_* PYTHONWARNINGS RBAC_* SHOW_ME* SSP_* XAUTHORITY XAUTHORIZATION *_IP *_PROXY *_proxy"

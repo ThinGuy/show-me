@@ -102,23 +102,23 @@ runcmd:
   - set -x
   - systemctl restart systemd-networkd systemd-resolved procps.service
   - sleep 5
-  - export SM_PNIC=br0
-  - export SM_ARCH='amd64'
-  - export SM_APP='maas'
-  - export SM_SUBSTRT='aws'
-  - export SM_GIT="https://github.com/ThinGuy/show-me.git"
+  - export CLOUD_BRIDGE=br0
+  - export CLOUD_ARCH='amd64'
+  - export CLOUD_APP='maas'
+  - export CLOUD_PARTITION='aws'
+  - export CLOUD_APP_GIT="https://github.com/ThinGuy/show-me.git"
   - export DEBIAN_FRONTEND=noninteractive
   - "export PYTHONWARNINGS='ignore::DeprecationWarning'"
   - echo "export PYTHONWARNINGS='ignore::DeprecationWarning'"|tee -a 1>/dev/null /etc/environment
   - if [ -f /usr/bin/vim.basic ];then echo "export EDITOR='/usr/bin/vim.basic'"|tee -a 1>/dev/null /etc/environment;fi
-  - export DEFAULT_IP="$(ip -o -4 a show $(ip -o r l default|grep ${SM_PNIC}|grep -m1 -oP '(?<=dev )[^ ]+')|grep -m1 -oP '(?<=inet )[^/]+')"
+  - export DEFAULT_IP="$(ip -o -4 a show $(ip -o r l default|grep ${CLOUD_BRIDGE}|grep -m1 -oP '(?<=dev )[^ ]+')|grep -m1 -oP '(?<=inet )[^/]+')"
   - export PUBLIC_IP_LIST="$(printf '%s\n' $(dig +short myip.opendns.com @resolver1.opendns.com) $(dig TXT +short o-o.myaddr.l.google.com @ns1.google.com|sed -r 's/\x22//g') $(dig +short txt ch whoami.cloudflare @1.0.0.1|sed -r 's/\x22//g'))"
   - if [ $(echo "${PUBLIC_IP_LIST}"|uniq -D|wc -l) -eq 3 ];then export PUBLIC_IP=$(echo "${PUBLIC_IP_LIST}"|uniq -d);fi
   - if [ -n $DEFAULT_IP -o -n $PUBLIC_IP ];then sed -i -r "/127.0|$(hostname -s)/d" /etc/hosts;fi
   - if [ -n $DEFAULT_IP ];then sed -i -r "1s/^/127.0.0.1\tlocalhost\n${DEFAULT_IP}\t$(hostname -s).ubuntu-show.me $(hostname -s)\n/" /etc/hosts;fi
   - if [ -n $PUBLIC_IP ];then sed -r -i "/$(hostname -s)$/a $PUBLIC_IP\t$(hostname -s).ubuntu-show.me $(hostname -s)\n/";fi
   - systemctl restart systemd-networkd systemd-resolved procps.service
-  - for i in SM_PNIC SM_ARCH SM_APP SM_SUBSTRT SM_GIT EDITOR PYTHONWARNINGS PUBLIC_IP DEFAULT_IP;do if [ -n "$(eval echo -n \"\$${i}\")" ];then printf "export ${i}=\"$(eval echo -n \$$i)\"\n";fi;done|tee -a 1>/dev/null /etc/environment
+  - for i in CLOUD_BRIDGE CLOUD_ARCH CLOUD_APP CLOUD_PARTITION CLOUD_APP_GIT EDITOR PYTHONWARNINGS PUBLIC_IP DEFAULT_IP;do if [ -n "$(eval echo -n \"\$${i}\")" ];then printf "export ${i}=\"$(eval echo -n \$$i)\"\n";fi;done|tee -a 1>/dev/null /etc/environment
   - . /etc/environment
   - sleep 6
   - apt update -o "Acquire::ForceIPv4=true"
@@ -128,8 +128,8 @@ runcmd:
   - sleep 10
   - git clone https://github.com/ThinGuy/show-me.git /opt/show-me
   - git clone https://github.com/canonical/packer-maas /opt/show-me/packer-maas
-  - curl -fSlL -o /opt/show-me/packer_1.8.0_linux_amd64.zip "https://releases.hashicorp.com/packer/1.8.0/packer_1.8.0_linux_${SM_ARCH}.zip"
-  - if [ -f /opt/show-me/packer_1.8.0_linux_${SM_ARCH}.zip ];then unzip -qq -o -d /usr/local/bin /opt/show-me/packer_1.8.0_linux_${SM_ARCH}.zip;fi
+  - curl -fSlL -o /opt/show-me/packer_1.8.0_linux_amd64.zip "https://releases.hashicorp.com/packer/1.8.0/packer_1.8.0_linux_${CLOUD_ARCH}.zip"
+  - if [ -f /opt/show-me/packer_1.8.0_linux_${CLOUD_ARCH}.zip ];then unzip -qq -o -d /usr/local/bin /opt/show-me/packer_1.8.0_linux_${CLOUD_ARCH}.zip;fi
   - install -o 0 -g 0 -m 0755 /opt/show-me/scripts/petname-helper.sh /usr/local/bin/petname-helper.sh
   - install -o 0 -g 0 -m 0755 /opt/show-me/scripts/petname-helper.sh /usr/local/bin/petname-helper.sh
   - install -o 0 -g 0 -m 0400 /opt/show-me/pki/show-me-id_rsa /home/$(id -un 1000)/.ssh/showme_rsa

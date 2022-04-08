@@ -2,12 +2,10 @@
 
 # vim: set et ts=2 sw=2 filetype=bash :
 
-{ [[ $SM_DEBUG ]] &>/dev/null; } && { { set -x; } &>/dev/null; }
+{ [[ $CLOUD_DEBUG ]] &>/dev/null; } && { { set -x; } &>/dev/null; }
 
 [[ $EUID -ne 0 ]] && { echo "${0##*/} must be run as root or via sudo";exit 1; } || { true; }
 
-export SM_DNS="9.9.9.9,1.1.1.1,8.8.8.8"
-(echo ${SM_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf
 
 
 #### Begin Postgresql setup
@@ -133,4 +131,4 @@ echo 'for RC in $(find ~/ -maxdepth 1 -type f -iname ".show-me*.rc");do source $
 #### END of Postgresql section
 
 exit 0
-{ [[ $SM_DEBUG ]] &>/dev/null; } && { { set +x; } &>/dev/null; }
+{ [[ $CLOUD_DEBUG ]] &>/dev/null; } && { { set +x; } &>/dev/null; }

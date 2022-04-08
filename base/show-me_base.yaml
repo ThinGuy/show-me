@@ -45,9 +45,9 @@ apt:
 bootcmd:
   - export DEBIAN_FRONTEND=noninteractive
   - set -x
-  - export SM_BRNIC=br0
-  - export SM_INIC=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
-  - export INTERNAL_IP=$(ip -o -4 a show $(ip -o r l default|grep ${SM_INIC}|grep -m1 -oP "(?<=dev )[^ ]+")|grep -m1 -oP "(?<=inet )[^/]+")
+  - export CLOUD_BRIDGE=br0
+  - export CLOUD_ETH=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
+  - export INTERNAL_IP=$(ip -o -4 a show $(ip -o r l default|grep ${CLOUD_ETH}|grep -m1 -oP "(?<=dev )[^ ]+")|grep -m1 -oP "(?<=inet )[^/]+")
   - export IFQDN=$(hostname -s).us-west-1.compute.internal
   - export IHOST=${IFQDN%%.*}
   - exoirt IDOMAIN=${IFQDN#*.}
@@ -69,19 +69,19 @@ bootcmd:
       version: 2
       renderer: networkd
       ethernets:
-        ${SM_INIC}:
+        ${CLOUD_ETH}:
           dhcp4: false
           dhcp6: false
           optional: false
           accept-ra: false
           link-local: [ ]
           match:
-            macaddress: '$(ip -o l show dev ${SM_INIC}|grep -oP "(?<=ether )[^ ]+")'
-          set-name: ${SM_INIC}
+            macaddress: '$(ip -o l show dev ${CLOUD_ETH}|grep -oP "(?<=ether )[^ ]+")'
+          set-name: ${CLOUD_ETH}
       bridges:
-        ${SM_BRNIC}:
-          macaddress: '$(ip -o l show dev ${SM_INIC}grep -oP "(?<=ether )[^ ]+")'
-          interfaces: ['${SM_INIC}']
+        ${CLOUD_BRIDGE}:
+          macaddress: '$(ip -o l show dev ${CLOUD_ETH}grep -oP "(?<=ether )[^ ]+")'
+          interfaces: ['${CLOUD_ETH}']
           link-local: [ ]
           dhcp4: true
           dhcp4-overrides:
@@ -111,17 +111,17 @@ bootcmd:
 runcmd:
   - set -x
   - sleep 5
-  - export SM_BRNIC=br0
-  - export SM_ARCH='amd64'
-  - export SM_APP='landscape'
-  - export SM_SUBSTRT='aws'
-  - export SM_GIT="https://github.com/ThinGuy/show-me.git"
+  - export CLOUD_BRIDGE=br0
+  - export CLOUD_ARCH='amd64'
+  - export CLOUD_APP='landscape'
+  - export CLOUD_PARTITION='aws'
+  - export CLOUD_APP_GIT="https://github.com/ThinGuy/show-me.git"
   - export DEBIAN_FRONTEND=noninteractive
   - "export PYTHONWARNINGS='ignore::DeprecationWarning'"
   - echo "export PYTHONWARNINGS='ignore::DeprecationWarning'"|tee -a 1>/dev/null /etc/environment
   - if [ -f /usr/bin/vim.basic ];then echo "export EDITOR='/usr/bin/vim.basic'"|tee -a 1>/dev/null /etc/environment;fi
-  - export SM_BRNIC=br0
-  - export INTERNAL_IP=$(ip -o -4 a show $(ip -o r l default|grep ${SM_BRNIC}|grep -m1 -oP "(?<=dev )[^ ]+")|grep -m1 -oP "(?<=inet )[^/]+")
+  - export CLOUD_BRIDGE=br0
+  - export INTERNAL_IP=$(ip -o -4 a show $(ip -o r l default|grep ${CLOUD_BRIDGE}|grep -m1 -oP "(?<=dev )[^ ]+")|grep -m1 -oP "(?<=inet )[^/]+")
   - export IFQDN=$(hostname -s).us-west-1.compute.internal
   - export IHOST=${IFQDN%%.*}
   - exoirt IDOMAIN=${IFQDN#*.}
@@ -134,7 +134,7 @@ runcmd:
   - hostname ${PHOST}
   - echo ${PHOST}|tee 1>/devnull /etc/hostname
   - systemctl restart systemd-resolved
-  - for i in SM_BRNIC SM_ARCH SM_APP SM_SUBSTRT SM_GIT EDITOR PYTHONWARNINGS PUBLIC_IP INTERNAL_IP;do if [ -n "$(eval echo -n \"\$${i}\")" ];then printf "export ${i}=\x22$(eval echo -n \$$i)\x22\n";fi;done|tee -a 1>/dev/null /etc/environment
+  - for i in CLOUD_BRIDGE CLOUD_ARCH CLOUD_APP CLOUD_PARTITION CLOUD_APP_GIT EDITOR PYTHONWARNINGS PUBLIC_IP INTERNAL_IP;do if [ -n "$(eval echo -n \"\$${i}\")" ];then printf "export ${i}=\x22$(eval echo -n \$$i)\x22\n";fi;done|tee -a 1>/dev/null /etc/environment
   - . /etc/environment
   - mkdir -p /etc/show-me/www /etc/show-me/log
   - if [ -d /opt/show-me ];then rm -rf /opt/show-me;fi
