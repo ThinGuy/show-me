@@ -49,7 +49,7 @@ echo ${CLOUD_PUBLIC_FQDN}|tee /etc/hostname
 printf "127.0.0.1\t${CLOUD_PUBLIC_HOSTNAME}.localdomain ${CLOUD_PUBLIC_HOSTNAME} localhost4 localhost4.localdomain4 localhost.localdomain localhost\n${CLOUD_PUBLIC_IPV4}\t${CLOUD_PUBLIC_FQDN} ${CLOUD_PUBLIC_HOSTNAME}\n#${CLOUD_LOCAL_IPV4}\t${CLOUD_LOCAL_FQDN} ${CLOUD_LOCAL_HOSTNAME}\n" /etc/hosts
 sysctl -w net.ipv4.ip_forward=1
 install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/
-((set|grep -E '^CANDID_|^CLOUD_|^LANDSCAPE_|^MAAS_|^MACHINE_|^PG_|^RBAC_|^SHOW_ME|^SHOW_ME_|^SM_|^SSP_')|sed -r 's/^/export /g;s/\\Fx22//g;s/\\\x27//g;s/=/=\x22/1;s/$/\x22/g'|sort -uV)|tee /usr/local/lib/show-me/.show-me.rc
+((set|grep -E '^CANDID_|^CLOUD_|^LANDSCAPE_|^MAAS_|^MACHINE_|^PG_|^RBAC_|^SSP_')|sed -r 's/^/export /g;s/\\Fx22//g;s/\\\x27//g;s/=/=\x22/1;s/$/\x22/g'|sort -uV)|tee /usr/local/lib/show-me/.show-me.rc
 if [ -f /usr/local/lib/show-me/.show-me.rc ];then cp /usr/local/lib/show-me/.show-me.rc /root/.;su $(id -un 1000) -c 'cp /usr/local/lib/show-me/.show-me.rc ~/';echo '[ -r ~/.show-me.rc ] && . ~/.show-me.rc'|tee -a /root/.bashrc|su $(id -un 1000) -c 'tee -a ~/.bashrc';fi
 cat <<-RESOLVED|sed '/^$/d'|tee 1>/dev/null /etc/systemd/resolved.conf.d/sm-resolved.conf
 [Resolve]
@@ -163,7 +163,7 @@ update-ca-certificates --fresh --verbose
 if [ -f /home/$(id -un 1000)/.ssh/showme_rsa.pub ];then su $(id -un 1000) -c 'cat /home/$(id -un 1000)/.ssh/showme_rsa.pub|tee -a 1>/dev/null /home/$(id -un 1000)/.ssh/authorized_keys';fi
 (echo ${CLOUD_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf
 cat <<-'SUDOERS'|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/sudoers.d/100-keep-params
-Defaults env_keep+="CANDID_* CLOUD_* DISPLAY EDITOR HOME LANDSCAPE_* LANG* LC_* MAAS_* MACHINE_* PG_* PYTHONWARNINGS RBAC_* SHOW_ME_* SM_* SSP_* XAUTHORITY XAUTHORIZATION *_PROXY *_proxy"
+Defaults env_keep+="CANDID_* CLOUD_* DISPLAY EDITOR HOME LANDSCAPE_* LANG* LC_* MAAS_* MACHINE_* PG_* PYTHONWARNINGS RBAC_* SSP_* XAUTHORITY XAUTHORIZATION *_PROXY *_proxy"
 SUDOERS
 (echo ${CLOUD_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf
 apt-key adv --recv --keyserver keyserver.ubuntu.com 6E85A86E4652B4E6

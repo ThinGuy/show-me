@@ -89,7 +89,7 @@ bootcmd:
   - sysctl -w net.ipv4.ip_forward=1
   - install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me
   - eval "$(dmidecode -s 2>&1|awk '/^[ \t]+/{gsub(/^[ \t]+/,"");print}'|xargs -rn1 -P0 bash -c 'P="${0//-/_}";P=${P^^};export P=${P//-/_};printf "export MACHINE_${P}=\x22$(dmidecode -s $0|grep -vi '"'"'not'"'"')\x22\n"'|sed 's/""$//g')"
-  - ((set|grep -E '^CANDID_|^CLOUD_|^LANDSCAPE_|^MAAS_|^MACHINE_|^PG_|^RBAC_|^SHOW_ME|^SHOW_ME_|^SM_|^SSP_')|sed -r 's/^/export /g;s/\\x22//g;s/\\\x27//g;s/=/=\x22/1;s/$/\x22/g'|sort -uV)|tee /usr/local/lib/show-me/.show-me.rc
+  - ((set|grep -E '^CANDID_|^CLOUD_|^LANDSCAPE_|^MAAS_|^MACHINE_|^PG_|^RBAC_|^SSP_')|sed -r 's/^/export /g;s/\\x22//g;s/\\\x27//g;s/=/=\x22/1;s/$/\x22/g'|sort -uV)|tee /usr/local/lib/show-me/.show-me.rc
   - if [ -f /usr/local/lib/show-me/.show-me.rc ];then cp /usr/local/lib/show-me/.show-me.rc /root/.;su $(id -un 1000) -c 'cp /usr/local/lib/show-me/.show-me.rc ~/';echo '[ -r ~/.show-me.rc ] && . ~/.show-me.rc'|tee -a /root/.bashrc|su $(id -un 1000) -c 'tee -a ~/.bashrc';fi
   - |-
     cat <<-RESOLVED|sed '/^$/d'|tee 1>/dev/null /etc/systemd/resolved.conf.d/sm-resolved.conf
@@ -161,7 +161,7 @@ bootcmd:
   - apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
   - apt install dnsutils debconf-utils dialog gnupg -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
   - apt remove lxd lxd-client -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
-  - ((set|grep -E '^CANDID_|^CLOUD_|^LANDSCAPE_|^MAAS_|^MACHINE_|^PG_|^RBAC_|^SHOW_ME|^SHOW_ME_|^SM_|^SSP_')|sed -r 's/^/export /g;s/\\x22//g;s/\\\x27//g')|tee 1>/dev/null /var/run/.show-me.rc
+  - ((set|grep -E '^CANDID_|^CLOUD_|^LANDSCAPE_|^MAAS_|^MACHINE_|^PG_|^RBAC_|^SSP_')|sed -r 's/^/export /g;s/\\x22//g;s/\\\x27//g')|tee 1>/dev/null /var/run/.show-me.rc
   - if [ -f /var/run/.show-me.rc ];then . /var/run/.show-me.rc;fi
 runcmd:
   - set -x
@@ -207,7 +207,7 @@ runcmd:
   - if [ -f /home/$(id -un 1000)/.ssh/showme_rsa.pub ];then su $(id -un 1000) -c 'cat /home/$(id -un 1000)/.ssh/showme_rsa.pub|tee -a 1>/dev/null /home/$(id -un 1000)/.ssh/authorized_keys';fi
   - |-
     cat <<-'SUDOERS'|sed -r 's/[ \t]+$//g;/^$/d'|sudo tee 1>/dev/null /etc/sudoers.d/100-keep-params
-    Defaults env_keep+="CANDID_* CLOUD_* DISPLAY EDITOR HOME LANDSCAPE_* LANG* LC_* MAAS_* MACHINE_* PG_* PYTHONWARNINGS RBAC_* SHOW_ME_* SM_* SSP_* XAUTHORITY XAUTHORIZATION *_PROXY *_proxy"
+    Defaults env_keep+="CANDID_* CLOUD_* DISPLAY EDITOR HOME LANDSCAPE_* LANG* LC_* MAAS_* MACHINE_* PG_* PYTHONWARNINGS RBAC_* SSP_* XAUTHORITY XAUTHORIZATION *_PROXY *_proxy"
     SUDOERS
 (echo ${CLOUD_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf
   - DEBIAN_FRONTEND=noninteractive apt -o "Acquire::ForceIPv4=true" update

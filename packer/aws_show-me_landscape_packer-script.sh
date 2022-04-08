@@ -25,7 +25,7 @@ export LANG=en_US.UTF-8 LANGUAGE=en_US
 for i in DEFAULT_IP EDITOR LANG LANGUAGE PUBLIC_IP PYTHONWARNINGS CLOUD_APP CLOUD_ARCH CLOUD_APP_GIT CLOUD_BRIDGE CLOUD_PARTITION;do if [ -n "$(eval echo -n \"\$${i}\")" ];then printf "export ${i}=\x22$(eval echo -n \$$i)\x22\n";fi;done|sudo tee -a 1>/dev/null /etc/environment
 cat <<SUDOERS|sed -r 's/[ \t]+$//g;/^$/d'|sudo tee 1>/dev/null /etc/sudoers.d/99-default-user
 Defaults	env_reset
-Defaults	env_keep+="CANDID_* DISPLAY EDITOR HOME LANDSCAPE_* LANG* MAAS_* PG_* PYTHONWARNINGS RBAC_* SHOW_ME* SSP_* XAUTHORITY XAUTHORIZATION *_IP *_PROXY *_proxy"
+Defaults	env_keep+="CANDID_* DISPLAY EDITOR HOME LANDSCAPE_* LANG* MAAS_* PG_* PYTHONWARNINGS RBAC_* SSP_* XAUTHORITY XAUTHORIZATION *_IP *_PROXY *_proxy"
 Defaults	secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin:$HOME/.local/bin"
 $(id -un 1000)		ALL=(ALL) NOPASSWD:ALL
 SUDOERS

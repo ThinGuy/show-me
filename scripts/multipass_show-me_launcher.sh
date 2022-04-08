@@ -12,10 +12,10 @@ export LOG="/tmp/$(basename  ${x//\.sh/.log})"
 P=$(uname);export PLAT=${P,,}
 
 export CLOUD_APP=${1:-landscape} CLOUD_PARTITION=multipass CLOUD_APP_GIT="https://github.com/ThinGuy/show-me.git"
-[[ ${CLOUD_APP,,} =~ landscape ]] && { declare -ag SM_OS=(bionic);export SM_REC_OS=${SM_OS[0]};export SM_RAM='4096M' SM_CPU='4' SM_VHD='20G'; }
-[[ ${CLOUD_APP,,} =~ maas ]] && { declare -ag SM_OS=(focal jammy);export SM_REC_OS=${SM_OS[0]};export SM_RAM='4096M' SM_CPU='4' SM_VHD='30G'; }
+[[ ${CLOUD_APP,,} =~ landscape ]] && { declare -agOS=(bionic);exportREC_OS=${SM_OS[0]};exportRAM='4096M'CPU='4'VHD='20G'; }
+[[ ${CLOUD_APP,,} =~ maas ]] && { declare -agOS=(focal jammy);exportREC_OS=${SM_OS[0]};exportRAM='4096M'CPU='4'VHD='30G'; }
 [[ ${PLAT,,} = darwin ]] && { [[ $(uname -m) = x86_64 ]] && { CLOUD_ARCH=$(uname -m|sed 's/x86_/amd/'); }; }
-[[ ${PLAT,,} = linux ]]  && { export SM_DIST=$(/bin/grep -oP '(?<=^ID=)[^$]+' /etc/os-release); }
+[[ ${PLAT,,} = linux ]]  && { exportDIST=$(/bin/grep -oP '(?<=^ID=)[^$]+' /etc/os-release); }
 [[ ${SM_DIST,,} = ubuntu ]] && { export CLOUD_ARCH=$(dpkg --print-architecture); }
 
 #macOS
@@ -50,8 +50,8 @@ export CLOUD_APP=${1:-landscape} CLOUD_PARTITION=multipass CLOUD_APP_GIT="https:
 
 export CLOUD_APP=${1:-landscape}
 
-[[ ${CLOUD_APP,,} =~ landscape ]] && { declare -ag SM_OS=(bionic);export SM_REC_OS=${SM_OS[0]};export SM_RAM='4096M' SM_CPU='4' SM_VHD='20G'; }
-[[ ${CLOUD_APP,,} =~ maas ]] && { declare -ag SM_OS=(focal jammy);export SM_REC_OS=${SM_OS[0]};export SM_RAM='4096M' SM_CPU='4' SM_VHD='30G'; }
+[[ ${CLOUD_APP,,} =~ landscape ]] && { declare -agOS=(bionic);exportREC_OS=${SM_OS[0]};exportRAM='4096M'CPU='4'VHD='20G'; }
+[[ ${CLOUD_APP,,} =~ maas ]] && { declare -agOS=(focal jammy);exportREC_OS=${SM_OS[0]};exportRAM='4096M'CPU='4'VHD='30G'; }
 
 [[ ${PLAT,,} = darwin ]] && { export TPUT_ARGS=''; } || { export TPUT_ARGS='-x'; }
 
