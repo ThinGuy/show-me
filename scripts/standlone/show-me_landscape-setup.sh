@@ -6,7 +6,7 @@
 [[ $EUID -ne 0 ]] && { echo "${0##*/} must be run as root or via sudo";exit 1; } || { true; }
 
 
-export LANG="en_US.UTF-8"; }
+export LANG="en_US.UTF-8"
 export LANGUAGE="${LANG%%.*}"
 [ -n "${LC_ALL}" ] && { unset LC_ALL; }
 export CLOUD_METADATA_URL="http://169.254.169.254/latest/meta-data"
@@ -46,6 +46,7 @@ export CLOUD_INSTANCE_TYPE="$(curl -sSlL ${CLOUD_METADATA_URL}/instance-type|sed
 export CLOUD_IPV6="$(curl -sSlL ${CLOUD_METADATA_URL}/ipv6|sed -r '/<|\x22/d')"
 export CLOUD_KERNEL_ID="$(curl -sSlL ${CLOUD_METADATA_URL}/kernel-id|sed -r '/<|\x22/d')"
 export CLOUD_LOCAL_HOSTNAME="$(curl -sSlL ${CLOUD_METADATA_URL}/local-hostname|sed -r '/<|\x22/d')"
+export CLOUD_LOCAL_HOSTNAME="${CLOUD_LOCAL_HOSTNAME%%.*}"
 export CLOUD_LOCAL_IPV4="$(curl -sSlL ${CLOUD_METADATA_URL}/local-ipv4|sed -r '/<|\x22/d')"
 export CLOUD_MAC="$(curl -sSlL ${CLOUD_METADATA_URL}/mac|sed -r '/<|\x22/d')"
 export CLOUD_METRICS_VHOSTMD="$(curl -sSlL ${CLOUD_METADATA_URL}/metrics/vhostmd|sed -r '/<|\x22/d')"
@@ -114,7 +115,7 @@ if [ /etc/cloud/cloud.cfg ];then sed 's/preserve_hostname: false/preserve_hostna
 
 [ "$(lsb_release -sr|sed 's/\.//g')" -lt "2004" ] && { hostnamectl set-hostname ${CLOUD_APP_FQDN_LONG}; } || { hostnamectl hostname ${CLOUD_APP_FQDN_LONG}; }
 echo "${CLOUD_APP_FQDN_LONG}"|tee /etc/hostname
-printf "127.0.0.1\t${CLOUD_LOCAL_HOSTNAME}.localdomain ${CLOUD_LOCAL_HOSTNAME} localhost4 localhost4.localdomain4 localhost.localdomain localhost\n${CLOUD_PUBLIC_IPV4}\t${CLOUD_APP_FQDN_LONG} ${CLOUD_APP_FQDN_SHORT} ${CLOUD_PUBLIC_FQDN} ${CLOUD_PUBLIC_HOSTNAME}\n"|tee /etc/hosts
+
 
 
 
@@ -200,12 +201,10 @@ network:
       link-local: [ ]
       dhcp4: true
       dhcp4-overrides:
-        use-hostname: false
         hostname: ${CLOUD_APP_FQDN_SHORT}
         route-metric: 1
       dhcp6: true
       dhcp6-overrides:
-        use-hostname: false
         hostname: ${CLOUD_APP_FQDN_SHORT}
         route-metric: 1
       optional: false
@@ -240,17 +239,17 @@ REPOS
 
 add-apt-repository ppa:landscape/19.10 -y
 
-DEBIAN_FRONTEND=noninteractive apt -o "Acquire::ForceIPv4=true" update
-DEBIAN_FRONTEND=noninteractive apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
-DEBIAN_FRONTEND=noninteractive apt remove lxd lxd-client -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
-DEBIAN_FRONTEND=noninteractive apt install build-essential curl debconf-utils dialog dnsutils git gnupg haproxy jq language-pack-en-base lynx make p7zip p7zip-full software-properties-common ssl-cert tree unzip vim wget zip -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge --reinstall
+apt -o "Acquire::ForceIPv4=true" update
+apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
+apt remove lxd lxd-client -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
+DEBIAN_FRONTEND=noninteractive apt install build-essential curl debconf-utils dialog dnsutils git gnupg jq lynx make p7zip p7zip-full software-properties-common ssl-cert tree unzip vim wget zip -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge --reinstall
 
 
 cat <<-'SUDOERS'|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/sudoers.d/100-keep-params
 Defaults env_keep+="CANDID_* CLOUD_* LANDSCAPE_* MAAS_* PG_* RBAC_* SSP_* MK8S_* MO7K_* MCLOUD_* CANDID_* CLOUD_* DISPLAY EDITOR HOME LANDSCAPE_* LANG LC_* MAAS_* MACHINE_* PG_* PYTHONWARNINGS RBAC_* SSP_* XAUTHORITY XAUTHORIZATION *_PROXY *_proxy"
 SUDOERS
 
-if [ -f /var/run/.show-me.rc ];then . /var/run/.show-me.rc;fi;
+if [ -f ~/.show-me.rc ];then . ~/.show-me.rc;fi;
 mkdir -p /etc/show-me/www /etc/show-me/log;
 if [ -d /opt/show-me ];then rm -rf /opt/show-me;fi;
 
@@ -285,12 +284,14 @@ update-ca-certificates --fresh --verbose
 
 if [ -f /home/$(id -un 1000)/.ssh/showme_rsa.pub ];then su $(id -un 1000) -c 'cat /home/$(id -un 1000)/.ssh/showme_rsa.pub|tee -a 1>/dev/null /home/$(id -un 1000)/.ssh/authorized_keys';fi
 
+export LANG="en_US.UTF-8"
+export LANGUAGE="${LANG%%.*}"
 [ -n "${LC_ALL}" ] && { unset LC_ALL; }
 sudo locale-gen ${LANG:-en_US.UTF-8}
 sudo locale-gen ${LANGUAGE:-en_US}
 export LANG=${LANG:-en_US.UTF-8} LANGUAGE=${LANGUAGE:-en_US}
 sudo update-locale LANG=${LANG:-en_US.UTF-8} LANGUAGE=${LANGUAGE:-en_US}
-((printf "%s=\x22${LANG}\x22\n" LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION)|sed -r '2s/^/LANGUAGE='${LANG%%.*}'\n/g')|tee /etc/default/locale
+((printf "%s=${LANG}\n" LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION)|sed -r '2s/^/LANGUAGE='${LANG%%.*}'\n/g')|tee /etc/default/locale
 echo -en 'locales\tlocales/locales_to_be_generated\tmultiselect\t'${LANGUAGE:-en_US}' ISO-8859-1, '${LANG:-en_US.UTF-8}' UTF-8'|debconf-set-selections
 echo -en 'locales\tlocales/default_environment_locale\tselect\t'${LANG:-en_US.UTF-8}''|debconf-set-selections
 DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales
