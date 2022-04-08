@@ -4,7 +4,11 @@
 { [[ $CLOUD_DEBUG ]] &>/dev/null; } && { { set -x; } &>/dev/null; }
 [[ $EUID -ne 0 ]] && { echo "${0##*/} must be run as root or via sudo";exit 1; } || { true; }
 
-#Reserved for future use
+ua detach --assume-yes
+rm -rf /var/log/ubuntu-advantage.log
+truncate -s 0 /etc/machine-id
+truncate -s 0 /var/lib/dbus/machine-id
+
+{ [[ $CLOUD_DEBUG ]] &>/dev/null; } && { { set +x; } &>/dev/null; }
 
 exit 0
-{ [[ $CLOUD_DEBUG ]] &>/dev/null; } && { { set +x; } &>/dev/null; }
