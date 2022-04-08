@@ -6,8 +6,8 @@
 [[ $EUID -ne 0 ]] && { echo "${0##*/} must be run as root or via sudo";exit 1; } || { true; }
 
 
-[ -z "${LANG}" ] && { export LANG="en_US.UTF-8"; }
-[ -z "${LANGUAGE}" ] && { export LANGUAGE="${LANG%%.*}"; }
+export LANG="en_US.UTF-8"; }
+export LANGUAGE="${LANG%%.*}"
 [ -n "${LC_ALL}" ] && { unset LC_ALL; }
 export CLOUD_METADATA_URL="http://169.254.169.254/latest/meta-data"
 export CLOUD_DOMAIN="ubuntu-show.me"
@@ -238,10 +238,12 @@ deb [arch=${CLOUD_ARCH}] http://${CLOUD_REPO_FQDN}/ubuntu/ $(lsb_release -cs)-se
 deb [arch=${CLOUD_ARCH}] http://archive.canonical.com/ubuntu $(lsb_release -cs) partner
 REPOS
 
+add-apt-repository ppa:landscape/19.10 -y
+
 DEBIAN_FRONTEND=noninteractive apt -o "Acquire::ForceIPv4=true" update
 DEBIAN_FRONTEND=noninteractive apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
 DEBIAN_FRONTEND=noninteractive apt remove lxd lxd-client -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
-DEBIAN_FRONTEND=noninteractive apt install build-essential curl debconf-utils dialog dnsutils git gnupg haproxy jq language-pack-en-base lynx make p7zip p7zip-full software-properties-common ssl-cert tree unzip vim wget zip -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
+DEBIAN_FRONTEND=noninteractive apt install build-essential curl debconf-utils dialog dnsutils git gnupg haproxy jq language-pack-en-base lynx make p7zip p7zip-full software-properties-common ssl-cert tree unzip vim wget zip -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge --reinstall
 
 
 cat <<-'SUDOERS'|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/sudoers.d/100-keep-params
@@ -251,8 +253,7 @@ SUDOERS
 if [ -f /var/run/.show-me.rc ];then . /var/run/.show-me.rc;fi;
 mkdir -p /etc/show-me/www /etc/show-me/log;
 if [ -d /opt/show-me ];then rm -rf /opt/show-me;fi;
-ping -c10 -w5 github.com;
-sleep 10;
+
 git clone ${CLOUD_APP_GIT} /opt/show-me;
 
 
@@ -289,20 +290,20 @@ sudo locale-gen ${LANG:-en_US.UTF-8}
 sudo locale-gen ${LANGUAGE:-en_US}
 export LANG=${LANG:-en_US.UTF-8} LANGUAGE=${LANGUAGE:-en_US}
 sudo update-locale LANG=${LANG:-en_US.UTF-8} LANGUAGE=${LANGUAGE:-en_US}
-((printf "%s=\x22${LANG}\x22\n" LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION)|sed -r '2s/^/LANGUAGE=\x22'${LANG%%.*}'\x22\n/g')|tee /etc/default/locale
+((printf "%s=\x22${LANG}\x22\n" LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION)|sed -r '2s/^/LANGUAGE='${LANG%%.*}'\n/g')|tee /etc/default/locale
 echo -en 'locales\tlocales/locales_to_be_generated\tmultiselect\t'${LANGUAGE:-en_US}' ISO-8859-1, '${LANG:-en_US.UTF-8}' UTF-8'|debconf-set-selections
 echo -en 'locales\tlocales/default_environment_locale\tselect\t'${LANG:-en_US.UTF-8}''|debconf-set-selections
 DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales
 
-DEBIAN_FRONTEND=noninteractive apt -o "Acquire::ForceIPv4=true" update
-DEBIAN_FRONTEND=noninteractive apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
-DEBIAN_FRONTEND=noninteractive apt install landscape-client -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
+apt -o "Acquire::ForceIPv4=true" update
+apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
+apt install landscape-client -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge --reinstall 
 
 if [ -f /etc/ssl/certs/landscape_server.pem ];then ln -sf /etc/ssl/certs/landscape_server.pem /etc/landscape/landscape_server.pem;fi
 if [ -f /etc/ssl/certs/landscape_server_ca.crt ];then ln -sf /etc/ssl/certs/landscape_server_ca.crt /etc/landscape/landscape_server_ca.crt;fi
 if [ -f /etc/ssl/certs/landscape_server.pem ];then echo "ssl_public_key = /etc/ssl/certs/landscape_server.pem"|tee 1>/dev/null -a /etc/landscape/client.conf;fi
 
-DEBIAN_FRONTEND=noninteractive apt install landscape-server-quickstart -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
+apt install landscape-server-quickstart --reinstall -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
 
 if [ -f /usr/local/lib/show-me/landscape.lynx -a -f /usr/local/bin/show-me_lynx-web-init.sh ];then /usr/local/bin/show-me_lynx-web-init.sh;fi
 if [ -f /etc/landscape/client.conf ];then ln -sf /etc/landscape/client.conf /etc/show-me/www/landscape-client.conf;fi
@@ -318,6 +319,8 @@ ua detach --assume-yes
 rm -rf /var/log/ubuntu-advantage.log
 truncate -s 0 /etc/machine-id
 truncate -s 0 /var/lib/dbus/machine-id
+rm -rf /opt/show-me
+find /var/log -type f |xargs truncate -s 0
 
 { [[ ${CLOUD_DEBUG} ]] &>/dev/null; } && { { set +x; } &>/dev/null; }
 
