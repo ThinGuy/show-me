@@ -318,23 +318,9 @@ install -o 1000 -g 1000 -m 0640 /opt/show-me/pki/show-me-id_rsa.pub /home/$(id -
 install -o 0 -g 0 -m 0644 -D /opt/show-me/scripts/landscape.lynx /usr/local/lib/show-me/landscape.lynx
 install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/petname2/
 install -o 0 -g 0 -m 0755 -d /etc/landscape/
-install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_landscape_lxd-init.sh /usr/local/bin/show-me_landscape_lxd-init.sh
-install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_host.pem /etc/ssl/certs/show-me_host.pem
-install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_host.key /etc/ssl/private/show-me_host.key
-install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /etc/ssl/certs/show-me_ca.crt
-install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /usr/local/share/ca-certificates/show-me_ca.crt
-install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_basic-chain.pem /etc/ssl/private/show-me_basic-chain.pem
-install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_full-chain.pem /etc/ssl/private/show-me_full-chain.pem   
-install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_basic-chain.pem /etc/ssl/private/landscape-server_basic-chain.pem
-install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_full-chain.pem /etc/ssl/private/landscape-server_full-chain.pem    
-install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_host.pem /etc/ssl/certs/landscape_server.pem
-install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_host.key /etc/ssl/private/landscape_server.key
-install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /etc/ssl/certs/landscape_server_ca.crt
+install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_landscape_lxd-init.sh /usr/local/bin/show-me_landscape_lxd-init.sh 
 install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_file-service_init.sh /usr/local/bin/show-me_file-service_init.sh
 install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_finishing-script_all.sh /usr/local/bin/show-me_finishing-script_all.sh
-install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /etc/show-me/www/show-me_ca.crt
-install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_host.pem /etc/show-me/www/landscape_server.pem
-update-ca-certificates --fresh --verbose
 
 if [ -f /home/$(id -un 1000)/.ssh/showme_rsa.pub ];then su $(id -un 1000) -c 'cat /home/$(id -un 1000)/.ssh/showme_rsa.pub|tee -a 1>/dev/null /home/$(id -un 1000)/.ssh/authorized_keys';fi
 
@@ -343,9 +329,6 @@ apt -o "Acquire::ForceIPv4=true" update;
 apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
 apt install landscape-client -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge --reinstall;
 
-if [ -f /etc/ssl/certs/landscape_server.pem ];then ln -sf /etc/ssl/certs/landscape_server.pem /etc/landscape/landscape_server.pem;fi;
-if [ -f /etc/ssl/certs/landscape_server_ca.crt ];then ln -sf /etc/ssl/certs/landscape_server_ca.crt /etc/landscape/landscape_server_ca.crt;fi;
-if [ -f /etc/ssl/certs/landscape_server.pem ];then echo "ssl_public_key = /etc/ssl/certs/landscape_server.pem"|tee 1>/dev/null -a /etc/landscape/client.conf;fi;
 
 apt install landscape-server-quickstart --reinstall -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
 
@@ -371,6 +354,7 @@ find /var/log -type f |xargs truncate -s 0
 history -c
 unset HISTFILE
 
+https://us-west-1.console.aws.amazon.com/ec2/v2/home?region=us-west-1#AMICatalog:
 exit
 
 
