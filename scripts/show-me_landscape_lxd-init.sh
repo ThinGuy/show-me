@@ -5,13 +5,15 @@
 
 [[ $EUID -ne 0 ]] && { echo "${0##*/} must be run as root or via sudo";exit 1; } || { true; }
 
+[[ -f ~/.show-me.rc ]] && source ~/.show-me.rc
+
 cat <<-PRESEED|sed -r 's/[ \t]+$//g;/^$/d'|lxd init --preseed -
 config:
   core.https_address: '[::]:8443'
   core.trust_password: ubuntu
 networks:
 - config:
-    dns.domain: ubuntu-show.me
+    dns.domain: landscape.ubuntu-show.me
     dns.mode: dynamic
     ipv4.address: 10.10.10.1/24
     ipv4.nat: true
@@ -33,6 +35,7 @@ profiles:
       #cloud-config
       final_message: 'Landscape Client completed Installing in \$UPTIME'
       manage_etc_hosts: false
+      preserve_hostname: true
       locale: en_US.UTF-8
       apt:
         conf: |
@@ -49,18 +52,16 @@ profiles:
             };
           };
         primary:
-          - arches: [amd64]
-            uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
-            search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
+          - arches: [$CLOUD_ARCH]
+            uri: 'http://${CLOUD_REPO_FQDN}/ubuntu'
         security:
-          - arches: [amd64]
-            uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
-            search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
+          - arches: [$CLOUD_ARCH]
+            uri: 'http://${CLOUD_REPO_FQDN}/ubuntu'
         sources_list: |
-          deb [arch=amd64] $PRIMARY $RELEASE main universe restricted multiverse
-          deb [arch=amd64] $PRIMARY $RELEASE-updates main universe restricted multiverse
-          deb [arch=amd64] $SECURITY $RELEASE-security main universe restricted multiverse
-          deb [arch=amd64] $PRIMARY $RELEASE-backports main universe restricted multiverse
+          deb [arch=$CLOUD_ARCH] \$PRIMARY \$RELEASE main universe restricted multiverse
+          deb [arch=$CLOUD_ARCH] \$PRIMARY \$RELEASE-updates main universe restricted multiverse
+          deb [arch=$CLOUD_ARCH] \$SECURITY \$RELEASE-security main universe restricted multiverse
+          deb [arch=$CLOUD_ARCH] \$PRIMARY \$RELEASE-backports main universe restricted multiverse
         sources:
   description: Default LXD profile
   devices:
@@ -80,6 +81,7 @@ profiles:
       #cloud-config
       final_message: 'Landscape Client completed Installing in \$UPTIME'
       manage_etc_hosts: false
+      preserve_hostname: true
       timezone: America/Los_Angeles
       locale: en_US.UTF-8
       apt:
@@ -97,42 +99,36 @@ profiles:
             };
           };
         primary:
-          - arches: [amd64]
-            uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
-            search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
+          - arches: [$CLOUD_ARCH]
+            uri: 'http://${CLOUD_REPO_FQDN}/ubuntu'
         security:
-          - arches: [amd64]
-            uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
-            search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
+          - arches: [$CLOUD_ARCH]
+            uri: 'http://${CLOUD_REPO_FQDN}/ubuntu'
         sources_list: |
-          deb [arch=amd64] $PRIMARY $RELEASE main universe restricted multiverse
-          deb [arch=amd64] $PRIMARY $RELEASE-updates main universe restricted multiverse
-          deb [arch=amd64] $SECURITY $RELEASE-security main universe restricted multiverse
-          deb [arch=amd64] $PRIMARY $RELEASE-backports main universe restricted multiverse
+          deb [arch=$CLOUD_ARCH] \$PRIMARY \$RELEASE main universe restricted multiverse
+          deb [arch=$CLOUD_ARCH] \$PRIMARY \$RELEASE-updates main universe restricted multiverse
+          deb [arch=$CLOUD_ARCH] \$SECURITY \$RELEASE-security main universe restricted multiverse
+          deb [arch=$CLOUD_ARCH] \$PRIMARY \$RELEASE-backports main universe restricted multiverse
         sources:
           landscape-19.10-bionic.list:
-            source: 'deb [arch=amd64] http://ppa.launchpad.net/landscape/19.10/ubuntu bionic main'
+            source: 'deb [arch=$CLOUD_ARCH] http://ppa.launchpad.net/landscape/19.10/ubuntu bionic main'
             keyid: 6E85A86E4652B4E6
-      packages: [build-essential, jq, landscape-client, vim]
+      packages: [landscape-client]
       package_update: true
       package_upgrade: true
-      packages: [jq, landscape-client, vim]
       ssh_pwauth: true
       ssh_authorized_keys:
-       - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDu4nob6Cm35j0CrdudDXGSjGzu8u1hJiZieoEi7Yk6G6tGCU+mVPp4Ny7K7VEzAj/HLHMgsHFIKDqJRYao7WPiXaGeRfuGKg2FtGwNlBlHkgulqCSwzke271sQWZkyYbdpBwXlkCiamv0ukyC7pJXYENc5Mri/OMYFhfJ93jYUMi0JFAFE+x3V9EMUsj8FBJgmYlBRRE7dQkVuihRnj4E2bKBJQxF17QAUaGmQQe/zT1UzeQff2C4oHrCfQpieCaZ25hkxDADPsZoJiRFTmPuy6xq4qE7J4AM+ERmFnoSVfE2+yHXXbpGaCtJE/iLj4cl77hbS13iVND7cy6SBdTbv demo@ubuntu-show.me
+       - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC8lQk7k7WexyK9i6yYJ0M53R3LXkT5kYVwYSz+SHkOSMgrwIMZ90qdJhJ4gvm5ivorg06rGHR/o0Ly/JY3oAPtltPHdjn8u86jMVvsKQfnhZCApAfc38Uhnf1McqjUgYMA10JQGePvEs/1ZEQmJX/igHtWUYGNI6KEDu0iF6oGLTrEcxUIm0Kyib9+KLzO2wdaWvWqMDaxyLTqvZU3G8WniI+hlEbd7w7Kbrb2feOpCPugZipsY2Hzcie/7C599El0tJO0PcKaali0StbMIQMe26lFgV8kQTh/mx3dh3rt0tlD5it+yvZ+DnkrFRRGJcf1pWQgPWZUnnn1gDfKqsdP demo@ubuntu-show.me
       runcmd:
         - set -x
         - export DEBIAN_FRONTEND=noninteractive
         - echo $DEFAULT_IP $(hostname -f) $(hostname -s)|tee -a /etc/hosts
+        - "printf '%s\x20%s\x20\x20%s\n' precedence '::ffff:0:0/96' 100|tee -a /etc/gai.conf"
         - if [ "\$(readlink -f /etc/resolv.conf)" != "/run/resolvconf/resolv.conf" ];then ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf;fi
         - export DEFAULT_IP=\$(ip -o -4 a show dev \$(ip -o route show default|grep -m1 -oP '(?<=dev )[^ ]+')|grep -m1 -oP '(?<=inet )[^/]+')
         - if \$(test -f /etc/hosts);then sudo sed -i.orig "/127.0.1.1/d;/127.0.0.1/a \$DEFAULT_IP\ \ \$(hostname -f) \$(hostname -s)" /etc/hosts;fi
-        - systemctl restart procps.service
-        - "wget -P /etc/landscape/ http://$(hostname -f):9999/landscape_server_ca.crt"
-        - "wget -P /etc/landscape/ http://$(hostname -f):9999/landscape_server.pem"
-        - "wget -P /usr/local/share/ca-certificates http://$$(hostname -f):9999/landscape_server_ca.crt"
         - update-ca-certificates --fresh --verbose
-        - "if \$(test -f /etc/landscape/landscape_server.pem);then landscape-config -k /etc/landscape/landscape_server.pem -t \$(hostname -s) -u https://$(hostname -f)/message-system --ping-url http://$(hostname -f)/ping -a standalone --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=landscape-server,demo,ubuntu --silent --log-level=debug;fi"
+        - "landscape-config -p landscape4u -t \$(hostname -s) -u https://$(hostname -f)/message-system --ping-url http://$(hostname -f)/ping -a standalone --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=landscape-server,demo,ubuntu --silent --log-level=debug"
   description: Landscape Client Profile
   devices:
     eth0:
@@ -156,6 +152,7 @@ lxc remote add minimal https://cloud-images.ubuntu.com/minimal/daily --protocol 
 for I in $(lxc image list minimal: -cfl|awk '/more|CONTAIN/{print $4}'|sort -uV|sed -r '/^t.*|^x.*/!H;//p;$!d;g;s/\n//');do lxc image copy  minimal:${I} local: --alias ${I} --auto-update --public;done
 [[ -f /usr/local/bin/add-landscape-clients.sh ]] && { /usr/local/bin/add-landscape-clients.sh; }
 
+{ [[ $CLOUD_DEBUG ]] &>/dev/null; } && { { set +x; } &>/dev/null; }
 
 exit 0
-{ [[ $CLOUD_DEBUG ]] &>/dev/null; } && { { set +x; } &>/dev/null; }
+
