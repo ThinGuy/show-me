@@ -5,24 +5,52 @@
 
 [[ $EUID -ne 0 ]] && { echo "${0##*/} must be run as root or via sudo";exit 1; } || { true; }
 
+#########################################
+#####  Base Show Me configuration  ######
+#########################################
+
+
+#### Set locale
 
 export LANG="en_US.UTF-8"
 export LANGUAGE="${LANG%%.*}"
 [ -n "${LC_ALL}" ] && { unset LC_ALL; }
-export CLOUD_METADATA_URL="http://169.254.169.254/latest/meta-data"
-export CLOUD_DOMAIN="ubuntu-show.me"
-export CLOUD_DNS=108.162.195.225,162.159.44.225,172.64.35.225
-export CLOUD_API_URL="http://169.254.169.254/latest/api";
-export CLOUD_FALLBACK_DNS=108.162.194.203,162.159.38.203,172.64.34.203
+
+#### Ensure cloud-init does not change our hostname(s)
+if [ /etc/cloud/cloud.cfg ];then sed 's/preserve_hostname: false/preserve_hostname: true/g' -i /etc/cloud/cloud.cfg;fi
+
+#### Show Me Params
+export CLOUD_ETH=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
+export CLOUD_BRIDGE="br0"
+export CLOUD_ARCH="$(dpkg --print-architecture)"
+export CLOUD_APP_GIT="https://github.com/ThinGuy/show-me.git"
 export CLOUD_APP="landscape"
+export CLOUD_DOMAIN="ubuntu-show.me"
+export CLOUD_APP_DOMAIN="${CLOUD_APP}.${CLOUD_DOMAIN}"
+export CLOUD_DNS=108.162.195.225,162.159.44.225,172.64.35.225
+export CLOUD_FALLBACK_DNS=108.162.194.203,162.159.38.203,172.64.34.203
+export CLOUD_ETH=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
+export CLOUD_BRIDGE="br0"
+export CLOUD_ARCH="$(dpkg --print-architecture)"
+export CLOUD_APP_GIT="https://github.com/ThinGuy/show-me.git"
+export CLOUD_VENDOR="$(dmidecode -s bios-vendor|awk '{print tolower($1)}')"
 export CLOUD_ETH=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
 export CLOUD_BRIDGE="br0"
 export CLOUD_ARCH="$(dpkg --print-architecture)"
 export CLOUD_APP_GIT="https://github.com/ThinGuy/show-me.git"
 export CLOUD_VENDOR="$(dmidecode -s bios-vendor|awk '{print tolower($1)}')"
 export CLOUD_ARCH="$(dpkg --print-architecture)"
+#### Dump dmi information as CLOUD_VM_ parameters
 eval "$(dmidecode -s 2>&1|awk '/^[ \t]+/{gsub(/^[ \t]+/,"");print}'|xargs -rn1 -P0 bash -c 'P="${0//-/_}";P=${P^^};export P=${P//-/_};printf "export CLOUD_VM_${P}=\x22$(dmidecode -s $0|grep -vi '"'"'not'"'"')\x22\n"'|sed 's/""$//g')"
+#### Dump lsb-release info CLOUD_DISTRIB_ parameters
 eval "$(cat /etc/lsb-release|sed 's/^/export CLOUD_/g;s/"//g;s,\([^.*]\)=,&",g;s/$/"/')"
+
+
+##########################################
+#####   AWS Show Me configuration   ######
+########################################## 
+export CLOUD_METADATA_URL="http://169.254.169.254/latest/meta-data"
+export CLOUD_API_URL="http://169.254.169.254/latest/api";
 export CLOUD_API_TOKEN="$(curl -sSX PUT "${CLOUD_API_URL}/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")"
 export CLOUD_BLOCK_DEVICE_MAPPING_AMI="$(curl -sSlL ${CLOUD_METADATA_URL}/block-device-mapping/ami|sed -r '/<|\x22/d')"
 export CLOUD_BLOCK_DEVICE_MAPPING_EBSN="$(curl -sSlL ${CLOUD_METADATA_URL}/block-device-mapping/ebsN|sed -r '/<|\x22/d')"
@@ -45,8 +73,9 @@ export CLOUD_INSTANCE_LIFE_CYCLE="$(curl -sSlL ${CLOUD_METADATA_URL}/instance-li
 export CLOUD_INSTANCE_TYPE="$(curl -sSlL ${CLOUD_METADATA_URL}/instance-type|sed -r '/<|\x22/d')"
 export CLOUD_IPV6="$(curl -sSlL ${CLOUD_METADATA_URL}/ipv6|sed -r '/<|\x22/d')"
 export CLOUD_KERNEL_ID="$(curl -sSlL ${CLOUD_METADATA_URL}/kernel-id|sed -r '/<|\x22/d')"
-export CLOUD_LOCAL_HOSTNAME="$(curl -sSlL ${CLOUD_METADATA_URL}/local-hostname|sed -r '/<|\x22/d')"
-export CLOUD_LOCAL_HOSTNAME="${CLOUD_LOCAL_HOSTNAME%%.*}"
+export CLOUD_LOCAL_FQDN="$(curl -sSlL ${CLOUD_METADATA_URL}/local-hostname|sed -r '/<|\x22/d')"
+export CLOUD_LOCAL_HOSTNAME="${CLOUD_LOCAL_FQDN%%.*}"
+export CLOUD_SERVICES_LOCAL_DOMAIN="${CLOUD_LOCAL_FQDN##*.}"
 export CLOUD_LOCAL_IPV4="$(curl -sSlL ${CLOUD_METADATA_URL}/local-ipv4|sed -r '/<|\x22/d')"
 export CLOUD_MAC="$(curl -sSlL ${CLOUD_METADATA_URL}/mac|sed -r '/<|\x22/d')"
 export CLOUD_METRICS_VHOSTMD="$(curl -sSlL ${CLOUD_METADATA_URL}/metrics/vhostmd|sed -r '/<|\x22/d')"
@@ -105,45 +134,50 @@ export CLOUD_PUBLIC_DOMAIN="${CLOUD_PLACEMENT_REGION}.compute.${CLOUD_SERVICES_D
 export CLOUD_LOCAL_DOMAIN="${CLOUD_PLACEMENT_REGION}.compute.${CLOUD_SERVICES_LOCAL_DOMAIN}"
 export CLOUD_PARTITION="$(curl -sSlL ${CLOUD_METADATA_URL}/services/partition)"
 export CLOUD_REPO_FQDN="${CLOUD_PLACEMENT_REGION}.${CLOUD_SERVICES_SUBDOMAIN}.archive.ubuntu.com"
-export CLOUD_DOMAIN_SEARCH=${CLOUD_PUBLIC_DOMAIN},${CLOUD_LOCAL_DOMAIN},${CLOUD_DOMAIN}
-export CLOUD_APP_DOMAINS="${CLOUD_APP}.${CLOUD_DOMAIN},${CLOUD_DOMAIN}"
-export CLOUD_APP_FQDN_SHORT="${CLOUD_PUBLIC_HOSTNAME}.${CLOUD_APP_DOMAINS##*,}"
-export CLOUD_APP_FQDN_LONG="${CLOUD_PUBLIC_HOSTNAME}.${CLOUD_APP_DOMAINS%%,*}"
+export CLOUD_DOMAIN_SEARCH="${CLOUD_APP_DOMAIN},${CLOUD_DOMAIN},${CLOUD_PUBLIC_DOMAIN}"
+export CLOUD_APP_FQDN_SHORT="${CLOUD_PUBLIC_HOSTNAME}.${CLOUD_DOMAIN}"
+export CLOUD_APP_FQDN_LONG="${CLOUD_PUBLIC_HOSTNAME}.${CLOUD_APP_DOMAIN}"
 
-echo 'network: {config: disabled}'| tee 1>/dev/null /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+#### Create ~/.show-me.rc in a centralized location, then copy to 
+#### users home dir and ensure it loads when they log on
+install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/
+((set|grep -E '^CANDID_|^CLOUD_|^LANDSCAPE_|^MAAS_|^PG_|^RBAC_|^SSP_|^MK8S_|^MO7K_|^MCLOUD_')|sed -r 's/^/export /g;s/\x22//g;s/\x27/\x22/g'|sed -r '/=$/d'|sort -uV)|tee /usr/local/lib/show-me/.show-me.rc
+if [ -f /usr/local/lib/show-me/.show-me.rc ];then cp /usr/local/lib/show-me/.show-me.rc /root/.;su $(id -un 1000) -c 'cp /usr/local/lib/show-me/.show-me.rc ~/';echo '[ -r ~/.show-me.rc ] && . ~/.show-me.rc'|tee -a /root/.bashrc|su $(id -un 1000) -c 'tee -a ~/.bashrc';fi
+
+
+
 if [ /etc/cloud/cloud.cfg ];then sed 's/preserve_hostname: false/preserve_hostname: true/g' -i /etc/cloud/cloud.cfg;fi
+
+printf "127.0.0.1\tlocalhost\n${CLOUD_PUBLIC_IPV4}\t$CLOUD_APP_FQDN_LONG $CLOUD_PUBLIC_FQDN $CLOUD_PUBLIC_HOSTNAME\n\n\n::1\tip6-localhost ip6-loopback\n${CLOUD_IPV6}\t$CLOUD_APP_FQDN_LONG $CLOUD_PUBLIC_FQDN $CLOUD_PUBLIC_HOSTNAME\n"|tee /etc/hosts
 
 [ "$(lsb_release -sr|sed 's/\.//g')" -lt "2004" ] && { hostnamectl set-hostname ${CLOUD_APP_FQDN_LONG}; } || { hostnamectl hostname ${CLOUD_APP_FQDN_LONG}; }
 echo "${CLOUD_APP_FQDN_LONG}"|tee /etc/hostname
+export HOSTNAME="${CLOUD_APP_FQDN_LONG}"
+
+cp /etc/systemd/resolved.conf /etc/systemd/resolved.backup
+rm -rf /etc/resolv.conf
+RESOLVED="DNS,FallbackDNS,Domains,LLMNR,MulticastDNS,DNSSEC,DNSOverTLS,Cache,DNSStubListener,ReadEtcHosts"
+DNS=$(echo -en "${CLOUD_DNS//,/\ }")
+FallbackDNS=$(echo -en "${CLOUD_FALLBACK_DNS//,/\ }")
+Domains=$(echo -en "${CLOUD_DOMAINS//,/\ }")
+LLMNR=yes
+MulticastDNS=yes
+DNSSEC=allow-downgrade
+DNSOverTLS=opportunistic
+Cache=no-negative
+DNSStubListener=yes
+ReadEtcHosts=yes
+
+(for x in ${RESOLVED//,/\ };do if [ -n "$(eval echo -n \"\$${x}\")" ];then printf "${x}=$(eval echo -n \$$x|sed -r 's/,/\x20/g')\n";fi;done) | \
+if [ "${CLOUD_DISTRIB_RELEASE//.}" -lt "2004" ];then sed -r '/ReadEtc|DNSOver/d';fi|sudo tee 1>/dev/null /etc/systemd/resolved.conf
+
+ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+sudo systemctl restart systemd-networkd systemd-resolved
 
 
+[ -f  /etc/netplan/50-cloud-init.yaml ] && rm -f /etc/netplan/50-cloud-init.yaml
 
-
-fix-dns() {
-local X="DNS,FallbackDNS,Domains,LLMNR,MulticastDNS,DNSSEC,DNSOverTLS,Cache,DNSStubListener,ReadEtcHosts"
-local DNS=$(echo -en "${CLOUD_DNS//,/\ }")
-local FallbackDNS=$(echo -en "${CLOUD_FALLBACK_DNS//,/\ }")
-local Domains=$(echo -en "${CLOUD_DOMAINS//,/\ }")
-local LLMNR=yes
-local MulticastDNS=yes
-local DNSSEC=allow-downgrade
-local DNSOverTLS=opportunistic
-local Cache=no-negative
-local DNSStubListener=yes
-local ReadEtcHosts=yes
-(for x in ${X//,/\ };[ -n "$(eval echo -n \"\$${x}\")" ] && { printf "${x}=$(eval echo -n \$$x|sed -r 's/,/\x20/g')\n"; }
-done)|if [ "${DISTRIB_RELEASE//.}"-lt "2004" ];then sed -r '/ReadEtc|DNSOver/d';fi
-#|sudo tee 1>/dev/null /etc/systemd/resolved.confec2-13-57-197-207
-#cp /etc/systemd/resolved.conf /etc/systemd/resolved.backup
-#sudo rm -rf /etc/resolv.conf
-#sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
-#sudo systemctl restart systemd-networkd systemd-resolved
-};export -f fix-dns
-
-
-rm -rf /etc/netplan/50-cloud-init.yaml
-
-cat <<-V4NETPLAN|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-ipv4-cloud-init.bak
+cat <<-V4NETPLAN|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init_ipv4.yaml
 network:
   version: 2
   renderer: networkd
@@ -180,7 +214,8 @@ network:
         stp: false
 V4NETPLAN
 
-cat <<-V46NETPLAN|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-ipv4+6-cloud-init.yaml
+
+cat <<-V6NETPLAN|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init_ipv6.yaml
 network:
   version: 2
   renderer: networkd
@@ -201,11 +236,9 @@ network:
       link-local: [ ]
       dhcp4: true
       dhcp4-overrides:
-        hostname: ${CLOUD_APP_FQDN_SHORT}
         route-metric: 1
       dhcp6: true
       dhcp6-overrides:
-        hostname: ${CLOUD_APP_FQDN_SHORT}
         route-metric: 1
       optional: false
       accept-ra: false
@@ -215,19 +248,22 @@ network:
         stp: false
 V46NETPLAN
 
-rm -rf /etc/resolv.conf
-ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+[ -n "${CLOUD_IPV6}" ] && { rm -f /etc/netplan/50-cloud-init_ipv4.yaml; } ||  { rm -f /etc/netplan/50-cloud-init_ipv6.yaml; }
 
+# Make sure cloud-init does not overwrite our network config
+echo 'network: {config: disabled}'|tee 1>/dev/null /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+
+### Prefer IPv4 connections
 printf '%s\x20%s\x20\x20%s\n' precedence '::ffff:0:0/96' 100|tee -a /etc/gai.conf
-echo 'network: {config: disabled}' >/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
 
+#### Apply all networking changes
 for NPA in generate generate apply apply;do netplan --debug ${NPA};done
 
-systemctl restart systemd-resolved
+#### Restart the resolver for good measure
+systemcl restart systemd-resolved
 
-install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/
-((set|grep -E '^CANDID_|^CLOUD_|^LANDSCAPE_|^MAAS_|^PG_|^RBAC_|^SSP_|^MK8S_|^MO7K_|^MCLOUD_')|sed -r 's/^/export /g;s/\\Fx22//g;s/\\\x27//g;s/=/=\x22/1;s/$/\x22/g'|sort -uV)|tee /usr/local/lib/show-me/.show-me.rc
-if [ -f /usr/local/lib/show-me/.show-me.rc ];then cp /usr/local/lib/show-me/.show-me.rc /root/.;su $(id -un 1000) -c 'cp /usr/local/lib/show-me/.show-me.rc ~/';echo '[ -r ~/.show-me.rc ] && . ~/.show-me.rc'|tee -a /root/.bashrc|su $(id -un 1000) -c 'tee -a ~/.bashrc';fi
+
+#### Add Regional Ubuntu Repositories
 
 cat <<REPOS|sed -r 's/[ \t]+$//g'|tee 1>/dev/null /etc/apt/sources.list
 deb [arch=${CLOUD_ARCH}] http://${CLOUD_REPO_FQDN}/ubuntu/ $(lsb_release -cs) main restricted universe multiverse
@@ -237,12 +273,24 @@ deb [arch=${CLOUD_ARCH}] http://${CLOUD_REPO_FQDN}/ubuntu/ $(lsb_release -cs)-se
 deb [arch=${CLOUD_ARCH}] http://archive.canonical.com/ubuntu $(lsb_release -cs) partner
 REPOS
 
-add-apt-repository ppa:landscape/19.10 -y
+#### Update Package indexes
 
 apt -o "Acquire::ForceIPv4=true" update
-apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
-apt remove lxd lxd-client -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
-DEBIAN_FRONTEND=noninteractive apt install build-essential curl debconf-utils dialog dnsutils git gnupg jq lynx make p7zip p7zip-full software-properties-common ssl-cert tree unzip vim wget zip -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge --reinstall
+
+
+
+
+################################################
+###### Application specific configuration ######
+################################################
+
+#### Add Landscape Server Package Archive
+add-apt-repository ppa:landscape/19.10 -y
+
+apt -o "Acquire::ForceIPv4=true" update;
+apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
+apt remove lxd lxd-client -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
+DEBIAN_FRONTEND=noninteractive apt install build-essential curl debconf-utils dnsutils git gnupg jq lynx make p7zip p7zip-full software-properties-common ssl-cert tree unzip vim wget zip -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
 
 
 cat <<-'SUDOERS'|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/sudoers.d/100-keep-params
@@ -296,15 +344,15 @@ echo -en 'locales\tlocales/locales_to_be_generated\tmultiselect\t'${LANGUAGE:-en
 echo -en 'locales\tlocales/default_environment_locale\tselect\t'${LANG:-en_US.UTF-8}''|debconf-set-selections
 DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales
 
-apt -o "Acquire::ForceIPv4=true" update
-apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
-apt install landscape-client -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge --reinstall 
+apt -o "Acquire::ForceIPv4=true" update;
+apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
+apt install landscape-client -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge --reinstall;
 
-if [ -f /etc/ssl/certs/landscape_server.pem ];then ln -sf /etc/ssl/certs/landscape_server.pem /etc/landscape/landscape_server.pem;fi
-if [ -f /etc/ssl/certs/landscape_server_ca.crt ];then ln -sf /etc/ssl/certs/landscape_server_ca.crt /etc/landscape/landscape_server_ca.crt;fi
-if [ -f /etc/ssl/certs/landscape_server.pem ];then echo "ssl_public_key = /etc/ssl/certs/landscape_server.pem"|tee 1>/dev/null -a /etc/landscape/client.conf;fi
+if [ -f /etc/ssl/certs/landscape_server.pem ];then ln -sf /etc/ssl/certs/landscape_server.pem /etc/landscape/landscape_server.pem;fi;
+if [ -f /etc/ssl/certs/landscape_server_ca.crt ];then ln -sf /etc/ssl/certs/landscape_server_ca.crt /etc/landscape/landscape_server_ca.crt;fi;
+if [ -f /etc/ssl/certs/landscape_server.pem ];then echo "ssl_public_key = /etc/ssl/certs/landscape_server.pem"|tee 1>/dev/null -a /etc/landscape/client.conf;fi;
 
-apt install landscape-server-quickstart --reinstall -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
+apt install landscape-server-quickstart --reinstall -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
 
 if [ -f /usr/local/lib/show-me/landscape.lynx -a -f /usr/local/bin/show-me_lynx-web-init.sh ];then /usr/local/bin/show-me_lynx-web-init.sh;fi
 if [ -f /etc/landscape/client.conf ];then ln -sf /etc/landscape/client.conf /etc/show-me/www/landscape-client.conf;fi
@@ -328,7 +376,7 @@ find /var/log -type f |xargs truncate -s 0
 history -c
 unset HISTFILE
 
-
+https://us-west-1.console.aws.amazon.com/ec2/v2/home?region=us-west-1#AMICatalog:
 exit
 
 
