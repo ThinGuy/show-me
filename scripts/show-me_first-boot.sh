@@ -35,14 +35,12 @@ EOD
 
 systemctl daemon-reload;
 
-# Note: More success starting service early if "start" is performed twice
-# thus the repeated command in the for loop is intentional
 
-for S in enable start start status;do
+for S in enable start;do
   systemctl ${S} show-me-oneshot.service;
   sleep .5;
 done
-[[ $(systemctl -q is-active show-me-oneshot.service;echo $?) -eq 0 ]] && { printf "\n\e[4G\e[0;1;38;2;0;255;0mSuccess\x21\e[0m The Show-Me-Oneshot Service is now available\e[0m\n";true;export RC=0; } || { printf "\n\e[4G\e[0;1;38;2;255;0;0mERROR\e[0m: Failed to start Show-Me-Oneshot Service\e[0m\n";false;export RC=1; }
-exit ${RC}
 
 { [[ $CLOUD_DEBUG ]] &>/dev/null; } && { { set +x; } &>/dev/null; }
+
+exit 0
