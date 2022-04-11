@@ -2,27 +2,32 @@
 # vim: set et ts=2 sw=2 filetype=bash :
 
 { [[ $CLOUD_DEBUG ]] &>/dev/null; } && { { set -x; } &>/dev/null; }
+
 [[ $EUID -ne 0 ]] && { echo "${0##*/} must be run as root or via sudo";exit 1; } || { true; }
 
 
 
 cat <<-'EOD'|sed -r 's/[ \t]+$//g'|tee 1>/dev/null /etc/systemd/system/show-me-oneshot.service
 [Unit]
-Description=Prepare Lanscape after rename
+Description=Reconfigure Preinstalled Landscape Server on first boot
 After=syslog.target
 After=network.target
-ConditionPathExists=/etc/landscape/
+ConditionPathExists=/etc/landscape/service.conf
+ConditionPathNotExists=/opt/show-me/.renamed
 
 [Service]
-Type=simple
-WorkingDirectory=/etc/show-me/www/
-ExecStart=/bin/bash -c 'cd /etc/show-me/www/;exec python3 -m http.server 9999 &>/etc/show-me/log/http.log'
-RestartSec=5
-Restart=always
+Type=oneshot
+RemainAfterExit=no
+ExecStart=/bin/bash -c '/usr/local/bin/show-me_landscape-rename.sh'
+StandardOutput=journal
+StandardError=journal
+ExecStartPost=/bin/bash -c '/usr/local/bin/show-me_oneshot-cleanup.sh'
 
 [Install]
 WantedBy=multi-user.target
 EOD
+
+
 
 [[ -f /etc/systemd/system/show-me-oneshot.service ]] && { true; } || { printf "\n\e[4G\e[0;1;38;2;255;0;0mERROR\e[0m: Issue creating Show-Me-Oneshot service file in /etc/systemd/system/show-me-oneshot.service. Please check permissions.\e[0m\n";exit 1; }
 

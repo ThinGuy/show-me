@@ -7,7 +7,7 @@
 
 [[ -f ~/.show-me.rc ]] && source ~/.show-me.rc
 
-cat <<-PRESEED|sed -r 's/[ \t]+$//g;/^$/d'|lxd init --preseed -
+cat <<-PRESEED|sed -r 's/[ \t]+$//g;/^$/d'|lxd init --preseed
 config:
   core.https_address: '[::]:8443'
   core.trust_password: ubuntu
@@ -24,10 +24,18 @@ networks:
   type: ""
   project: default
 storage_pools:
-- config: {}
+- config:
+    source: /var/snap/lxd/common/lxd/storage-pools/local
+  description: ""
+  name: local
+  driver: dir
+- config:
+    size: 5GB
+    source: /var/snap/lxd/common/lxd/disks/default.img
+    zfs.pool_name: default
+  driver: zfs
   description: ""
   name: default
-  driver: dir
 profiles:
 - config:
     boot.autostart: "false"
@@ -76,13 +84,12 @@ profiles:
       type: disk
   name: default
 - config:
-    boot.autostart: "false"
+    boot.autostart: "true"
     user.user-data: |
       #cloud-config
       final_message: 'Landscape Client completed Installing in \$UPTIME'
       manage_etc_hosts: false
       preserve_hostname: true
-      timezone: America/Los_Angeles
       locale: en_US.UTF-8
       apt:
         conf: |

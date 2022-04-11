@@ -358,6 +358,23 @@ if [ -f /usr/local/bin/show-me_landscape_lxd-init.sh ];then /usr/local/bin/show-
 if [ -f /usr/local/bin/show-me_file-service_init.sh ];then /usr/local/bin/show-me_file-service_init.sh;fi
 if [ -f /usr/local/bin/show-me/show-me_finishing-script_all.sh ];then /usr/local/bin/show-me/show-me_finishing-script_all.sh;fi
 
+cat <<-SSHCONF|su $(id -un 1000) -c 'tee ~/.ssh/config'
+Host 10.10.10.*
+  AddressFamily inet
+  AddKeysToAgent yes
+  CheckHostIP no
+  ForwardAgent yes
+  ForwardX11Trusted yes
+  ForwardX11 yes
+  IdentityFile ~/.ssh/showme_rsa
+  LogLevel FATAL
+  SendEnv LANG LC_*
+  StrictHostKeyChecking no
+  UserKnownHostsFile /dev/null
+  User ubuntu
+  Port 22
+  XAuthLocation /usr/bin/xauth
+SSHCONF
 
 ua detach --assume-yes
 rm -rf /var/log/ubuntu-advantage.log
