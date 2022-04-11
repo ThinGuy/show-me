@@ -18,9 +18,9 @@ ConditionPathNotExists=/opt/show-me/.renamed
 [Service]
 Type=oneshot
 RemainAfterExit=no
+ExecStartPre=/bin/bash -c 'cd /opt/show-me;git pull'
 ExecStart=/bin/bash -c '/usr/local/bin/show-me_landscape-rename.sh'
 StandardOutput=journal
-StandardError=journal
 ExecStartPost=/bin/bash -c 'touch /opt/show-me/.renamed'
 
 [Install]
