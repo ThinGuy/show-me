@@ -55,7 +55,7 @@ eval "$(cat /etc/lsb-release|sed 's/^/export CLOUD_/g;s/"//g;s,\([^.*]\)=,&",g;s
 
 ##########################################
 #####   AWS Show Me configuration   ######
-########################################## 
+##########################################
 export CLOUD_METADATA_URL="http://169.254.169.254/latest/meta-data"
 export CLOUD_API_URL="http://169.254.169.254/latest/api";
 export CLOUD_API_TOKEN="$(curl -sSX PUT "${CLOUD_API_URL}/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")"
@@ -145,7 +145,50 @@ export CLOUD_DOMAIN_SEARCH="${CLOUD_APP_DOMAIN},${CLOUD_DOMAIN},${CLOUD_PUBLIC_D
 export CLOUD_APP_FQDN_SHORT="${CLOUD_PUBLIC_HOSTNAME}.${CLOUD_DOMAIN}"
 export CLOUD_APP_FQDN_LONG="${CLOUD_PUBLIC_HOSTNAME}.${CLOUD_APP_DOMAIN}"
 
-#### Create ~/.show-me.rc in a centralized location, then copy to 
+if [ -n "${CLOUD_IPV6}" ];then
+  export CLOUD_DNS_IPV6='2606:4700:4700::1111,2606:4700:4700::1001'
+  export CLOUD_FALLBACK_DNS_IPV6='2620:fe::fe,2620:fe::9'
+fi
+
+if [ -n "${CLOUD_PUBLIC_IPV4}" -a -z "${CLOUD_IPV6}" ];then
+  export CLOUD_DNS="${CLOUD_DNS_IPV4}"
+  export CLOUD_FALLBACK_DNS="${CLOUD_FALLBACK_DNS_IPV4}"
+elif [ -n "${CLOUD_PUBLIC_IPV4}" -a -n "${CLOUD_IPV6}" ];then
+  export CLOUD_DNS="${CLOUD_DNS_IPV4},${CLOUD_DNS_IPV6}"
+  export CLOUD_FALLBACK_DNS="${CLOUD_FALLBACK_DNS_IPV4},${CLOUD_FALLBACK_DNS_IPV6}"
+fi
+
+
+### Update DNS Entry
+export CLOUDFLARE_DNS_IP=${CLOUD_PUBLIC_IPV4}
+export CLOUDFLARE_DNS_NAME="${CLOUD_APP_FQDN_LONG}"
+export CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN}s"
+export CLOUDFLARE_DNS_ZONE_NAME="ubuntu-show.me"
+export CLOUDFLARE_DNS_ZONE_ID="$(curl -sSlL -X GET "https://api.cloudflare.com/client/v4/zones?name=${CLOUDFLARE_DNS_ZONE_NAME}&page=1&per_page=20&order=status&direction=desc&match=all" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json"|jq -r '.result[].id')"
+
+eval "$(curl -sSlL -X GET "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_DNS_ZONE_ID}/dns_records?name=${CLOUDFLARE_DNS_NAME}" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json"|jq -r '.result[]|"export CLOUDFLARE_DDNS_RECORD_ID=\(.id) CLOUDFLARE_DDNS_ZONE_ID=\(.zone_id) CLOUDFLARE_DDNS_NAME=\(.name) CLOUDFLARE_DDNS_IP=\(.content)"')"
+
+if [ -n "${CLOUDFLARE_DDNS_RECORD_ID}" ];then
+
+CLOUDFLARE_DNS_UPDATE=$(curl -sSlL -X PUT "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_DDNS_ZONE_ID}/dns_records/${CLOUDFLARE_DDNS_RECORD_ID}" \
+  -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+  -H "Content-Type: application/json" \
+  --data '{"type":"A","name":"'${CLOUDFLARE_DDNS_NAME}'","content":"'${CLOUDFLARE_DDNS_IP}'","ttl":120,"proxied":false}')
+
+export CLOUDFLARE_DNS_SUCCESSFUL="$(echo "${CLOUDFLARE_DNS_UPDATE}"|jq -r '.success')"
+
+else
+
+CLOUDFLARE_DNS_CREATE=$(curl -sSlL -X POST "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_DNS_ZONE_ID}/dns_records" \
+    -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+    -H "Content-Type: application/json" \
+    --data '{"type":"A","name":"'${CLOUDFLARE_DNS_NAME}'","content":"'${CLOUDFLARE_DNS_IP}'","ttl":120,"proxied":false}')
+
+export CLOUDFLARE_DNS_SUCCESSFUL="$(echo "${CLOUDFLARE_DNS_CREATE}"|jq -r '.success')"
+
+fi
+
+#### Create ~/.show-me.rc in a centralized location, then copy to
 #### users home dir and ensure it loads when they log on
 install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/
 ((set|grep -E '^CANDID_|^CLOUD_|^LANDSCAPE_|^MAAS_|^PG_|^RBAC_|^SSP_|^MK8S_|^MO7K_|^MCLOUD_')|sed -r 's/^/export /g;s/\x22//g;s/\x27/\x22/g'|sed -r '/=$/d'|sort -uV)|tee /usr/local/lib/show-me/.show-me.rc
@@ -153,40 +196,37 @@ if [ -f /usr/local/lib/show-me/.show-me.rc ];then cp /usr/local/lib/show-me/.sho
 
 
 
-if [ /etc/cloud/cloud.cfg ];then sed 's/preserve_hostname: false/preserve_hostname: true/g' -i /etc/cloud/cloud.cfg;fi
-
-printf "127.0.0.1\tlocalhost rabbit\n${CLOUD_PUBLIC_IPV4}\t$CLOUD_APP_FQDN_LONG $CLOUD_PUBLIC_HOSTNAME\n\n\n::1\tip6-localhost ip6-loopback\n"|tee /etc/hosts
-
-if [ -n "${CLOUD_IPV6}" ];then printf "${CLOUD_IPV6}\t$CLOUD_APP_FQDN_LONG $CLOUD_PUBLIC_HOSTNAME\n"|tee -a /etc/hosts;fi
-
+# Fix/Set Hostname and Name resolution
+printf "127.0.0.1\tlocalhost rabbit\n${CLOUD_PUBLIC_IPV4}\t${CLOUD_APP_FQDN_LONG} ${CLOUD_PUBLIC_HOSTNAME}\n\n\n"|tee 1>/dev/null /etc/hosts
+if [ -n "${CLOUD_IPV6}" ];then printf "\n\n::1\tip6-localhost ip6-loopback rabbit\n\n${CLOUD_IPV6}\t${CLOUD_APP_FQDN_LONG} ${CLOUD_PUBLIC_HOSTNAME}\n"|tee 1>/dev/null -a /etc/hosts;fi
 [ "$(lsb_release -sr|sed 's/\.//g')" -lt "2004" ] && { hostnamectl set-hostname ${CLOUD_APP_FQDN_LONG}; } || { hostnamectl hostname ${CLOUD_APP_FQDN_LONG}; }
 echo "${CLOUD_APP_FQDN_LONG}"|tee /etc/hostname
 export HOSTNAME="${CLOUD_APP_FQDN_LONG}"
 
-cp /etc/systemd/resolved.conf /etc/systemd/resolved.backup
+cp /etc/systemd/resolved.conf /etc/systemd/resolved.$$.backup
 rm -rf /etc/resolv.conf
-RESOLVED="DNS,FallbackDNS,Domains,LLMNR,MulticastDNS,DNSSEC,DNSOverTLS,Cache,DNSStubListener,ReadEtcHosts"
-DNS=$(echo -en "${CLOUD_DNS_IPV4//,/\ }")
-FallbackDNS=$(echo -en "${CLOUD_FALLBACK_DNS_IPV4//,/\ }")
-Domains=$(echo -en "${CLOUD_DOMAINS//,/\ }")
-LLMNR=yes
-MulticastDNS=yes
+cat <<-RESOLV |tee 1>/dev/null /etc/systemd/resolved.conf
+[Resolve]
+DNS=$(printf "${CLOUD_DNS//,/ }")
+FallbackDNS=$(printf "${CLOUD_FALLBACK_DNS//,/ }")
+Domains=landscape.ubuntu-show.me ubuntu-show.me ${CLOUD_PUBLIC_DOMAIN} ${CLOUD_LOCAL_DOMAIN}
 DNSSEC=allow-downgrade
 DNSOverTLS=opportunistic
+MulticastDNS=yes
+LLMNR=yes
 Cache=no-negative
+CacheFromLocalhost=no
 DNSStubListener=yes
+DNSStubListenerExtra='127.0.0.1:9953'
 ReadEtcHosts=yes
-
-(for x in ${RESOLVED//,/\ };do if [ -n "$(eval echo -n \"\$${x}\")" ];then printf "${x}=$(eval echo -n \$$x|sed -r 's/,/\x20/g')\n";fi;done) | \
-if [ "${CLOUD_DISTRIB_RELEASE//.}" -lt "2004" ];then sed -r '/ReadEtc|DNSOver/d';fi|sudo tee 1>/dev/null /etc/systemd/resolved.conf
-
+ResolveUnicastSingleLabel=yes
+RESOLV
+if [ "${CLOUD_DISTRIB_RELEASE//.}" -lt "2004" ];then sed -r -i '/ReadEtc|DNSOver|Unicast|DNSStub/d' /etc/systemd/resolved.conf;fi
 ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
 sudo systemctl restart systemd-networkd systemd-resolved
 
-
-[ -f  /etc/netplan/50-cloud-init.yaml ] && rm -f /etc/netplan/50-cloud-init.yaml
-
-cat <<-V4NETPLAN|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init_ipv4.yaml
+if [ -n "${CLOUD_PUBLIC_IPV4}" -a -z "${CLOUD_IPV6}" ];then
+cat <<-V4NETPLAN |sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init.yaml
 network:
   version: 2
   renderer: networkd
@@ -220,8 +260,9 @@ network:
         stp: false
 V4NETPLAN
 
+elif [ -n "${CLOUD_PUBLIC_IPV4}" -a -n "${CLOUD_IPV6}" ];then
 
-cat <<-V46NETPLAN|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init_ipv6.yaml
+cat <<-V46NETPLAN |sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init.yaml
 network:
   version: 2
   renderer: networkd
@@ -254,13 +295,14 @@ network:
         stp: false
 V46NETPLAN
 
-[ -n "${CLOUD_IPV6}" ] && { rm -f /etc/netplan/50-cloud-init_ipv4.yaml; } ||  { rm -f /etc/netplan/50-cloud-init_ipv6.yaml; }
+fi
 
+# Remove older files from previous releases
+rm -f /etc/netplan/50-cloud-init_ipv*
 # Make sure cloud-init does not overwrite our network config
 echo 'network: {config: disabled}'|tee 1>/dev/null /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
-
 ### Prefer IPv4 connections
-printf '%s\x20%s\x20\x20%s\n' precedence '::ffff:0:0/96' 100|tee -a /etc/gai.conf
+printf '%s\x20%s\x20\x20%s\n' precedence '::ffff:0:0/96' 100|tee 1>/dev/null /etc/gai.conf
 
 #### Apply all networking changes
 for NPA in generate generate apply apply;do netplan --debug ${NPA};done
@@ -271,7 +313,7 @@ systemctl restart systemd-resolved
 
 #### Add Regional Ubuntu Repositories
 
-cat <<REPOS|sed -r 's/[ \t]+$//g'|tee 1>/dev/null /etc/apt/sources.list
+cat <<REPOS |sed -r 's/[ \t]+$//g'|tee 1>/dev/null /etc/apt/sources.list
 deb [arch=${CLOUD_ARCH}] http://${CLOUD_REPO_FQDN}/ubuntu/ $(lsb_release -cs) main restricted universe multiverse
 deb [arch=${CLOUD_ARCH}] http://${CLOUD_REPO_FQDN}/ubuntu/ $(lsb_release -cs)-updates main restricted universe multiverse
 deb [arch=${CLOUD_ARCH}] http://${CLOUD_REPO_FQDN}/ubuntu/ $(lsb_release -cs)-backports main restricted universe multiverse
@@ -318,7 +360,7 @@ install -o 1000 -g 1000 -m 0640 /opt/show-me/pki/show-me-id_rsa.pub /home/$(id -
 install -o 0 -g 0 -m 0644 -D /opt/show-me/scripts/landscape.lynx /usr/local/lib/show-me/landscape.lynx
 install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/petname2/
 install -o 0 -g 0 -m 0755 -d /etc/landscape/
-install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_landscape_lxd-init.sh /usr/local/bin/show-me_landscape_lxd-init.sh 
+install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_landscape_lxd-init.sh /usr/local/bin/show-me_landscape_lxd-init.sh
 install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_file-service_init.sh /usr/local/bin/show-me_file-service_init.sh
 install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_finishing-script_all.sh /usr/local/bin/show-me_finishing-script_all.sh
 
