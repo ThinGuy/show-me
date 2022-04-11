@@ -136,14 +136,14 @@ export CLOUD_APP_FQDN_LONG="${CLOUD_PUBLIC_HOSTNAME}.${CLOUD_APP_DOMAIN}"
 #### users home dir
 install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/
 ((set|grep -E '^CANDID_|^CLOUD_|^LANDSCAPE_|^MAAS_|^PG_|^RBAC_|^SSP_|^MK8S_|^MO7K_|^MCLOUD_')|sed -r 's/^/export /g;s/\x22//g;s/\x27/\x22/g'|sed -r '/=$/d'|sort -uV)|tee /usr/local/lib/show-me/.show-me.rc
-if [ -f /usr/local/lib/show-me/.show-me.rc ];then cp /usr/local/lib/show-me/.show-me.rc /root/.;su $(id -un 1000) -c 'cp /usr/local/lib/show-me/.show-me.rc ~/.';fi
+if [ -f /usr/local/lib/show-me/.show-me.rc ];then cp /usr/local/lib/show-me/.show-me.rc /root/.;su $(id -un 1000) -c 'cp /usr/local/lib/show-me/.show-me.rc ~/';fi
 
 
 
 printf "127.0.0.1\tlocalhost rabbit\n${CLOUD_PUBLIC_IPV4}\t${CLOUD_APP_FQDN_LONG} ${CLOUD_PUBLIC_HOSTNAME}\n\n\n"|tee 1>/dev/null /etc/hosts
 
 
-if [ -n "${CLOUD_IPV6}" ];then printf "\n\n::1\tip6-localhost ip6-loopback rabbit\n\n"${CLOUD_IPV6}\t${CLOUD_APP_FQDN_LONG} ${CLOUD_PUBLIC_HOSTNAME}\n"|tee 1>/dev/null -a /etc/hosts;fi
+if [ -n "${CLOUD_IPV6}" ];then printf "\n\n::1\tip6-localhost ip6-loopback rabbit\n\n${CLOUD_IPV6}\t${CLOUD_APP_FQDN_LONG} ${CLOUD_PUBLIC_HOSTNAME}\n"|tee 1>/dev/null -a /etc/hosts;fi
 
 [ "$(lsb_release -sr|sed 's/\.//g')" -lt "2004" ] && { hostnamectl set-hostname ${CLOUD_APP_FQDN_LONG}; } || { hostnamectl hostname ${CLOUD_APP_FQDN_LONG}; }
 echo "${CLOUD_APP_FQDN_LONG}"|tee /etc/hostname
