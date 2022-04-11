@@ -21,8 +21,8 @@ export CLOUD_APP_GIT="https://github.com/ThinGuy/show-me.git"
 export CLOUD_APP="landscape"
 export CLOUD_DOMAIN="ubuntu-show.me"
 export CLOUD_APP_DOMAIN="${CLOUD_APP}.${CLOUD_DOMAIN}"
-export CLOUD_DNS='1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001'
-export CLOUD_FALLBACK_DNS='9.9.9.9,149.112.112.112,2620:fe::fe,2620:fe::9'
+export CLOUD_DNS_IPV4='1.1.1.1,1.0.0.1'
+export CLOUD_FALLBACK_DNS_IPV4='9.9.9.9,149.112.112.112'
 export CLOUD_ETH=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
 export CLOUD_BRIDGE="br0"
 export CLOUD_ARCH="$(dpkg --print-architecture)"
@@ -132,6 +132,19 @@ export CLOUD_DOMAIN_SEARCH="${CLOUD_APP_DOMAIN},${CLOUD_DOMAIN},${CLOUD_PUBLIC_D
 export CLOUD_APP_FQDN_SHORT="${CLOUD_PUBLIC_HOSTNAME}.${CLOUD_DOMAIN}"
 export CLOUD_APP_FQDN_LONG="${CLOUD_PUBLIC_HOSTNAME}.${CLOUD_APP_DOMAIN}"
 
+if [ -n "${CLOUD_IPV6}" ];then
+  export CLOUD_DNS_IPV6='2606:4700:4700::1111,2606:4700:4700::1001'
+  export CLOUD_FALLBACK_DNS_IPV6='2620:fe::fe,2620:fe::9'
+fi
+
+if [ -n "${CLOUD_PUBLIC_IPV4}" -a -z "${CLOUD_IPV6}" ];then
+  export CLOUD_DNS="${CLOUD_DNS_IPV4}"
+  export CLOUD_FALLBACK_DNS="${CLOUD_FALLBACK_DNS_IPV4}"
+elif [ -n "${CLOUD_PUBLIC_IPV4}" -a -n "${CLOUD_IPV6}" ];then   
+  export CLOUD_DNS="${CLOUD_DNS_IPV4},${CLOUD_DNS_IPV6}"
+  export CLOUD_FALLBACK_DNS="${CLOUD_FALLBACK_DNS_IPV4},${CLOUD_FALLBACK_DNS_IPV6}"
+fi
+
 #### update the central .show-me.rc then copy to 
 #### users home dir
 install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/
@@ -149,14 +162,36 @@ if [ -n "${CLOUD_IPV6}" ];then printf "\n\n::1\tip6-localhost ip6-loopback rabbi
 echo "${CLOUD_APP_FQDN_LONG}"|tee /etc/hostname
 export HOSTNAME="${CLOUD_APP_FQDN_LONG}"
 
-cp /etc/systemd/resolved.conf /etc/systemd/resolved.backup
+cp /etc/systemd/resolved.conf /etc/systemd/resolved.$$.backup
 rm -rf /etc/resolv.conf
+
+cat <<-RESOLV|tee 1>/dev/null /etc/systemd/resolved.conf
+[Resolve]
+DNS=$(printf "${CLOUD_DNS//,/ }")
+FallbackDNS=$(printf "${CLOUD_FALLBACK_DNS//,/ }")
+Domains=landscape.ubuntu-show.me ubuntu-show.me ${CLOUD_PUBLIC_DOMAIN} ${CLOUD_LOCAL_DOMAIN}
+DNSSEC=allow-downgrade
+DNSOverTLS=opportunistic
+MulticastDNS=yes
+LLMNR=yes
+Cache=no-negative
+CacheFromLocalhost=no
+DNSStubListener=yes
+DNSStubListenerExtra='127.0.0.1:9953'
+ReadEtcHosts=yes
+ResolveUnicastSingleLabel=yes
+RESOLV
+
+if [ "${CLOUD_DISTRIB_RELEASE//.}" -lt "2004" ];then sed -r -i '/ReadEtc|DNSOver|Unicast|DNSStub/d' /etc/systemd/resolved.conf;fi
+
 ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
 sudo systemctl restart systemd-networkd systemd-resolved
 
 
 [ -f  /etc/netplan/50-cloud-init.yaml ] && rm -f /etc/netplan/50-cloud-init.yaml
-if [[ -n ${CLOUD_PUBLIC_IPV4} && -z ${CLOUD_IPV6} ]];then
+
+
+if [ -n "${CLOUD_PUBLIC_IPV4}" -a -z "${CLOUD_IPV6}" ];then
 cat <<-V4NETPLAN|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init.yaml
 network:
   version: 2
@@ -191,7 +226,7 @@ network:
         stp: false
 V4NETPLAN
 
-elif [[ -n ${CLOUD_PUBLIC_IPV4} && -n ${CLOUD_IPV6} ]];then
+elif [ -n "${CLOUD_PUBLIC_IPV4}" -a -n "${CLOUD_IPV6}" ];then
 
 cat <<-V46NETPLAN|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init.yaml
 network:

@@ -34,8 +34,8 @@ export CLOUD_APP_GIT="https://github.com/ThinGuy/show-me.git"
 export CLOUD_APP="landscape"
 export CLOUD_DOMAIN="ubuntu-show.me"
 export CLOUD_APP_DOMAIN="${CLOUD_APP}.${CLOUD_DOMAIN}"
-export CLOUD_DNS='1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001'
-export CLOUD_FALLBACK_DNS='9.9.9.9,149.112.112.112,2620:fe::fe,2620:fe::9'
+export CLOUD_DNS_IPV4='1.1.1.1,1.0.0.1'
+export CLOUD_FALLBACK_DNS_IPV4='9.9.9.9,149.112.112.112'
 export CLOUD_ETH=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
 export CLOUD_BRIDGE="br0"
 export CLOUD_ARCH="$(dpkg --print-architecture)"
@@ -166,8 +166,8 @@ export HOSTNAME="${CLOUD_APP_FQDN_LONG}"
 cp /etc/systemd/resolved.conf /etc/systemd/resolved.backup
 rm -rf /etc/resolv.conf
 RESOLVED="DNS,FallbackDNS,Domains,LLMNR,MulticastDNS,DNSSEC,DNSOverTLS,Cache,DNSStubListener,ReadEtcHosts"
-DNS=$(echo -en "${CLOUD_DNS//,/\ }")
-FallbackDNS=$(echo -en "${CLOUD_FALLBACK_DNS//,/\ }")
+DNS=$(echo -en "${CLOUD_DNS_IPV4//,/\ }")
+FallbackDNS=$(echo -en "${CLOUD_FALLBACK_DNS_IPV4//,/\ }")
 Domains=$(echo -en "${CLOUD_DOMAINS//,/\ }")
 LLMNR=yes
 MulticastDNS=yes

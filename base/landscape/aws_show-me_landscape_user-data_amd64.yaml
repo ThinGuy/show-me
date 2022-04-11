@@ -46,17 +46,17 @@ bootcmd:
   - set -x
   - [ -z "${LANG}" ] && { export LANG="en_US.UTF-8";export LANGUAGE="en_US"; }
   - export DEBIAN_FRONTEND=noninteractive
-  - export CLOUD_DNS="9.9.9.9,1.1.1.1,8.8.8.8"
+  - export CLOUD_DNS_IPV4="1.1.1.1,1.0.0.1"
   - export CLOUD_ETH=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
   - export CLOUD_DOMAIN="ubuntu-show.me"
   - export CLOUD_APP="landscape"
   - export CLOUD_BRIDGE="br0"
   - export CLOUD_ARCH="amd64"
   - "export CLOUD_APP_GIT=https://github.com/ThinGuy/show-me.git"
-  - "(echo ${CLOUD_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf"
+  - "(echo ${CLOUD_DNS_IPV4}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf"
   - export CLOUD_VENDOR="$(dmidecode -s bios-vendor|awk '{print tolower($1)}')"
   - "[ "${CLOUD_VENDOR}" = "amazon" ] && { export CLOUD_SERVICES_PARTITION=aws CLOUD_METADATA_URL=http://169.254.169.254/latest/meta-data CLOUD_API_URL=http://169.254.169.254/latest/api; }"
-  - "(echo ${CLOUD_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf"
+  - "(echo ${CLOUD_DNS_IPV4}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf"
   - export CLOUD_API_TOKEN="$(curl -sSX PUT "${CLOUD_API_URL}/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")"
   - export CLOUD_AMI_ID="$(curl -sSlL ${CLOUD_METADATA_URL}/ami-id)"
   - export CLOUD_LOCAL_IPV4="$(curl -sSlL ${CLOUD_METADATA_URL}/local-ipv4)"
@@ -94,7 +94,7 @@ bootcmd:
   - |-
     cat <<-RESOLVED|sed '/^$/d'|tee 1>/dev/null /etc/systemd/resolved.conf.d/sm-resolved.conf
     [Resolve]
-    DNS=$(echo -n $CLOUD_DNS|sed 's/,/ /g;s/\x27//g)
+    DNS=$(echo -n $CLOUD_DNS_IPV4|sed 's/,/ /g;s/\x27//g)
     FallbackDNS=149.112.112.112 149.112.112.112 8.8.8.8
     Domains=${CLOUD_PUBLIC_DOMAIN} ${CLOUD_LOCAL_DOMAIN} ~${CLOUD_DOMAIN}
     LLMNR=yes
@@ -138,7 +138,7 @@ bootcmd:
           accept-ra: false
           link-local: [ ]
           nameservers:
-            addresses: [${CLOUD_DNS}]
+            addresses: [${CLOUD_DNS_IPV4}]
             search: [${CLOUD_PUBLIC_DOMAIN},${CLOUD_LOCAL_DOMAIN},~${CLOUD_DOMAIN}]
           parameters:
             priority: 1
@@ -209,7 +209,7 @@ runcmd:
     cat <<-'SUDOERS'|sed -r 's/[ \t]+$//g;/^$/d'|sudo tee 1>/dev/null /etc/sudoers.d/100-keep-params
     Defaults env_keep+="CANDID_* CLOUD_* DISPLAY EDITOR HOME LANDSCAPE_* LANG* LC_* MAAS_* MACHINE_* PG_* PYTHONWARNINGS RBAC_* SSP_* XAUTHORITY XAUTHORIZATION *_PROXY *_proxy"
     SUDOERS
-(echo ${CLOUD_DNS}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf
+(echo ${CLOUD_DNS_IPV4}|sed 's/,/\n/g'|sed '/::/d;s/^/nameserver /g')|sudo tee 1>/dev/null /etc/resolv.conf
   - DEBIAN_FRONTEND=noninteractive apt -o "Acquire::ForceIPv4=true" update
   - DEBIAN_FRONTEND=noninteractive apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
   - DEBIAN_FRONTEND=noninteractive apt install libcurl4-gnutls-dev python-pycurl-doc python3-pycurl-dbg -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
