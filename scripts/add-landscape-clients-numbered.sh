@@ -24,7 +24,7 @@ for X in $(lxc image list -cfl|awk '/^\|/&&!/FIN/{print $2":"$4}');do
     NEXT_NUM=$(printf '%03d\n' ${NEXT_NUM})
     export NAME="${R,,}-landscape-client-${NEXT_NUM}"
     printf "Launching ${Y}${W} instance of ${R} as ${NAME}\n";
-    ((lxc launch $I ${NAME} -p landscape-client &>>/tmp/add-clients.log) &)
+    lxc launch $I ${NAME} -p landscape-client &>>/tmp/add-clients.log
     unset X Y NAME
   done
 done

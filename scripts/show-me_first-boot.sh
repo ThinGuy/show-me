@@ -21,7 +21,7 @@ RemainAfterExit=no
 ExecStart=/bin/bash -c '/usr/local/bin/show-me_landscape-rename.sh'
 StandardOutput=journal
 StandardError=journal
-ExecStartPost=/bin/bash -c '/usr/local/bin/show-me_oneshot-cleanup.sh'
+ExecStartPost=/bin/bash -c 'touch /opt/show-me/.renamed'
 
 [Install]
 WantedBy=multi-user.target
