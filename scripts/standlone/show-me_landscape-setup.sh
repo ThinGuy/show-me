@@ -234,7 +234,7 @@ apt -o "Acquire::ForceIPv4=true" update
 DEBIAN_FRONTEND=noninteractive apt install build-essential curl debconf-utils dnsutils git gnupg jq lynx make p7zip p7zip-full software-properties-common ssl-cert tree unzip vim wget zip -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
 
 # Fix/Set Hostname and Name resolution
-sed -i -r 's/^127.0.0.1.*$/127.0.0.1\tlocalhost rabbit '${CLOUD_APP_FQDN_LONG}' '${CLOUD_PUBLIC_HOSTNAME}'\n/' /etc/hosts
+sed -i -r 's/^127.0.0.1.*$/127.0.0.1\tlocalhost rabbit '${CLOUD_APP_FQDN_LONG}' '${CLOUD_PUBLIC_HOSTNAME}' '${CLOUD_LOCAL_HOSTNAME}'\n/' /etc/hosts
 
 [ "$(lsb_release -sr|sed 's/\.//g')" -lt "2004" ] && { hostnamectl set-hostname ${CLOUD_PUBLIC_HOSTNAME}; } || { hostnamectl hostname ${CLOUD_PUBLIC_HOSTNAME}; }
 echo "${CLOUD_PUBLIC_HOSTNAME}"|tee /etc/hostname
@@ -382,9 +382,8 @@ DEBIAN_FRONTEND=noninteractive apt install landscape-client -o "Acquire::ForceIP
 landscape-config -t 'Landscape Server' -u "https://${CLOUD_APP_FQDN_LONG}/message-system" --ping-url "http://${CLOUD_APP_FQDN_LONG}/ping" -a standalone -p landscape4u --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=landscape-server,show-me-demo,ubuntu --silent --log-level=debug
 if [ -f /usr/local/bin/show-me_landscape_lxd-init.sh ];then /usr/local/bin/show-me_landscape_lxd-init.sh;fi
 if [ -f /usr/local/bin/add-landscape-clients-numbered.sh ];then /usr/local/bin/add-landscape-clients-numbered.sh;fi
-if [ -f /usr/local/bin/show-me/show-me_finishing-script_all.sh ];then /usr/local/bin/show-me/show-me_finishing-script_all.sh;fi
 
-cat <<-SSHCONF|su $(id -un 1000) -c 'tee ~/.ssh/config'
+cat <<-SSHCONF |su $(id -un 1000) -c 'tee ~/.ssh/config'
 Host 10.10.10.*
   AddressFamily inet
   AddKeysToAgent yes
@@ -402,17 +401,12 @@ Host 10.10.10.*
   XAuthLocation /usr/bin/xauth
 SSHCONF
 
-ua detach --assume-yes
-rm -rf /var/log/ubuntu-advantage.log
-truncate -s 0 /etc/machine-id
-truncate -s 0 /var/lib/dbus/machine-id
-rm -rf /opt/show-me
-find /var/log -type f |xargs truncate -s 0
+if [ -f /usr/local/bin/show-me/show-me_finishing-script_all.sh ];then /usr/local/bin/show-me/show-me_finishing-script_all.sh;fi
+
 
 { [[ ${CLOUD_DEBUG} ]] &>/dev/null; } && { { set +x; } &>/dev/null; }
 
-history -c
-unset HISTFILE
+
 
 exit
 

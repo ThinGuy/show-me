@@ -157,7 +157,7 @@ install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/
 if [ -f /usr/local/lib/show-me/.show-me.rc ];then cp /usr/local/lib/show-me/.show-me.rc /root/.;su $(id -un 1000) -c 'cp /usr/local/lib/show-me/.show-me.rc ~/';echo '[ -r ~/.show-me.rc ] && . ~/.show-me.rc'|tee -a /root/.bashrc|su $(id -un 1000) -c 'tee -a ~/.bashrc';fi
 
 #### Set hostname under loopback
-sed -i -r 's/^127.0.0.1.*$/127.0.0.1\tlocalhost rabbit '${CLOUD_APP_FQDN_LONG}' '${CLOUD_PUBLIC_HOSTNAME}'\n/' /etc/hosts
+sed -i -r 's/^127.0.0.1.*$/127.0.0.1\tlocalhost rabbit '${CLOUD_APP_FQDN_LONG}' '${CLOUD_PUBLIC_HOSTNAME}' '${CLOUD_LOCAL_HOSTNAME}'\n/' /etc/hosts
 
 if [ -d /opt/show-me ];then { cd /opt/show-me && git pull; } else git clone ${CLOUD_APP_GIT} /opt/show-me;fi
 git clone ${CLOUD_APP_GIT} /opt/show-me;
