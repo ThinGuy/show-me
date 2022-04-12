@@ -148,7 +148,7 @@ export CLOUD_RESERVATION_ID="$(curl -sSlL ${CLOUD_METADATA_URL}/reservation-id|s
 export CLOUD_SECURITY_GROUPS="$(curl -sSlL ${CLOUD_METADATA_URL}/security-groups|sed -r '/<|\x22/d')"
 export CLOUD_SERVICES_DOMAIN="$(curl -sSlL ${CLOUD_METADATA_URL}/services/domain|sed -r '/<|\x22/d')"
 export CLOUD_SERVICES_SUBDOMAIN="$(dmidecode -s bios-vendor|awk '{print tolower($2)}')"
-[ -z "${CLOUD_SERVICES_SUBDOMAIN}" ] && { export CLOUD_SERVICES_SUBDOMAIN="ec2"; }
+[ -z "${CLOUD_SERVICES_SUBDOMAIN}" -o "${CLOUD_SERVICES_SUBDOMAIN,,}" = "xen" -o "${CLOUD_SERVICES_SUBDOMAIN,,}" = "" ] && { export CLOUD_SERVICES_SUBDOMAIN="ec2"; }
 export CLOUD_SERVICES_PARTITION="$(curl -sSlL ${CLOUD_METADATA_URL}/services/partition|sed -r '/<|\x22/d')"
 export CLOUD_SPOT_INSTANCE_ACTION="$(curl -sSlL ${CLOUD_METADATA_URL}/spot/instance-action|sed -r '/<|\x22/d')"
 export CLOUD_SPOT_TERMINATION_TIME="$(curl -sSlL ${CLOUD_METADATA_URL}/spot/termination-time|sed -r '/<|\x22/d')"

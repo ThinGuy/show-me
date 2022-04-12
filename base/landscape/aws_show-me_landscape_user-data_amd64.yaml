@@ -62,17 +62,18 @@ bootcmd:
   - export CLOUD_LOCAL_IPV4="$(curl -sSlL ${CLOUD_METADATA_URL}/local-ipv4)"
   - export CLOUD_PUBLIC_IPV4="$(curl -sSlL ${CLOUD_METADATA_URL}/public-ipv4)"
   - export CLOUD_PUBLIC_IPV4_CHECK="$(dig +short myip.opendns.com @resolver1.opendns.com)"
-  - [ -z "${CLOUD_PUBLIC_IPV4}" -a -n "${CLOUD_PUBLIC_IPV4_CHECK}" ] && { export CLOUD_PUBLIC_IPV4="${CLOUD_PUBLIC_IPV4_CHECK}"; } 
+  - [ -z "${CLOUD_PUBLIC_IPV4}" -a -n "${CLOUD_PUBLIC_IPV4_CHECK}" ] && { export CLOUD_PUBLIC_IPV4="${CLOUD_PUBLIC_IPV4_CHECK}"; }
   - export CLOUD_REGION="$(curl -sSlL ${CLOUD_METADATA_URL}/placement/region)"
   - export CLOUD_AZ="$(curl -sSlL ${CLOUD_METADATA_URL}/placement/availability-zone)"
   - export CLOUD_AZ_ID="$(curl -sSlL ${CLOUD_METADATA_URL}/placement/availability-zone-id)"
   - export CLOUD_LOCAL_HOSTNAME="$(curl -sSlL ${CLOUD_METADATA_URL}/local-hostname)"
   - export CLOUD_PUBLIC_HOSTNAME="$(curl -sSlL ${CLOUD_METADATA_URL}/public-hostname)"
   - export CLOUD_PUBLIC_FQDN_CHECK="$(dig +short -x $(dig +short myip.opendns.com @resolver1.opendns.com) @resolver1.opendns.com|sed 's,\.$,,g')
-  - [ -z "${CLOUD_PUBLIC_HOSTNAME}" -a -n "${CLOUD_PUBLIC_FQDN_CHECK}" ] && { export CLOUD_PUBLIC_HOSTNAME="${CLOUD_PUBLIC_FQDN_CHECK%%.*}"; } 
+  - [ -z "${CLOUD_PUBLIC_HOSTNAME}" -a -n "${CLOUD_PUBLIC_FQDN_CHECK}" ] && { export CLOUD_PUBLIC_HOSTNAME="${CLOUD_PUBLIC_FQDN_CHECK%%.*}"; }
   - export CLOUD_MAC="$(curl -sSlL ${CLOUD_METADATA_URL}/mac)"
   - export CLOUD_SERVICES_DOMAIN="$(curl -sSlL ${CLOUD_METADATA_URL}/services/domain)"
   - export CLOUD_SERVICES_SUBDOMAIN="$(dmidecode -s bios-vendor|awk '{print tolower($2)}')"
+  - [ -z "${CLOUD_SERVICES_SUBDOMAIN}" -o "${CLOUD_SERVICES_SUBDOMAIN,,}" = "xen" -o "${CLOUD_SERVICES_SUBDOMAIN,,}" = "" ] && { export CLOUD_SERVICES_SUBDOMAIN="ec2"; }
   - export CLOUD_SERVICES_LOCAL_DOMAIN="internal"
   - export CLOUD_PUBLIC_FQDN="${CLOUD_PUBLIC_HOSTNAME}.${CLOUD_PLACEMENT_REGION}.compute.${CLOUD_SERVICES_DOMAIN}"
   - export CLOUD_PUBLIC_DOMAIN="${CLOUD_PLACEMENT_REGION}.compute.${CLOUD_SERVICES_DOMAIN}"
@@ -145,8 +146,8 @@ bootcmd:
             stp: false
     NETPLAN
   - ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
-  - netplan --debug generate 
-  - netplan --debug apply 
+  - netplan --debug generate
+  - netplan --debug apply
   - "echo 'network: {config: disabled}' >/etc/cloud/cloud.cfg.d/99-disable-network-config.cfg"
   - systemctl restart systemd-resolved
   - |-
@@ -193,9 +194,9 @@ runcmd:
   - install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /etc/ssl/certs/show-me_ca.crt
   - install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /usr/local/share/ca-certificates/show-me_ca.crt
   - install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_basic-chain.pem /etc/ssl/private/show-me_basic-chain.pem
-  - install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_full-chain.pem /etc/ssl/private/show-me_full-chain.pem   
+  - install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_full-chain.pem /etc/ssl/private/show-me_full-chain.pem
   - install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_basic-chain.pem /etc/ssl/private/landscape-server_basic-chain.pem
-  - install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_full-chain.pem /etc/ssl/private/landscape-server_full-chain.pem    
+  - install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_full-chain.pem /etc/ssl/private/landscape-server_full-chain.pem
   - install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_host.pem /etc/ssl/certs/landscape_server.pem
   - install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_host.key /etc/ssl/private/landscape_server.key
   - install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /etc/ssl/certs/landscape_server_ca.crt
