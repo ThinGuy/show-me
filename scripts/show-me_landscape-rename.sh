@@ -150,9 +150,9 @@ fi
 
 
 ### Update DNS Entry
-export CLOUDFLARE_DNS_IP=${CLOUD_PUBLIC_IPV4}
+export CLOUDFLARE_DNS_IP="${CLOUD_PUBLIC_IPV4}"
 export CLOUDFLARE_DNS_NAME="${CLOUD_APP_FQDN_LONG}"
-export CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN}s"
+export CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN}"
 export CLOUDFLARE_DNS_ZONE_NAME="ubuntu-show.me"
 export CLOUDFLARE_DNS_ZONE_ID="$(curl -sSlL -X GET "https://api.cloudflare.com/client/v4/zones?name=${CLOUDFLARE_DNS_ZONE_NAME}&page=1&per_page=20&order=status&direction=desc&match=all" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json"|jq -r '.result[].id')"
 
