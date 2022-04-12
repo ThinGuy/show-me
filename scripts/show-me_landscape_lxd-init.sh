@@ -30,7 +30,7 @@ storage_pools:
   name: local
   driver: dir
 - config:
-    size: 5GB
+    size: 10GB
     source: /var/snap/lxd/common/lxd/disks/default.img
     zfs.pool_name: default
   driver: zfs
@@ -88,7 +88,7 @@ profiles:
     user.user-data: |
       #cloud-config
       final_message: 'Landscape Client completed Installing in \$UPTIME'
-      manage_etc_hosts: false
+      manage_etc_hosts: true
       preserve_hostname: true
       locale: en_US.UTF-8
       apt:
@@ -129,13 +129,11 @@ profiles:
       runcmd:
         - set -x
         - export DEBIAN_FRONTEND=noninteractive
-        - echo $DEFAULT_IP $(hostname -f) $(hostname -s)|tee -a /etc/hosts
+        - "echo '${CLOUD_PUBLIC_IPV4} ${CLOUD_APP_FQDN_LONG} ${CLOUD_PUBLIC_HOSTNAME}'|tee -a /etc/hosts"
         - "printf '%s\x20%s\x20\x20%s\n' precedence '::ffff:0:0/96' 100|tee -a /etc/gai.conf"
         - if [ "\$(readlink -f /etc/resolv.conf)" != "/run/resolvconf/resolv.conf" ];then ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf;fi
         - export DEFAULT_IP=\$(ip -o -4 a show dev \$(ip -o route show default|grep -m1 -oP '(?<=dev )[^ ]+')|grep -m1 -oP '(?<=inet )[^/]+')
-        - if \$(test -f /etc/hosts);then sudo sed -i.orig "/127.0.1.1/d;/127.0.0.1/a \$DEFAULT_IP\ \ \$(hostname -f) \$(hostname -s)" /etc/hosts;fi
-        - update-ca-certificates --fresh --verbose
-        - "landscape-config -p landscape4u -t \$(hostname -s) -u https://$(hostname -f)/message-system --ping-url http://$(hostname -f)/ping -a standalone --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=landscape-server,demo,ubuntu --silent --log-level=debug"
+        - "landscape-config -a standalone -p landscape4u -t \$(hostname -s) -u https://${CLOUD_APP_FQDN_LONG}/message-system --ping-url http://${CLOUD_APP_FQDN_LONG}/ping --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=landscape-client,demo,ubuntu --silent --log-level=debug"
   description: Landscape Client Profile
   devices:
     eth0:
@@ -157,7 +155,6 @@ PRESEED
 
 lxc remote add minimal https://cloud-images.ubuntu.com/minimal/daily --protocol simplestreams --accept-certificate
 for I in $(lxc image list minimal: -cfl|awk '/more|CONTAIN/{print $4}'|sort -uV|sed -r '/^t.*|^x.*/!H;//p;$!d;g;s/\n//');do lxc image copy  minimal:${I} local: --alias ${I} --auto-update --public;done
-[[ -f /usr/local/bin/add-landscape-clients-numbered.sh ]] && { /usr/local/bin/add-landscape-clients-numbered.sh; }
 
 { [[ $CLOUD_DEBUG ]] &>/dev/null; } && { { set +x; } &>/dev/null; }
 

@@ -5,6 +5,7 @@
 
 [[ $EUID -ne 0 ]] && { echo "${0##*/} must be run as root or via sudo";exit 1; } || { true; }
 
+install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/petname2/
 
 [[ $(dpkg -l petname|awk '/'${i}'/{print $1}') = ii ]] || { apt install petname -yqf; }
 export UBUNTU_DISTS_URL="http://us.archive.ubuntu.com/ubuntu/dists"

@@ -10,19 +10,14 @@
 cat <<-'EOD'|sed -r 's/[ \t]+$//g'|tee 1>/dev/null /etc/systemd/system/show-me-oneshot.service
 [Unit]
 Description=Reconfigure Preinstalled Landscape Server on first boot
-After=syslog.target
 After=network.target
-ConditionPathExists=/etc/landscape/service.conf
-ConditionPathNotExists=/opt/show-me/.renamed
+ConditionPathExists=/usr/local/bin/show-me_landscape-rename.sh
 
 [Service]
 Type=oneshot
 RemainAfterExit=no
-ExecStart=/bin/bash -c 'cp /opt/show-me/scripts/show-me_landscape-rename.sh /usr/local/bin/show-me_landscape-rename.sh'
 ExecStartPre=/bin/bash -c 'cd /opt/show-me;git pull'
 ExecStart=/bin/bash -c '/usr/local/bin/show-me_landscape-rename.sh'
-StandardOutput=journal
-ExecStartPost=/bin/bash -c 'touch /opt/show-me/.renamed'
 
 [Install]
 WantedBy=multi-user.target
@@ -34,13 +29,10 @@ EOD
 
 
 systemctl daemon-reload;
+systemctl enable show-me-oneshot.service;
 
-
-for S in enable start;do
-  systemctl ${S} show-me-oneshot.service;
-  sleep .5;
-done
+RC=${?}
 
 { [[ $CLOUD_DEBUG ]] &>/dev/null; } && { { set +x; } &>/dev/null; }
 
-exit 0
+exit ${RC}

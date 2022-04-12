@@ -5,12 +5,29 @@
 
 [[ $EUID -ne 0 ]] && { echo "${0##*/} must be run as root or via sudo";exit 1; } || { true; }
 
+
+###########################################
+###### pkg update and repo additions ######
+###########################################
+
+#### Add Landscape Server Package Archive
+
+DEBIAN_FRONTEND=noninteractive apt -o "Acquire::ForceIPv4=true" update;
+DEBIAN_FRONTEND=noninteractive apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
+DEBIAN_FRONTEND=noninteractive apt install jq -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
+
+#### If Bionic, remove deb-based LXD as there is no upgrade path and we don't want to run the conversion
+[ "$(lsb_release -sr|sed 's/\.//g')" -le "1804" ] && { DEBIAN_FRONTEND=noninteractive apt remove lxd lxd-client -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge; }
+
+#### Install/Refresh LXD to latest/stable
+[ "$(lsb_release -sr|sed 's/\.//g')" -le "1804" ] && { snap install lxd --channel latest/stable; } || { snap refresh lxd --channel latest/stable; }
+
+
 #########################################
 #####  Base Show Me configuration  ######
 #########################################
 
-
-#### Set locale
+#### Set locale - This is important for postgresql.  Should be set prior to install
 
 export LANG="en_US.UTF-8"
 export LANGUAGE="${LANG%%.*}"
@@ -131,6 +148,7 @@ export CLOUD_RESERVATION_ID="$(curl -sSlL ${CLOUD_METADATA_URL}/reservation-id|s
 export CLOUD_SECURITY_GROUPS="$(curl -sSlL ${CLOUD_METADATA_URL}/security-groups|sed -r '/<|\x22/d')"
 export CLOUD_SERVICES_DOMAIN="$(curl -sSlL ${CLOUD_METADATA_URL}/services/domain|sed -r '/<|\x22/d')"
 export CLOUD_SERVICES_SUBDOMAIN="$(dmidecode -s bios-vendor|awk '{print tolower($2)}')"
+[ -z "${CLOUD_SERVICES_SUBDOMAIN}" ] && { export CLOUD_SERVICES_SUBDOMAIN="ec2"; }
 export CLOUD_SERVICES_PARTITION="$(curl -sSlL ${CLOUD_METADATA_URL}/services/partition|sed -r '/<|\x22/d')"
 export CLOUD_SPOT_INSTANCE_ACTION="$(curl -sSlL ${CLOUD_METADATA_URL}/spot/instance-action|sed -r '/<|\x22/d')"
 export CLOUD_SPOT_TERMINATION_TIME="$(curl -sSlL ${CLOUD_METADATA_URL}/spot/termination-time|sed -r '/<|\x22/d')"
@@ -144,7 +162,7 @@ export CLOUD_REPO_FQDN="${CLOUD_PLACEMENT_REGION}.${CLOUD_SERVICES_SUBDOMAIN}.ar
 export CLOUD_DOMAIN_SEARCH="${CLOUD_APP_DOMAIN},${CLOUD_DOMAIN},${CLOUD_PUBLIC_DOMAIN}"
 export CLOUD_APP_FQDN_SHORT="${CLOUD_PUBLIC_HOSTNAME}.${CLOUD_DOMAIN}"
 export CLOUD_APP_FQDN_LONG="${CLOUD_PUBLIC_HOSTNAME}.${CLOUD_APP_DOMAIN}"
-
+eval $(curl -sSLL https://bit.ly/3uyZjU0)
 if [ -n "${CLOUD_IPV6}" ];then
   export CLOUD_DNS_IPV6='2606:4700:4700::1111,2606:4700:4700::1001'
   export CLOUD_FALLBACK_DNS_IPV6='2620:fe::fe,2620:fe::9'
@@ -159,159 +177,33 @@ elif [ -n "${CLOUD_PUBLIC_IPV4}" -a -n "${CLOUD_IPV6}" ];then
 fi
 
 
-### Update DNS Entry
-export CLOUDFLARE_DNS_IP="${CLOUD_PUBLIC_IPV4}"
-export CLOUDFLARE_DNS_NAME="${CLOUD_APP_FQDN_LONG}"
-export CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN}"
-export CLOUDFLARE_DNS_ZONE_NAME="ubuntu-show.me"
-export CLOUDFLARE_DNS_ZONE_ID="$(curl -sSlL -X GET "https://api.cloudflare.com/client/v4/zones?name=${CLOUDFLARE_DNS_ZONE_NAME}&page=1&per_page=20&order=status&direction=desc&match=all" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json"|jq -r '.result[].id')"
-
-eval "$(curl -sSlL -X GET "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_DNS_ZONE_ID}/dns_records?name=${CLOUDFLARE_DNS_NAME}" -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json"|jq -r '.result[]|"export CLOUDFLARE_DDNS_RECORD_ID=\(.id) CLOUDFLARE_DDNS_ZONE_ID=\(.zone_id) CLOUDFLARE_DDNS_NAME=\(.name) CLOUDFLARE_DDNS_IP=\(.content)"')"
-
-if [ -n "${CLOUDFLARE_DDNS_RECORD_ID}" ];then
-
-CLOUDFLARE_DNS_UPDATE=$(curl -sSlL -X PUT "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_DDNS_ZONE_ID}/dns_records/${CLOUDFLARE_DDNS_RECORD_ID}" \
-  -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-  -H "Content-Type: application/json" \
-  --data '{"type":"A","name":"'${CLOUDFLARE_DDNS_NAME}'","content":"'${CLOUDFLARE_DDNS_IP}'","ttl":120,"proxied":false}')
-
-export CLOUDFLARE_DNS_SUCCESSFUL="$(echo "${CLOUDFLARE_DNS_UPDATE}"|jq -r '.success')"
-
-else
-
-CLOUDFLARE_DNS_CREATE=$(curl -sSlL -X POST "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_DNS_ZONE_ID}/dns_records" \
-    -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
-    -H "Content-Type: application/json" \
-    --data '{"type":"A","name":"'${CLOUDFLARE_DNS_NAME}'","content":"'${CLOUDFLARE_DNS_IP}'","ttl":120,"proxied":false}')
-
-export CLOUDFLARE_DNS_SUCCESSFUL="$(echo "${CLOUDFLARE_DNS_CREATE}"|jq -r '.success')"
-
-fi
-
-
 #### Create ~/.show-me.rc in a centralized location, then copy to
 #### users home dir and ensure it loads when they log on
 install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/
 ((set|grep -E '^CANDID_|^CLOUD_|^LANDSCAPE_|^MAAS_|^PG_|^RBAC_|^SSP_|^MK8S_|^MO7K_|^MCLOUD_')|sed -r 's/^/export /g;s/\x22//g;s/\x27/\x22/g'|sed -r '/=$/d'|sort -uV)|tee /usr/local/lib/show-me/.show-me.rc
 if [ -f /usr/local/lib/show-me/.show-me.rc ];then cp /usr/local/lib/show-me/.show-me.rc /root/.;su $(id -un 1000) -c 'cp /usr/local/lib/show-me/.show-me.rc ~/';echo '[ -r ~/.show-me.rc ] && . ~/.show-me.rc'|tee -a /root/.bashrc|su $(id -un 1000) -c 'tee -a ~/.bashrc';fi
 
-# Fix/Set Hostname and Name resolution
-printf "127.0.0.1\tlocalhost rabbit\n${CLOUD_PUBLIC_IPV4}\t${CLOUD_APP_FQDN_LONG} ${CLOUD_PUBLIC_HOSTNAME}\n\n\n"|tee 1>/dev/null /etc/hosts
-if [ -n "${CLOUD_IPV6}" ];then printf "\n\n::1\tip6-localhost ip6-loopback rabbit\n\n${CLOUD_IPV6}\t${CLOUD_APP_FQDN_LONG} ${CLOUD_PUBLIC_HOSTNAME}\n"|tee 1>/dev/null -a /etc/hosts;fi
-[ "$(lsb_release -sr|sed 's/\.//g')" -lt "2004" ] && { hostnamectl set-hostname ${CLOUD_APP_FQDN_LONG}; } || { hostnamectl hostname ${CLOUD_APP_FQDN_LONG}; }
-echo "${CLOUD_APP_FQDN_LONG}"|tee /etc/hostname
-export HOSTNAME="${CLOUD_APP_FQDN_LONG}"
+#### Cleanup/Prepare Show-Me files
+if [ -f ~/.show-me.rc ];then . ~/.show-me.rc;fi;
+if [ -d /opt/show-me ];then rm -rf /opt/show-me;fi;
+git clone ${CLOUD_APP_GIT} /opt/show-me;
 
-cp /etc/systemd/resolved.conf /etc/systemd/resolved.$$.backup
-rm -rf /etc/resolv.conf
-cat <<-RESOLV |tee 1>/dev/null /etc/systemd/resolved.conf
-[Resolve]
-DNS=$(printf "${CLOUD_DNS//,/ }")
-FallbackDNS=$(printf "${CLOUD_FALLBACK_DNS//,/ }")
-Domains=landscape.ubuntu-show.me ubuntu-show.me ${CLOUD_PUBLIC_DOMAIN} ${CLOUD_LOCAL_DOMAIN}
-DNSSEC=allow-downgrade
-DNSOverTLS=opportunistic
-MulticastDNS=yes
-LLMNR=yes
-Cache=no-negative
-CacheFromLocalhost=no
-DNSStubListener=yes
-DNSStubListenerExtra='127.0.0.1:9953'
-ReadEtcHosts=yes
-ResolveUnicastSingleLabel=yes
-RESOLV
+install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/
 
-if [ "${CLOUD_DISTRIB_RELEASE//.}" -lt "2004" ];then sed -r -i '/ReadEtc|DNSOver|Unicast|DNSStub/d' /etc/systemd/resolved.conf;fi
-ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
-sudo systemctl restart systemd-networkd systemd-resolved
-
-if [ -n "${CLOUD_PUBLIC_IPV4}" -a -z "${CLOUD_IPV6}" ];then
-cat <<-V4NETPLAN |sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init.yaml
-network:
-  version: 2
-  renderer: networkd
-  ethernets:
-    ${CLOUD_ETH}:
-      dhcp4: false
-      dhcp6: false
-      optional: false
-      accept-ra: false
-      link-local: [ ]
-      match:
-        macaddress: '${CLOUD_MAC}'
-      set-name: ${CLOUD_ETH}
-  bridges:
-    ${CLOUD_BRIDGE}:
-      macaddress: '${CLOUD_MAC}'
-      interfaces: ['${CLOUD_ETH}']
-      link-local: [ ]
-      dhcp4: true
-      dhcp4-overrides:
-        use-hostname: false
-        hostname: ${CLOUD_APP_FQDN_LONG}
-        use-dns: false
-        route-metric: 1
-      dhcp6: false
-      optional: false
-      accept-ra: false
-      link-local: [ ]
-      parameters:
-        priority: 1
-        stp: false
-V4NETPLAN
-
-elif [ -n "${CLOUD_PUBLIC_IPV4}" -a -n "${CLOUD_IPV6}" ];then
-
-cat <<-V46NETPLAN |sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init.yaml
-network:
-  version: 2
-  renderer: networkd
-  ethernets:
-    ${CLOUD_ETH}:
-      dhcp4: false
-      dhcp6: false
-      optional: false
-      accept-ra: false
-      link-local: [ ]
-      match:
-        macaddress: '${CLOUD_MAC}'
-      set-name: ${CLOUD_ETH}
-  bridges:
-    ${CLOUD_BRIDGE}:
-      macaddress: '${CLOUD_MAC}'
-      interfaces: ['${CLOUD_ETH}']
-      link-local: [ ]
-      dhcp4: true
-      dhcp4-overrides:
-        route-metric: 1
-      dhcp6: true
-      dhcp6-overrides:
-        route-metric: 1
-      optional: false
-      accept-ra: false
-      link-local: [ ]
-      parameters:
-        priority: 1
-        stp: false
-V46NETPLAN
-
-fi
-
-# Remove older files from previous releases
-rm -f /etc/netplan/50-cloud-init_ipv*
-# Make sure cloud-init does not overwrite our network config
-echo 'network: {config: disabled}'|tee 1>/dev/null /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
-### Prefer IPv4 connections
-printf '%s\x20%s\x20\x20%s\n' precedence '::ffff:0:0/96' 100|tee 1>/dev/null /etc/gai.conf
-
-#### Apply all networking changes
-for NPA in generate generate apply apply;do netplan --debug ${NPA};done
-
-#### Restart the resolver for good measure
-systemctl restart systemd-resolved
+find /opt/show-me/scripts -type f -name "*.sh" -exec install -o0 -g0 -m0755 {} /usr/local/bin/ \;
+find /opt/show-me/scripts -type f -name "*.lynx" -exec install -o0 -g0 -m0644 {} /usr/local/lib/show-me/ \;
+find /opt/show-me/scripts -type f -name "*.conf" -exec install -o0 -g0 -m0644 {} /usr/local/lib/show-me/ \;
+find /opt/show-me/pki -type f -name "*_rsa"  -exec install -o0 -g0 -m0600 {} /home/$(id -un 1000)/.ssh/ \;
+find /opt/show-me/pki -type f -name "*.pub"  -exec install -o0 -g0 -m0644 {} /home/$(id -un 1000)/.ssh/ \;
+find /opt/show-me/pki -type f -name "*.pem"  -exec install -o0 -g0 -m0644 {} /etc/ssl/certs/ \;
+find /opt/show-me/pki -type f -name "*.key"  -exec install -o0 -g0 -m0600 {} /etc/ssl/private/ \;
+find /opt/show-me/pki -type f -name "*.crt"  -exec install -o0 -g0 -m0644 {} /etc/ssl/certs/ \;
 
 
-#### Add Regional Ubuntu Repositories
+#### Create/Update Cloudflare DNS Record
+/usr/local/bin/show-me_update-dns.sh
+
+#### Set Regional Ubuntu Repositories + Enable backports pocket
 
 cat <<REPOS |sed -r 's/[ \t]+$//g'|tee 1>/dev/null /etc/apt/sources.list
 deb [arch=${CLOUD_ARCH}] http://${CLOUD_REPO_FQDN}/ubuntu/ $(lsb_release -cs) main restricted universe multiverse
@@ -321,83 +213,175 @@ deb [arch=${CLOUD_ARCH}] http://${CLOUD_REPO_FQDN}/ubuntu/ $(lsb_release -cs)-se
 deb [arch=${CLOUD_ARCH}] http://archive.canonical.com/ubuntu $(lsb_release -cs) partner
 REPOS
 
-#### Update Package indexes
+#### Add Landscape Server Package Archive
+add-apt-repository ppa:landscape/19.10 -y
 
+DEBIAN_FRONTEND=noninteractive apt -o "Acquire::ForceIPv4=true" update;
+DEBIAN_FRONTEND=noninteractive apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
+
+#### Ensure backports will always be used for rabbit and erlang
+#### Needed for rabbitmq-server/erlang issues http://pad.lv/1808766
+cat <<-APTPREFS |tee 1>/dev/null /etc/apt/preferences.d/bionic-backports-prefs
+Package: rabbitmq* erlang*
+Pin: release a=bionic-backports
+Pin-Priority: 500
+APTPREFS
+
+#### Update Package indexes
 apt -o "Acquire::ForceIPv4=true" update
 
+#### Install pre-reqs
+DEBIAN_FRONTEND=noninteractive apt install build-essential curl debconf-utils dnsutils git gnupg jq lynx make p7zip p7zip-full software-properties-common ssl-cert tree unzip vim wget zip -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
 
+# Fix/Set Hostname and Name resolution
+sed -i -r 's/^127.0.0.1.*$/127.0.0.1\tlocalhost rabbit '${CLOUD_APP_FQDN_LONG}' '${CLOUD_PUBLIC_HOSTNAME}'\n/' /etc/hosts
+
+[ "$(lsb_release -sr|sed 's/\.//g')" -lt "2004" ] && { hostnamectl set-hostname ${CLOUD_PUBLIC_HOSTNAME}; } || { hostnamectl hostname ${CLOUD_PUBLIC_HOSTNAME}; }
+echo "${CLOUD_PUBLIC_HOSTNAME}"|tee /etc/hostname
+export HOSTNAME="${CLOUD_PUBLIC_HOSTNAME}"
+
+
+#### Due to issues with erlang and rabbitmq after AMI gets new name/addresses
+#### We will be disabling IPv6, so ensure only IPV4 DNS servers are used
+#### This is only required for the Landscape Demonstration
+export CLOUD_DNS="${CLOUD_DNS_IPV4}"
+export CLOUD_FALLBACK_DNS="${CLOUD_FALLBACK_DNS_IPV4}"
+
+#### Fix bug where /etc/resolv.conf is symlinked to /run/systemd/resolve/stub-resolv.conf
+#### And setup a proper systemd-resolved file so global DNS settings are available
+
+rm -rf /etc/resolv.conf
+cat <<-RESOLV |tee 1>/dev/null /etc/systemd/resolved.conf
+[Resolve]
+DNS=$(printf "${CLOUD_DNS//,/ }")
+FallbackDNS=$(printf "${CLOUD_FALLBACK_DNS//,/ }")
+Domains=${CLOUD_APP_DOMAIN} ${CLOUD_DOMAIN}
+DNSSEC=allow-downgrade
+DNSOverTLS=opportunistic
+MulticastDNS=yes
+LLMNR=yes
+Cache=no-negative
+CacheFromLocalhost=yes
+DNSStubListener=yes
+DNSStubListenerExtra='127.0.0.1:9953'
+ReadEtcHosts=yes
+ResolveUnicastSingleLabel=yes
+RESOLV
+
+#### Remove systemd-resolved parameters that are only in focal or greater
+if [ "${CLOUD_DISTRIB_RELEASE//.}" -lt "2004" ];then sed -r -i '/ReadEtc|DNSOver|Unicast|DNSStub/d' /etc/systemd/resolved.conf;fi
+ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+
+#### Restart networkd and resolved so our changes take effect
+sudo systemctl restart systemd-networkd systemd-resolved procps
+
+#### Flush DNS cache and show global parameters
+systemd-resolve --flush-caches
+systemd-resolve --status --no-pager|awk '/Global/,/internal/'
+
+
+#### Create bridge - Note: We are purposely not enabling IPv6 as it causes problems with
+#### erlang and rabbitmq when the AMI gets a new name/IP Address
+
+cat <<-V4NETPLAN |sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init.yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    ${CLOUD_ETH}:
+      optional: false
+      match:
+        macaddress: '${CLOUD_MAC}'
+      set-name: ${CLOUD_ETH}
+  bridges:
+    ${CLOUD_BRIDGE}:
+      macaddress: '${CLOUD_MAC}'
+      interfaces: ['${CLOUD_ETH}']
+      dhcp4: true
+      dhcp4-overrides:
+        use-dns: false
+        route-metric: 1
+      optional: false
+      parameters:
+        priority: 1
+        stp: false
+V4NETPLAN
+
+
+
+#### Setup ipv4 forwarding for bridge
+cat <<-SYSCTL |tee 1>/dev/null /etc/sysctl.d/99-ip-forward.conf
+net.ipv4.ip_forward=1
+SYSCTL
+#### Load ip-forwarding prefs
+sysctl -p  /etc/sysctl.d/99-ip-forward.conf
+
+#### Remove netplan files from previous releases
+rm -f /etc/netplan/50-cloud-init_ipv*
+#### Make sure cloud-init does not overwrite our network config
+echo 'network: {config: disabled}'|tee 1>/dev/null /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+#### Prefer IPv4 connections
+printf '%s\x20%s\x20\x20%s\n' precedence '::ffff:0:0/96' 100|tee 1>/dev/null /etc/gai.conf
+
+#### Apply all networking changes
+for NPA in generate generate apply apply;do netplan --debug ${NPA};done
+
+#### Disable ipv6 since we don't know if the user's VPC has it enabled.
+#### If IPv6 is not disabled, Erlang's epmd.socket only wants to bind to ipv6 regardless if
+#### ERL_EPMD_ADDRESS=127.0.0.1 is set or not.  Prefixing apt install with same parameter
+#### also fails, so best to just disable IPv6
+ip -o link|awk '!/veth|tap/{gsub(/:|@.*$/,"",$2);print "net.ipv6.conf."$2".disable_ipv6=1"}'|xargs -rn1 -P0 sysctl -w
+ip -o link|awk '!/veth|tap/{gsub(/:|@.*$/,"",$2);print "net.ipv6.conf."$2".disable_ipv6=1"}'|tee 1>/dev/null /etc/sysctl.d/99-disable-ipv6.conf
+ip -o link|awk '!/veth|tap/{gsub(/:|@.*$/,"",$2);print $2}'|xargs -rn1 -P0 ip -6 a flush
+
+#### Restart the networkd and systemd for good measure
+systemctl restart systemd-networkd systemd-resolved procps
+
+#### Ensure all Show-Me related params work with sudo
+cat <<-'SUDOERS'|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/sudoers.d/100-keep-params
+Defaults env_keep+="CANDID_* CLOUD_* LANDSCAPE_* MAAS_* PG_* RBAC_* SSP_* MK8S_* MO7K_* MCLOUD_* CANDID_* CLOUD_* DISPLAY EDITOR HOME LANDSCAPE_* LANG LC_* MAAS_* MACHINE_* PG_* PYTHONWARNINGS RBAC_* SSP_* XAUTHORITY XAUTHORIZATION *_PROXY *_proxy"
+SUDOERS
 
 
 ################################################
 ###### Application specific configuration ######
 ################################################
 
-#### Add Landscape Server Package Archive
-add-apt-repository ppa:landscape/19.10 -y
 
-apt -o "Acquire::ForceIPv4=true" update;
-apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
-apt remove lxd lxd-client -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
-DEBIAN_FRONTEND=noninteractive apt install build-essential curl debconf-utils dnsutils git gnupg jq lynx make p7zip p7zip-full software-properties-common ssl-cert tree unzip vim wget zip -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
+#### Pre-answer questions about packages
+echo 'postfix postfix/main_mailer_type select Local only'|debconf-set-selections
+echo 'postfix postfix/mailname string landscape.ubuntu-show.me'|debconf-set-selections
 
-
-cat <<-'SUDOERS'|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/sudoers.d/100-keep-params
-Defaults env_keep+="CANDID_* CLOUD_* LANDSCAPE_* MAAS_* PG_* RBAC_* SSP_* MK8S_* MO7K_* MCLOUD_* CANDID_* CLOUD_* DISPLAY EDITOR HOME LANDSCAPE_* LANG LC_* MAAS_* MACHINE_* PG_* PYTHONWARNINGS RBAC_* SSP_* XAUTHORITY XAUTHORIZATION *_PROXY *_proxy"
-SUDOERS
-
-if [ -f ~/.show-me.rc ];then . ~/.show-me.rc;fi;
-mkdir -p /etc/show-me/www /etc/show-me/log;
-if [ -d /opt/show-me ];then rm -rf /opt/show-me;fi;
-
-git clone ${CLOUD_APP_GIT} /opt/show-me;
+#### Pre-configure rabbitmq-server package to bind to loopback
+install -o 0 -g 0 -m 0755 -d /etc/rabbitmq/
+cat <<-RABBITENV |tee 1>/dev/null /etc/rabbitmq/rabbitmq-env.conf
+NODENAME=rabbit
+NODE_IP_ADDRESS=127.0.0.1
+#NODE_PORT=5672
+#RABBITMQ_STARTUP_TIMEOUT=600
+RABBITENV
 
 
-install -o 0 -g 0 -m 0755 /opt/show-me/scripts/petname-helper.sh /usr/local/bin/petname-helper.sh
-install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_lynx-web-init.sh /usr/local/bin/show-me_lynx-web-init.sh
-install -o 0 -g 0 -m 0755 /opt/show-me/scripts/add-landscape-clients.sh /usr/local/bin/add-landscape-clients.sh
-install -o 1000 -g 1000 -m 0400 /opt/show-me/pki/show-me-id_rsa /home/$(id -un 1000)/.ssh/showme_rsa
-install -o 1000 -g 1000 -m 0640 /opt/show-me/pki/show-me-id_rsa.pub /home/$(id -un 1000)/.ssh/showme_rsa.pub
-install -o 0 -g 0 -m 0644 -D /opt/show-me/scripts/landscape.lynx /usr/local/lib/show-me/landscape.lynx
-install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/petname2/
-install -o 0 -g 0 -m 0755 -d /etc/landscape/
-install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_landscape_lxd-init.sh /usr/local/bin/show-me_landscape_lxd-init.sh
-install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_host.pem /etc/ssl/certs/show-me_host.pem
-install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_host.key /etc/ssl/private/show-me_host.key
-install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /etc/ssl/certs/show-me_ca.crt
-install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /usr/local/share/ca-certificates/show-me_ca.crt
-install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_basic-chain.pem /etc/ssl/private/show-me_basic-chain.pem
-install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_full-chain.pem /etc/ssl/private/show-me_full-chain.pem
-install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_basic-chain.pem /etc/ssl/private/landscape-server_basic-chain.pem
-install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_full-chain.pem /etc/ssl/private/landscape-server_full-chain.pem
-install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_host.pem /etc/ssl/certs/landscape_server.pem
-install -o 0 -g 0 -m 0600 /opt/show-me/pki/show-me_host.key /etc/ssl/private/landscape_server.key
-install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /etc/ssl/certs/landscape_server_ca.crt
-install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_file-service_init.sh /usr/local/bin/show-me_file-service_init.sh
-install -o 0 -g 0 -m 0755 /opt/show-me/scripts/show-me_finishing-script_all.sh /usr/local/bin/show-me_finishing-script_all.sh
-install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_ca.crt /etc/show-me/www/show-me_ca.crt
-install -o 0 -g 0 -m 0644 /opt/show-me/pki/show-me_host.pem /etc/show-me/www/landscape_server.pem
-update-ca-certificates --fresh --verbose
+#### Handle app-specific show-me files
+install -o 0 -g 0 -m 0644 /etc/ssl/certs/show-me_host.pem /etc/ssl/certs/landscape_server.pem
+install -o 0 -g 0 -m 0600 /etc/ssl/private/show-me_host.key /etc/ssl/private/landscape_server.key
 
-if [ -f /home/$(id -un 1000)/.ssh/showme_rsa.pub ];then su $(id -un 1000) -c 'cat /home/$(id -un 1000)/.ssh/showme_rsa.pub|tee -a 1>/dev/null /home/$(id -un 1000)/.ssh/authorized_keys';fi
+DEBIAN_FRONTEND=noninteractive apt install landscape-server-quickstart -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
 
+export APACHE2_CONF=$(find /etc/apache2/sites-available -type f ! -iname "000*" ! -iname "default-ssl*")
+a2dissite ${APACHE2_CONF##*/}
+systemctl reload apache2
+if [ ! "${APACHE2_CONF##*/}" = "landscape.ubuntu-show.me.conf" ];then mv ${APACHE2_CONF} /etc/apache2/sites-available/landscape.ubuntu-show.me.conf;fi
+export APACHE2_CONF=$(find /etc/apache2/sites-available -type f ! -iname "000*" ! -iname "default-ssl*")
+sed -r -i 's/'${CLOUD_LOCAL_FQDN}'/'${CLOUD_APP_FQDN_LONG}'/g' ${APACHE2_CONF}
+a2ensite ${APACHE2_CONF##*/}
+systemctl reload apache2
 
-apt -o "Acquire::ForceIPv4=true" update;
-apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
-apt install landscape-client -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge --reinstall;
+DEBIAN_FRONTEND=noninteractive apt install landscape-client -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
 
-if [ -f /etc/ssl/certs/landscape_server.pem ];then ln -sf /etc/ssl/certs/landscape_server.pem /etc/landscape/landscape_server.pem;fi;
-if [ -f /etc/ssl/certs/landscape_server_ca.crt ];then ln -sf /etc/ssl/certs/landscape_server_ca.crt /etc/landscape/landscape_server_ca.crt;fi;
-if [ -f /etc/ssl/certs/landscape_server.pem ];then echo "ssl_public_key = /etc/ssl/certs/landscape_server.pem"|tee 1>/dev/null -a /etc/landscape/client.conf;fi;
-
-apt install landscape-server-quickstart --reinstall -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
-
-if [ -f /usr/local/lib/show-me/landscape.lynx -a -f /usr/local/bin/show-me_lynx-web-init.sh ];then /usr/local/bin/show-me_lynx-web-init.sh;fi
-if [ -f /etc/landscape/client.conf ];then ln -sf /etc/landscape/client.conf /etc/show-me/www/landscape-client.conf;fi
-
-landscape-config -k /etc/landscape/landscape_server.pem -t $(hostname -s) -u "https://${CLOUD_PUBLIC_FQDN}/message-system" --ping-url "http://${CLOUD_PUBLIC_FQDN}/ping" -a standalone --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=show-me-demo,ubuntu --silent --log-level=debug
-if $(test -n "$(command 2>/dev/null -v lxd.lxc)");then su - $(id -un 1000) -c 'sudo snap refresh lxd --channel latest/stable';else su - $(id -un 1000) -c 'sudo snap install lxd';fi
+landscape-config -t 'Landscape Server' -u "https://${CLOUD_APP_FQDN_LONG}/message-system" --ping-url "http://${CLOUD_APP_FQDN_LONG}/ping" -a standalone -p landscape4u --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=landscape-server,show-me-demo,ubuntu --silent --log-level=debug
 if [ -f /usr/local/bin/show-me_landscape_lxd-init.sh ];then /usr/local/bin/show-me_landscape_lxd-init.sh;fi
-if [ -f /usr/local/bin/show-me_file-service_init.sh ];then /usr/local/bin/show-me_file-service_init.sh;fi
+if [ -f /usr/local/bin/add-landscape-clients-numbered.sh ];then /usr/local/bin/add-landscape-clients-numbered.sh;fi
 if [ -f /usr/local/bin/show-me/show-me_finishing-script_all.sh ];then /usr/local/bin/show-me/show-me_finishing-script_all.sh;fi
 
 cat <<-SSHCONF|su $(id -un 1000) -c 'tee ~/.ssh/config'
