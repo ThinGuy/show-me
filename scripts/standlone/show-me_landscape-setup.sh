@@ -383,7 +383,8 @@ landscape-config -t 'Landscape Server' -u "https://${CLOUD_APP_FQDN_LONG}/messag
 if [ -f /usr/local/bin/show-me_landscape_lxd-init.sh ];then /usr/local/bin/show-me_landscape_lxd-init.sh;fi
 if [ -f /usr/local/bin/add-landscape-clients-numbered.sh ];then /usr/local/bin/add-landscape-clients-numbered.sh;fi
 
-cat <<-SSHCONF |su $(id -un 1000) -c 'tee ~/.ssh/config'
+#### Create ssh config for access to landscape-client machines
+cat <<SSHCONF |su $(id -un 1000) -c 'tee ~/.ssh/config'
 Host 10.10.10.*
   AddressFamily inet
   AddKeysToAgent yes
