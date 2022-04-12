@@ -179,6 +179,9 @@ install -o 0 -g 0 -m 0600 /etc/ssl/private/show-me_host.key /etc/ssl/private/lan
 #### Create/Update Cloudflare DNS Record
 /usr/local/bin/show-me_update-dns.sh
 
+#### Update LXD Profile
+/usr/local/bin/show-me_rename-landscape-lxd-profile.sh
+
 #### Rename Apache2 Paramas
 export APACHE2_CONF=$(find /etc/apache2/sites-available -type f ! -iname "000*" ! -iname "default-ssl*")
 a2dissite ${APACHE2_CONF##*/}
