@@ -11,6 +11,8 @@ if [ -f /home/$(id -un 1000)/.show-me.rc ];then su $(id -un 1000) -c 'mv ~/.{sho
 #### unset CLOUD_* variables loaded via .bashrc
 unset $(set|grep -oE '^CLOUD_[^=]+'|paste -sd' ')
 
+
+
 ###########################################
 ###### pkg update and repo additions ######
 ###########################################
@@ -280,52 +282,11 @@ systemd-resolve --flush-caches
 systemd-resolve --status --no-pager|awk '/Global/,/internal/'
 
 
-#### Create bridge - Note: We are purposely not enabling IPv6 as it causes problems with
-#### erlang and rabbitmq when the AMI gets a new name/IP Address
 
-cat <<-V4NETPLAN |sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init.yaml
-network:
-  version: 2
-  renderer: networkd
-  ethernets:
-    ${CLOUD_ETH}:
-      optional: false
-      match:
-        macaddress: '${CLOUD_MAC}'
-      set-name: ${CLOUD_ETH}
-  bridges:
-    ${CLOUD_BRIDGE}:
-      macaddress: '${CLOUD_MAC}'
-      interfaces: ['${CLOUD_ETH}']
-      dhcp4: true
-      dhcp4-overrides:
-        use-dns: false
-        use-domains: false
-        use-hostname: false
-        hostname: ${CLOUD_APP}
-        route-metric: 1
-      optional: false
-      parameters:
-        priority: 1
-        stp: false
-V4NETPLAN
-
-#### Setup ipv4 forwarding for bridge
-cat <<-SYSCTL |tee 1>/dev/null /etc/sysctl.d/99-ip-forward.conf
-net.ipv4.ip_forward=1
-SYSCTL
-#### Load ip-forwarding prefs
-sysctl -p  /etc/sysctl.d/99-ip-forward.conf
-
-#### Remove netplan files from previous releases
-rm -f /etc/netplan/50-cloud-init_ipv*
 #### Make sure cloud-init does not overwrite our network config
 echo 'network: {config: disabled}'|tee 1>/dev/null /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
 #### Prefer IPv4 connections
 printf '%s\x20%s\x20\x20%s\n' precedence '::ffff:0:0/96' 100|tee 1>/dev/null /etc/gai.conf
-
-#### Apply all networking changes
-for NPA in generate generate apply apply;do netplan --debug ${NPA};done
 
 #### Disable ipv6 since we don't know if the user's VPC has it enabled.
 #### If IPv6 is not disabled, Erlang's epmd.socket only wants to bind to ipv6 regardless if
@@ -382,8 +343,15 @@ systemctl reload apache2
 
 #### Install landscape client
 DEBIAN_FRONTEND=noninteractive apt install landscape-client -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
+
+### Temp breakpoint
+exit 0
+
 #### Register self with landscape
 landscape-config -t 'Landscape Server' -u "https://${CLOUD_APP_FQDN_LONG}/message-system" --ping-url "http://${CLOUD_APP_FQDN_LONG}/ping" -a standalone -p landscape4u --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=landscape-server,show-me-demo,ubuntu --silent --log-level=debug
+
+#### Run lynx script
+if [ -f /usr/local/bin/show-me_lynx-web-init.sh ];then /usr/local/bin/show-me_lynx-web-init.sh;fi
 #### Initialize LXD.  LXD will be used to create additional landscape clients
 if [ -f /usr/local/bin/show-me_${CLOUD_APP}_lxd-init.sh ];then /usr/local/bin/show-me_${CLOUD_APP}_lxd-init.sh;fi
 #### Update LXD Profile
