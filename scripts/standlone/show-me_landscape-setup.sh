@@ -371,10 +371,11 @@ DEBIAN_FRONTEND=noninteractive apt install landscape-server-quickstart -o "Acqui
 
 export APACHE2_CONF=$(find /etc/apache2/sites-available -type f ! -iname "000*" ! -iname "default-ssl*")
 a2dissite ${APACHE2_CONF##*/}
+rm ${APACHE2_CONF}
 systemctl reload apache2
-if [ ! "${APACHE2_CONF##*/}" = "${CLOUD_APP}.ubuntu-show.me.conf" ];then mv ${APACHE2_CONF} /etc/apache2/sites-available/${CLOUD_APP}.ubuntu-show.me.conf;fi
+install -o 0 -g 0 -m 0644 /usr/local/lib/show-me/landscape-apache2.conf /etc/apache2/sites-available/${CLOUD_APP}.${CLOUD_APP}.ubuntu-show.me.conf
 export APACHE2_CONF=$(find /etc/apache2/sites-available -type f ! -iname "000*" ! -iname "default-ssl*")
-sed -r -i 's/'${CLOUD_LOCAL_FQDN}'/'${CLOUD_APP_FQDN_LONG}'/g' ${APACHE2_CONF}
+sed -r -i 's/@hostname@/'${CLOUD_APP_FQDN_LONG}'/g' ${APACHE2_CONF}
 a2ensite ${APACHE2_CONF##*/}
 systemctl reload apache2
 

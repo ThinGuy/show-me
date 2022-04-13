@@ -186,10 +186,11 @@ install -o 0 -g 0 -m 0600 /etc/ssl/private/show-me_host.key /etc/ssl/private/${C
 #### Rename Apache2 Params
 export APACHE2_CONF=$(find /etc/apache2/sites-available -type f ! -iname "000*" ! -iname "default-ssl*")
 a2dissite ${APACHE2_CONF##*/}
+rm ${APACHE2_CONF}
 systemctl reload apache2
-install -o 0 -g 0 -m 0644 /usr/local/lib/show-me/landscape-apache2.conf /etc/apache2/sites-available/${CLOUD_APP}.ubuntu-show.me
+install -o 0 -g 0 -m 0644 /usr/local/lib/show-me/landscape-apache2.conf /etc/apache2/sites-available/${CLOUD_APP}.${CLOUD_APP}.ubuntu-show.me.conf
 export APACHE2_CONF=$(find /etc/apache2/sites-available -type f ! -iname "000*" ! -iname "default-ssl*")
-sed -r -i 's/'${CLOUD_LOCAL_FQDN}'/'${CLOUD_APP_FQDN_LONG}'/g' ${APACHE2_CONF}
+sed -r -i 's/@hostname@/'${CLOUD_APP_FQDN_LONG}'/g' ${APACHE2_CONF}
 a2ensite ${APACHE2_CONF##*/}
 systemctl reload apache2
 
@@ -197,7 +198,6 @@ systemctl reload apache2
 command -v lsctl && { lsctl start; }
 
 if [ -f /usr/local/bin/show-me/show-me_finishing-script_all.sh ];then /usr/local/bin/show-me/show-me_finishing-script_all.sh;fi
-
 
 { [[ ${CLOUD_DEBUG} ]] &>/dev/null; } && { { set +x; } &>/dev/null; }
 
