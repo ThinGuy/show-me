@@ -237,7 +237,7 @@ sed -i -r '/127.0.1.1/d;s/^127.0.0.1.*$/127.0.0.1 localhost rabbit\n127.0.1.1 '$
 # Change prompt
 install -o0 -g0 -m00644 /dev/null /etc/profile.d/bash-prompt.sh
 echo "export NICKNAME=${CLOUD_APP}" > /etc/profile.d/bash-prompt.sh
-sed -r 's/@\\h:/@'"'"'${NICKNAME}'"'"':/' /etc/bash.bashrc
+sed -i -r 's/@\\h:/@'"'"'${NICKNAME}'"'"':/' /etc/bash.bashrc
 PS1='${debian_chroot:+($debian_chroot)}\u@'${NICKNAME}':\w\$ '
 [ "$(lsb_release -sr|sed 's/\.//g')" -lt "2004" ] && { hostnamectl set-hostname landscape; } || { hostnamectl hostname landscape; }
 echo "landscape"|tee /etc/hostname
