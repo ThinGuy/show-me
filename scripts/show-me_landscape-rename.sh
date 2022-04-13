@@ -5,20 +5,27 @@
 
 [[ $EUID -ne 0 ]] && { echo "${0##*/} must be run as root or via sudo";exit 1; } || { true; }
 
+
 ######################################
 #####  Rename Landscape Server  ######
 ######################################
 
+#### Ensure landscape is stopped
 lsctl stop
 
 
 #### Create copy of last show-me.rc incase we need to trouble shoot differences on machine
-#### typeset
-if [ -f ~/.show-me.rc ];then cp -a ~/.{show-me,last.show-me}.rc;fi;
+#### types
+if [ -f ~/.show-me.rc ];then mv ~/.{show-me,last.show-me}.rc;fi;
+if [ -f /home/$(id -un 1000)/.show-me.rc ];then su $(id -un 1000) -c 'mv ~/.{show-me,last.show-me}.rc';fi
+#### unset CLOUD_* variables loaded via .bashrc
+unset $(set|grep -oE '^CLOUD_[^=]+'|paste -sd' ')
+
 
 #### Show Me Params
-export CLOUD_ETH=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
 export CLOUD_BRIDGE="br0"
+export CLOUD_ETH=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
+[ "${CLOUD_ETH}" = "${CLOUD_BRIDGE}" ] && { export CLOUD_ETH=$(find /sys/devices -type l ! -path "*virt*" -iname "upper*"|awk '{gsub(/.*net\//,"");gsub(/\/upper_/," ");print $1}'|sort -uV); }
 export CLOUD_ARCH="$(dpkg --print-architecture)"
 export CLOUD_APP_GIT="https://github.com/ThinGuy/show-me.git"
 export CLOUD_APP="landscape"
@@ -26,19 +33,10 @@ export CLOUD_DOMAIN="ubuntu-show.me"
 export CLOUD_APP_DOMAIN="${CLOUD_APP}.${CLOUD_DOMAIN}"
 export CLOUD_DNS_IPV4='1.1.1.1,1.0.0.1'
 export CLOUD_FALLBACK_DNS_IPV4='9.9.9.9,149.112.112.112'
-export CLOUD_ETH=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
-export CLOUD_BRIDGE="br0"
-export CLOUD_ARCH="$(dpkg --print-architecture)"
-export CLOUD_APP_GIT="https://github.com/ThinGuy/show-me.git"
 export CLOUD_VENDOR="$(dmidecode -s bios-vendor|awk '{print tolower($1)}')"
-export CLOUD_ETH=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
-export CLOUD_BRIDGE="br0"
-export CLOUD_ARCH="$(dpkg --print-architecture)"
-export CLOUD_APP_GIT="https://github.com/ThinGuy/show-me.git"
-export CLOUD_VENDOR="$(dmidecode -s bios-vendor|awk '{print tolower($1)}')"
-export CLOUD_ARCH="$(dpkg --print-architecture)"
+[ "${CLOUD_VENDOR}" = "xen" ] && { export CLOUD_VENDOR=aws; }
 #### Dump dmi information as CLOUD_VM_ parameters
-eval "$(dmidecode -s 2>&1|awk '/^[ \t]+/{gsub(/^[ \t]+/,"");print}'|xargs -rn1 -P0 bash -c 'P="${0//-/_}";P=${P^^};export P=${P//-/_};printf "export CLOUD_VM_${P}=\x22$(dmidecode -s $0|grep -vi '"'"'not'"'"')\x22\n"'|sed 's/""$//g')"
+eval "$(dmidecode -s 2>&1|awk '/^[ \t]+/{gsub(/^[ \t]+/,"");print}'|xargs -rn1 -P0 bash -c 'P="${0//-/_}";P=${P^^};export P=${P//-/_};printf "export CLOUD_VM_${P}=\x22$(dmidecode -s $0|grep -vi '"'"'not'"'"')\x22\n"'|sed -r 's/""$//g;s/Xen|xen/aws/g')"
 #### Dump lsb-release info CLOUD_DISTRIB_ parameters
 eval "$(cat /etc/lsb-release|sed 's/^/export CLOUD_/g;s/"//g;s,\([^.*]\)=,&",g;s/$/"/')"
 
@@ -153,17 +151,20 @@ fi
 #### Create ~/.show-me.rc in a centralized location, then copy to
 #### users home dir and ensure it loads when they log on
 install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/
-((set|grep -E '^CANDID_|^CLOUD_|^LANDSCAPE_|^MAAS_|^PG_|^RBAC_|^SSP_|^MK8S_|^MO7K_|^MCLOUD_')|sed -r 's/^/export /g;s/\x22//g;s/\x27/\x22/g'|sed -r '/=$/d'|sort -uV)|tee /usr/local/lib/show-me/.show-me.rc
-if [ -f /usr/local/lib/show-me/.show-me.rc ];then cp /usr/local/lib/show-me/.show-me.rc /root/.;su $(id -un 1000) -c 'cp /usr/local/lib/show-me/.show-me.rc ~/';echo '[ -r ~/.show-me.rc ] && . ~/.show-me.rc'|tee -a /root/.bashrc|su $(id -un 1000) -c 'tee -a ~/.bashrc';fi
+((set|grep -E '^CANDID_|^CLOUD_|^LANDSCAPE_|^MAAS_|^PG_|^RBAC_|^SSP_|^MK8S_|^MO7K_|^MCLOUD_')|sed -r 's/^/export /g;s/\x22//g;s/\x27/\x22/g'|sed -r '/=$/d;s/Xen|xen/aws/g'|sort -uV)|tee /usr/local/lib/show-me/.show-me.rc
+if [ -f /usr/local/lib/show-me/.show-me.rc ];then cp /usr/local/lib/show-me/.show-me.rc /root/.;su $(id -un 1000) -c 'sed "/.show-me.rc/d" -i ~/.bashrc;cp /usr/local/lib/show-me/.show-me.rc ~/';sed -r -i '/.show-me.rc/d' ~/.bashrc;echo '[ -r ~/.show-me.rc ] && . ~/.show-me.rc'|tee -a /root/.bashrc|su $(id -un 1000) -c 'tee -a ~/.bashrc';fi
+
+#### Unset current variables and reload edited version
+if [ -f ~/.show-me.rc ];then unset $(set|grep -oE '^CLOUD_[^=]+'|paste -sd' ');. ~/.show-me.rc;fi;
+
 
 #### Set hostname under loopback
-sed -i -r 's/^127.0.0.1.*$/127.0.0.1\tlocalhost rabbit '${CLOUD_APP_FQDN_LONG}' '${CLOUD_PUBLIC_HOSTNAME}' '${CLOUD_LOCAL_HOSTNAME}'\n/' /etc/hosts
+sed -i -r '/127.0.1.1/d;s/^127.0.0.1.*$/127.0.0.1 localhost rabbit\n127.0.1.1 '${CLOUD_APP}' '${CLOUD_APP_FQDN_LONG}' '${CLOUD_PUBLIC_HOSTNAME}' '${CLOUD_LOCAL_HOSTNAME}'\n/' /etc/hosts
 
+#### Copy and install github scripts
 if [ -d /opt/show-me ];then { cd /opt/show-me && git pull; } else git clone ${CLOUD_APP_GIT} /opt/show-me;fi
-git clone ${CLOUD_APP_GIT} /opt/show-me;
 
 install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/
-
 find /opt/show-me/scripts -type f -name "*.sh" -exec install -o0 -g0 -m0755 {} /usr/local/bin/ \;
 find /opt/show-me/scripts -type f -name "*.lynx" -exec install -o0 -g0 -m0644 {} /usr/local/lib/show-me/ \;
 find /opt/show-me/scripts -type f -name "*.conf" -exec install -o0 -g0 -m0644 {} /usr/local/lib/show-me/ \;
@@ -172,26 +173,26 @@ find /opt/show-me/pki -type f -name "*.pub"  -exec install -o0 -g0 -m0644 {} /ho
 find /opt/show-me/pki -type f -name "*.pem"  -exec install -o0 -g0 -m0644 {} /etc/ssl/certs/ \;
 find /opt/show-me/pki -type f -name "*.key"  -exec install -o0 -g0 -m0600 {} /etc/ssl/private/ \;
 find /opt/show-me/pki -type f -name "*.crt"  -exec install -o0 -g0 -m0644 {} /etc/ssl/certs/ \;
-
-install -o 0 -g 0 -m 0644 /etc/ssl/certs/show-me_host.pem /etc/ssl/certs/landscape_server.pem
-install -o 0 -g 0 -m 0600 /etc/ssl/private/show-me_host.key /etc/ssl/private/landscape_server.key
+install -o 0 -g 0 -m 0644 /etc/ssl/certs/show-me_host.pem /etc/ssl/certs/${CLOUD_APP}_server.pem
+install -o 0 -g 0 -m 0600 /etc/ssl/private/show-me_host.key /etc/ssl/private/${CLOUD_APP}_server.key
 
 #### Create/Update Cloudflare DNS Record
 /usr/local/bin/show-me_update-dns.sh
 
 #### Update LXD Profile
-/usr/local/bin/show-me_rename-landscape-lxd-profile.sh
+/usr/local/bin/show-me_rename-${CLOUD_APP}-lxd-profile.sh
 
-#### Rename Apache2 Paramas
+#### Rename Apache2 Params
 export APACHE2_CONF=$(find /etc/apache2/sites-available -type f ! -iname "000*" ! -iname "default-ssl*")
 a2dissite ${APACHE2_CONF##*/}
 systemctl reload apache2
-install -o 0 -g 0 -m 0644 /usr/local/lib/show-me/landscape-apache2.conf /etc/apache2/sites-available/landscape.ubuntu-show.me
+install -o 0 -g 0 -m 0644 /usr/local/lib/show-me/landscape-apache2.conf /etc/apache2/sites-available/${CLOUD_APP}.ubuntu-show.me
 export APACHE2_CONF=$(find /etc/apache2/sites-available -type f ! -iname "000*" ! -iname "default-ssl*")
 sed -r -i 's/'${CLOUD_LOCAL_FQDN}'/'${CLOUD_APP_FQDN_LONG}'/g' ${APACHE2_CONF}
 a2ensite ${APACHE2_CONF##*/}
 systemctl reload apache2
 
+#### Start Landscape Server
 lsctl start
 
 if [ -f /usr/local/bin/show-me/show-me_finishing-script_all.sh ];then /usr/local/bin/show-me/show-me_finishing-script_all.sh;fi

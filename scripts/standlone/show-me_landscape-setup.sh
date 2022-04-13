@@ -5,6 +5,11 @@
 
 [[ $EUID -ne 0 ]] && { echo "${0##*/} must be run as root or via sudo";exit 1; } || { true; }
 
+# In case this is the base AMI, make a copy of last .show-me.rc
+if [ -f ~/.show-me.rc ];then mv ~/.{show-me,last.show-me}.rc;fi;
+if [ -f /home/$(id -un 1000)/.show-me.rc ];then su $(id -un 1000) -c 'mv ~/.{show-me,last.show-me}.rc';fi
+#### unset CLOUD_* variables loaded via .bashrc
+unset $(set|grep -oE '^CLOUD_[^=]+'|paste -sd' ')
 
 ###########################################
 ###### pkg update and repo additions ######
@@ -14,7 +19,7 @@
 
 DEBIAN_FRONTEND=noninteractive apt -o "Acquire::ForceIPv4=true" update;
 DEBIAN_FRONTEND=noninteractive apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
-DEBIAN_FRONTEND=noninteractive apt install jq -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
+DEBIAN_FRONTEND=noninteractive apt install build-essential curl debconf-utils dnsutils git gnupg jq language-pack-en language-pack-en-base lynx make p7zip p7zip-full python python3 software-properties-common ssl-cert tree unzip vim wget zip -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
 
 #### If Bionic, remove deb-based LXD as there is no upgrade path and we don't want to run the conversion
 [ "$(lsb_release -sr|sed 's/\.//g')" -le "1804" ] && { DEBIAN_FRONTEND=noninteractive apt remove lxd lxd-client -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge; }
@@ -42,10 +47,13 @@ DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales
 
 #### Ensure cloud-init does not change our hostname(s)
 if [ /etc/cloud/cloud.cfg ];then sed 's/preserve_hostname: false/preserve_hostname: true/g' -i /etc/cloud/cloud.cfg;fi
+#### Ensure cloud-init does not change our networking
+echo 'network: {config: disabled}' > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
 
 #### Show Me Params
-export CLOUD_ETH=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
 export CLOUD_BRIDGE="br0"
+export CLOUD_ETH=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
+[ "${CLOUD_ETH}" = "${CLOUD_BRIDGE}" ] && { export CLOUD_ETH=$(find /sys/devices -type l ! -path "*virt*" -iname "upper*"|awk '{gsub(/.*net\//,"");gsub(/\/upper_/," ");print $1}'|sort -uV); }
 export CLOUD_ARCH="$(dpkg --print-architecture)"
 export CLOUD_APP_GIT="https://github.com/ThinGuy/show-me.git"
 export CLOUD_APP="landscape"
@@ -53,19 +61,10 @@ export CLOUD_DOMAIN="ubuntu-show.me"
 export CLOUD_APP_DOMAIN="${CLOUD_APP}.${CLOUD_DOMAIN}"
 export CLOUD_DNS_IPV4='1.1.1.1,1.0.0.1'
 export CLOUD_FALLBACK_DNS_IPV4='9.9.9.9,149.112.112.112'
-export CLOUD_ETH=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
-export CLOUD_BRIDGE="br0"
-export CLOUD_ARCH="$(dpkg --print-architecture)"
-export CLOUD_APP_GIT="https://github.com/ThinGuy/show-me.git"
 export CLOUD_VENDOR="$(dmidecode -s bios-vendor|awk '{print tolower($1)}')"
-export CLOUD_ETH=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
-export CLOUD_BRIDGE="br0"
-export CLOUD_ARCH="$(dpkg --print-architecture)"
-export CLOUD_APP_GIT="https://github.com/ThinGuy/show-me.git"
-export CLOUD_VENDOR="$(dmidecode -s bios-vendor|awk '{print tolower($1)}')"
-export CLOUD_ARCH="$(dpkg --print-architecture)"
+[ "${CLOUD_VENDOR}" = "xen" ] && { export CLOUD_VENDOR=aws; }
 #### Dump dmi information as CLOUD_VM_ parameters
-eval "$(dmidecode -s 2>&1|awk '/^[ \t]+/{gsub(/^[ \t]+/,"");print}'|xargs -rn1 -P0 bash -c 'P="${0//-/_}";P=${P^^};export P=${P//-/_};printf "export CLOUD_VM_${P}=\x22$(dmidecode -s $0|grep -vi '"'"'not'"'"')\x22\n"'|sed 's/""$//g')"
+eval "$(dmidecode -s 2>&1|awk '/^[ \t]+/{gsub(/^[ \t]+/,"");print}'|xargs -rn1 -P0 bash -c 'P="${0//-/_}";P=${P^^};export P=${P//-/_};printf "export CLOUD_VM_${P}=\x22$(dmidecode -s $0|grep -vi '"'"'not'"'"')\x22\n"'|sed -r 's/""$//g;s/Xen|xen/aws/g')"
 #### Dump lsb-release info CLOUD_DISTRIB_ parameters
 eval "$(cat /etc/lsb-release|sed 's/^/export CLOUD_/g;s/"//g;s,\([^.*]\)=,&",g;s/$/"/')"
 
@@ -132,7 +131,6 @@ export CLOUD_PLACEMENT_REGION="$(curl -sSlL ${CLOUD_METADATA_URL}/placement/regi
 export CLOUD_PRODUCT_CODES="$(curl -sSlL ${CLOUD_METADATA_URL}/product-codes|sed -r '/<|\x22/d')"
 export CLOUD_PUBLIC_IPV4="$(curl -sSlL ${CLOUD_METADATA_URL}/public-ipv4|sed -r '/<|\x22/d')"
 export CLOUD_PUBLIC_FQDN="$(dig +short -x $(dig +short myip.opendns.com @resolver1.opendns.com) @resolver1.opendns.com|sed 's,\.$,,g')"
-export CLOUD_PUBLIC_FQDN="$(dig +short -x $(dig +short myip.opendns.com @resolver1.opendns.com) @resolver1.opendns.com|sed 's,\.$,,g')"
 [ -z "${CLOUD_PUBLIC_FQDN}" ] && { export CLOUD_PUBLIC_FQDN="${CLOUD_PUBLIC_HOSTNAME}.${CLOUD_PLACEMENT_REGION}.compute.${CLOUD_SERVICES_DOMAIN}"; }
 [ -z "${CLOUD_PUBLIC_FQDN}" ] && export CLOUD_PUBLIC_FQDN="$(dig +short -x $(dig +short myip.opendns.com @resolver1.opendns.com) @resolver1.opendns.com|sed 's,\.$,,g')"
 export CLOUD_PUBLIC_HOSTNAME="$(curl -sSlL ${CLOUD_METADATA_URL}/public-hostname|sed -r 's/\..*$//g;/<|\x22/d')"
@@ -180,13 +178,12 @@ fi
 #### Create ~/.show-me.rc in a centralized location, then copy to
 #### users home dir and ensure it loads when they log on
 install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/
-((set|grep -E '^CANDID_|^CLOUD_|^LANDSCAPE_|^MAAS_|^PG_|^RBAC_|^SSP_|^MK8S_|^MO7K_|^MCLOUD_')|sed -r 's/^/export /g;s/\x22//g;s/\x27/\x22/g'|sed -r '/=$/d'|sort -uV)|tee /usr/local/lib/show-me/.show-me.rc
+((set|grep -E '^CANDID_|^CLOUD_|^LANDSCAPE_|^MAAS_|^PG_|^RBAC_|^SSP_|^MK8S_|^MO7K_|^MCLOUD_')|sed -r 's/^/export /g;s/\x22//g;s/\x27/\x22/g'|sed -r '/=$/d;s/Xen|xen/aws/g'|sort -uV)|tee /usr/local/lib/show-me/.show-me.rc
 if [ -f /usr/local/lib/show-me/.show-me.rc ];then cp /usr/local/lib/show-me/.show-me.rc /root/.;su $(id -un 1000) -c 'cp /usr/local/lib/show-me/.show-me.rc ~/';echo '[ -r ~/.show-me.rc ] && . ~/.show-me.rc'|tee -a /root/.bashrc|su $(id -un 1000) -c 'tee -a ~/.bashrc';fi
 
 #### Cleanup/Prepare Show-Me files
-if [ -f ~/.show-me.rc ];then . ~/.show-me.rc;fi;
-if [ -d /opt/show-me ];then rm -rf /opt/show-me;fi;
-git clone ${CLOUD_APP_GIT} /opt/show-me;
+if [ -f ~/.show-me.rc ];then unset $(set|grep -oE '^CLOUD_[^=]+'|paste -sd' ');. ~/.show-me.rc;fi;
+if [ -d /opt/show-me ];then { cd /opt/show-me && git pull; };else git clone ${CLOUD_APP_GIT} /opt/show-me;fi
 
 install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/
 
@@ -230,16 +227,17 @@ APTPREFS
 #### Update Package indexes
 apt -o "Acquire::ForceIPv4=true" update
 
-#### Install pre-reqs
-DEBIAN_FRONTEND=noninteractive apt install build-essential curl debconf-utils dnsutils git gnupg jq lynx make p7zip p7zip-full software-properties-common ssl-cert tree unzip vim wget zip -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
-
 # Fix/Set Hostname and Name resolution
-sed -i -r 's/^127.0.0.1.*$/127.0.0.1\tlocalhost rabbit '${CLOUD_APP_FQDN_LONG}' '${CLOUD_PUBLIC_HOSTNAME}' '${CLOUD_LOCAL_HOSTNAME}'\n/' /etc/hosts
+sed -i -r '/127.0.1.1/d;s/^127.0.0.1.*$/127.0.0.1 localhost rabbit\n127.0.1.1 '${CLOUD_APP}' '${CLOUD_APP_FQDN_LONG}' '${CLOUD_PUBLIC_HOSTNAME}' '${CLOUD_LOCAL_HOSTNAME}'\n/' /etc/hosts
 
-[ "$(lsb_release -sr|sed 's/\.//g')" -lt "2004" ] && { hostnamectl set-hostname ${CLOUD_PUBLIC_HOSTNAME}; } || { hostnamectl hostname ${CLOUD_PUBLIC_HOSTNAME}; }
-echo "${CLOUD_PUBLIC_HOSTNAME}"|tee /etc/hostname
-export HOSTNAME="${CLOUD_PUBLIC_HOSTNAME}"
-
+# Change prompt
+install -o0 -g0 -m00644 /dev/null /etc/profile.d/bash-prompt.sh
+echo "export NICKNAME=${CLOUD_APP}" > /etc/profile.d/bash-prompt.sh
+sed -r 's/@\\h:/@'"'"'${NICKNAME}'"'"':/' /etc/bash.bashrc
+PS1='${debian_chroot:+($debian_chroot)}\u@'${NICKNAME}':\w\$ '
+[ "$(lsb_release -sr|sed 's/\.//g')" -lt "2004" ] && { hostnamectl set-hostname landscape; } || { hostnamectl hostname landscape; }
+echo "landscape"|tee /etc/hostname
+export HOSTNAME="landscape"
 
 #### Due to issues with erlang and rabbitmq after AMI gets new name/addresses
 #### We will be disabling IPv6, so ensure only IPV4 DNS servers are used
@@ -253,23 +251,23 @@ export CLOUD_FALLBACK_DNS="${CLOUD_FALLBACK_DNS_IPV4}"
 rm -rf /etc/resolv.conf
 cat <<-RESOLV |tee 1>/dev/null /etc/systemd/resolved.conf
 [Resolve]
-DNS=$(printf "${CLOUD_DNS//,/ }")
-FallbackDNS=$(printf "${CLOUD_FALLBACK_DNS//,/ }")
-Domains=${CLOUD_APP_DOMAIN} ${CLOUD_DOMAIN}
+DNS=$(printf "${CLOUD_DNS//,/ }") $(systemd-resolve --status eth0|awk '/Servers:/{print $3}')
+FallbackDNS=$(printf "${CLOUD_FALLBACK_DNS//,/ }") $(systemd-resolve --status eth0|awk '/Servers:/{print $3}')
+Domains=${CLOUD_APP_DOMAIN} ${CLOUD_DOMAIN} ${CLOUD_LOCAL_DOMAIN}
 DNSSEC=allow-downgrade
 DNSOverTLS=opportunistic
 MulticastDNS=yes
 LLMNR=yes
 Cache=no-negative
 CacheFromLocalhost=yes
-DNSStubListener=yes
+DNSStubListener=no
 DNSStubListenerExtra='127.0.0.1:9953'
 ReadEtcHosts=yes
 ResolveUnicastSingleLabel=yes
 RESOLV
 
 #### Remove systemd-resolved parameters that are only in focal or greater
-if [ "${CLOUD_DISTRIB_RELEASE//.}" -lt "2004" ];then sed -r -i '/ReadEtc|DNSOver|Unicast|DNSStub/d' /etc/systemd/resolved.conf;fi
+if [ "${CLOUD_DISTRIB_RELEASE//.}" -lt "2004" ];then sed -r -i '/ReadEtc|DNSOver|Unicast|StubListenerExtra|CacheFrom/d' /etc/systemd/resolved.conf;fi
 ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
 
 #### Restart networkd and resolved so our changes take effect
@@ -300,6 +298,9 @@ network:
       dhcp4: true
       dhcp4-overrides:
         use-dns: false
+        use-domains: false
+        use-hostname: false
+        hostname: ${CLOUD_APP}
         route-metric: 1
       optional: false
       parameters:
