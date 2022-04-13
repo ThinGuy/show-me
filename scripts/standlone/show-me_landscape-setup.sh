@@ -362,15 +362,15 @@ RABBITENV
 
 
 #### Handle app-specific show-me files
-install -o 0 -g 0 -m 0644 /etc/ssl/certs/show-me_host.pem /etc/ssl/certs/landscape_server.pem
-install -o 0 -g 0 -m 0600 /etc/ssl/private/show-me_host.key /etc/ssl/private/landscape_server.key
+install -o 0 -g 0 -m 0644 /etc/ssl/certs/show-me_host.pem /etc/ssl/certs/${CLOUD_APP}_server.pem
+install -o 0 -g 0 -m 0600 /etc/ssl/private/show-me_host.key /etc/ssl/private/${CLOUD_APP}_server.key
 
 DEBIAN_FRONTEND=noninteractive apt install landscape-server-quickstart -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
 
 export APACHE2_CONF=$(find /etc/apache2/sites-available -type f ! -iname "000*" ! -iname "default-ssl*")
 a2dissite ${APACHE2_CONF##*/}
 systemctl reload apache2
-if [ ! "${APACHE2_CONF##*/}" = "landscape.ubuntu-show.me.conf" ];then mv ${APACHE2_CONF} /etc/apache2/sites-available/landscape.ubuntu-show.me.conf;fi
+if [ ! "${APACHE2_CONF##*/}" = "${CLOUD_APP}.ubuntu-show.me.conf" ];then mv ${APACHE2_CONF} /etc/apache2/sites-available/${CLOUD_APP}.ubuntu-show.me.conf;fi
 export APACHE2_CONF=$(find /etc/apache2/sites-available -type f ! -iname "000*" ! -iname "default-ssl*")
 sed -r -i 's/'${CLOUD_LOCAL_FQDN}'/'${CLOUD_APP_FQDN_LONG}'/g' ${APACHE2_CONF}
 a2ensite ${APACHE2_CONF##*/}
@@ -379,8 +379,8 @@ systemctl reload apache2
 DEBIAN_FRONTEND=noninteractive apt install landscape-client -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
 
 landscape-config -t 'Landscape Server' -u "https://${CLOUD_APP_FQDN_LONG}/message-system" --ping-url "http://${CLOUD_APP_FQDN_LONG}/ping" -a standalone -p landscape4u --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=landscape-server,show-me-demo,ubuntu --silent --log-level=debug
-if [ -f /usr/local/bin/show-me_landscape_lxd-init.sh ];then /usr/local/bin/show-me_landscape_lxd-init.sh;fi
-if [ -f /usr/local/bin/add-landscape-clients-numbered.sh ];then /usr/local/bin/add-landscape-clients-numbered.sh;fi
+if [ -f /usr/local/bin/show-me_${CLOUD_APP}_lxd-init.sh ];then /usr/local/bin/show-me_${CLOUD_APP}_lxd-init.sh;fi
+if [ -f /usr/local/bin/add-${CLOUD_APP}-clients-numbered.sh ];then /usr/local/bin/add-${CLOUD_APP}-clients-numbered.sh;fi
 
 #### Create ssh config for access to landscape-client machines
 cat <<SSHCONF |su $(id -un 1000) -c 'tee ~/.ssh/config'
@@ -407,8 +407,7 @@ if [ -f /usr/local/bin/show-me/show-me_finishing-script_all.sh ];then /usr/local
 { [[ ${CLOUD_DEBUG} ]] &>/dev/null; } && { { set +x; } &>/dev/null; }
 
 
-
-exit
+exit 0
 
 
 

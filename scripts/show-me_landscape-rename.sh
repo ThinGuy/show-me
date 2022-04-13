@@ -174,11 +174,11 @@ find /opt/show-me/pki -type f -name "*.crt"  -exec install -o0 -g0 -m0644 {} /et
 install -o 0 -g 0 -m 0644 /etc/ssl/certs/show-me_host.pem /etc/ssl/certs/${CLOUD_APP}_server.pem
 install -o 0 -g 0 -m 0600 /etc/ssl/private/show-me_host.key /etc/ssl/private/${CLOUD_APP}_server.key
 
-# Quit rename script at this point is landscape is not installed
-[ "$(apt-cache policy landscape-server-quickstart|awk -F'\\(|\\)' '/Installed:/{print tolower($2)}')" = "none" ] && exit 0
-
 #### Create/Update Cloudflare DNS Record
 /usr/local/bin/show-me_update-dns.sh
+
+# Quit rename script at this point is landscape is not installed
+[ "$(apt-cache policy landscape-server-quickstart|awk -F'\\(|\\)' '/Installed:/{print tolower($2)}')" = "none" ] && exit 0
 
 #### Update LXD Profile
 /usr/local/bin/show-me_rename-${CLOUD_APP}-lxd-profile.sh
