@@ -147,7 +147,6 @@ elif [ -n "${CLOUD_PUBLIC_IPV4}" -a -n "${CLOUD_IPV6}" ];then
   export CLOUD_FALLBACK_DNS="${CLOUD_FALLBACK_DNS_IPV4},${CLOUD_FALLBACK_DNS_IPV6}"
 fi
 
-
 #### Create ~/.show-me.rc in a centralized location, then copy to
 #### users home dir and ensure it loads when they log on
 install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/
@@ -156,7 +155,6 @@ if [ -f /usr/local/lib/show-me/.show-me.rc ];then cp /usr/local/lib/show-me/.sho
 
 #### Unset current variables and reload edited version
 if [ -f ~/.show-me.rc ];then unset $(set|grep -oE '^CLOUD_[^=]+'|paste -sd' ');. ~/.show-me.rc;fi;
-
 
 #### Set hostname under loopback
 sed -i -r '/127.0.1.1/d;s/^127.0.0.1.*$/127.0.0.1 localhost rabbit\n127.0.1.1 '${CLOUD_APP}' '${CLOUD_APP_FQDN_LONG}' '${CLOUD_PUBLIC_HOSTNAME}' '${CLOUD_LOCAL_HOSTNAME}'\n/' /etc/hosts
@@ -175,6 +173,9 @@ find /opt/show-me/pki -type f -name "*.key"  -exec install -o0 -g0 -m0600 {} /et
 find /opt/show-me/pki -type f -name "*.crt"  -exec install -o0 -g0 -m0644 {} /etc/ssl/certs/ \;
 install -o 0 -g 0 -m 0644 /etc/ssl/certs/show-me_host.pem /etc/ssl/certs/${CLOUD_APP}_server.pem
 install -o 0 -g 0 -m 0600 /etc/ssl/private/show-me_host.key /etc/ssl/private/${CLOUD_APP}_server.key
+
+# Quit rename script at this point is landscape is not installed
+[ "$(apt-cache policy landscape-server-quickstart|awk -F'\\(|\\)' '/Installed:/{print tolower($2)}')" = "none" ] && exit 0
 
 #### Create/Update Cloudflare DNS Record
 /usr/local/bin/show-me_update-dns.sh

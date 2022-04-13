@@ -174,7 +174,6 @@ elif [ -n "${CLOUD_PUBLIC_IPV4}" -a -n "${CLOUD_IPV6}" ];then
   export CLOUD_FALLBACK_DNS="${CLOUD_FALLBACK_DNS_IPV4},${CLOUD_FALLBACK_DNS_IPV6}"
 fi
 
-
 #### Create ~/.show-me.rc in a centralized location, then copy to
 #### users home dir and ensure it loads when they log on
 install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/
@@ -218,16 +217,17 @@ DEBIAN_FRONTEND=noninteractive apt dist-upgrade -o "Acquire::ForceIPv4=true" -yq
 
 #### Ensure backports will always be used for rabbit and erlang
 #### Needed for rabbitmq-server/erlang issues http://pad.lv/1808766
-cat <<-APTPREFS |tee 1>/dev/null /etc/apt/preferences.d/bionic-backports-prefs
-Package: rabbitmq* erlang*
-Pin: release a=bionic-backports
-Pin-Priority: 500
-APTPREFS
+#cat <<-APTPREFS |tee 1>/dev/null /etc/apt/preferences.d/bionic-backports-prefs
+#Package: rabbitmq* erlang*
+#Pin: release a=bionic-backports
+#Pin-Priority: 500
+#APTPREFS
 
-#### Update Package indexes
-apt -o "Acquire::ForceIPv4=true" update
+#### Update Package indexes to pick up backports change
+#DEBIAN_FRONTEND=noninteractive apt -o "Acquire::ForceIPv4=true" update;
+#DEBIAN_FRONTEND=noninteractive apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
 
-# Fix/Set Hostname and Name resolution
+# Set Hostname and Name resolution
 sed -i -r '/127.0.1.1/d;s/^127.0.0.1.*$/127.0.0.1 localhost rabbit\n127.0.1.1 '${CLOUD_APP}' '${CLOUD_APP_FQDN_LONG}' '${CLOUD_PUBLIC_HOSTNAME}' '${CLOUD_LOCAL_HOSTNAME}'\n/' /etc/hosts
 
 # Change prompt
