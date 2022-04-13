@@ -4,7 +4,7 @@
 # Arg2 = -nostatus
 # Arg3 = -cmd_log=landscape.lynx
 # Arg4 = https://localhost/new-standalone-user
-key l
+key L
 key a
 key n
 key d
@@ -13,23 +13,23 @@ key c
 key a
 key p
 key e
-key -
-key a
+key <space>
+key A
 key d
 key m
 key i
 key n
+key i
+key s
+key t
+key r
+key a
+key t
+key o
+key r
 key <tab>
 key l
-key a
-key n
-key d
 key s
-key c
-key a
-key p
-key e
-key -
 key a
 key d
 key m

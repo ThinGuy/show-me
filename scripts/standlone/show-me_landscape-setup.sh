@@ -49,10 +49,8 @@ DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales
 
 #### Ensure cloud-init does not change our hostname(s)
 if [ /etc/cloud/cloud.cfg ];then sed 's/preserve_hostname: false/preserve_hostname: true/g' -i /etc/cloud/cloud.cfg;fi
-#### Remove cloud-init modules that deal with hostnames/etc/hosts
-sed -i -r '/set_host|update_host|update_etc/d' /etc/cloud/cloud.cfg
-#### Ensure cloud-init does not change our networking
-echo 'network: {config: disabled}' > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+
+
 
 #### Show Me Params
 export CLOUD_BRIDGE="br0"
@@ -238,7 +236,7 @@ sed -i -r '/127.0.1.1/d;s/^127.0.0.1.*$/127.0.0.1 localhost rabbit\n127.0.1.1 '$
 install -o0 -g0 -m00644 /dev/null /etc/profile.d/bash-prompt.sh
 echo "export NICKNAME=${CLOUD_APP}" > /etc/profile.d/bash-prompt.sh
 sed -i -r 's/@\\h:/@'"'"'${NICKNAME}'"'"':/' /etc/bash.bashrc
-PS1='${debian_chroot:+($debian_chroot)}\u@'${NICKNAME}':\w\$ '
+export PS1='${debian_chroot:+($debian_chroot)}\u@'${NICKNAME}':\w\$ '
 [ "$(lsb_release -sr|sed 's/\.//g')" -lt "2004" ] && { hostnamectl set-hostname landscape; } || { hostnamectl hostname landscape; }
 echo "landscape"|tee /etc/hostname
 export HOSTNAME="landscape"
@@ -344,20 +342,17 @@ systemctl reload apache2
 #### Install landscape client
 DEBIAN_FRONTEND=noninteractive apt install landscape-client -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
 
-### Temp breakpoint
-exit 0
+#### Run lynx script
+if [ -f /usr/local/bin/show-me_lynx-web-init.sh ];then /usr/local/bin/show-me_lynx-web-init.sh;fi
 
 #### Register self with landscape
 landscape-config -t 'Landscape Server' -u "https://${CLOUD_APP_FQDN_LONG}/message-system" --ping-url "http://${CLOUD_APP_FQDN_LONG}/ping" -a standalone -p landscape4u --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=landscape-server,show-me-demo,ubuntu --silent --log-level=debug
-
-#### Run lynx script
-if [ -f /usr/local/bin/show-me_lynx-web-init.sh ];then /usr/local/bin/show-me_lynx-web-init.sh;fi
 #### Initialize LXD.  LXD will be used to create additional landscape clients
 if [ -f /usr/local/bin/show-me_${CLOUD_APP}_lxd-init.sh ];then /usr/local/bin/show-me_${CLOUD_APP}_lxd-init.sh;fi
 #### Update LXD Profile
 if [ -f /usr/local/bin/show-me_rename-${CLOUD_APP}-lxd-profile.sh ];then /usr/local/bin/show-me_rename-${CLOUD_APP}-lxd-profile.sh;fi
 #### Launch a variety of ubuntu releases, which will self-register with Landscape
-if [ -f /usr/local/bin/add-${CLOUD_APP}-clients-numbered.sh ];then /usr/local/bin/add-${CLOUD_APP}-clients-numbered.sh;fi
+if [ -f /usr/local/bin/add-${CLOUD_APP}-clients-numbered.sh ];then /usr/local/bin/add-${CLOUD_APP}-clients-numbered.sh 1;fi
 
 #### Create ssh config for access to landscape-client machines
 cat <<SSHCONF |su $(id -un 1000) -c 'tee ~/.ssh/config'
