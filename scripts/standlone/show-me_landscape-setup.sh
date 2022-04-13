@@ -308,8 +308,6 @@ network:
         stp: false
 V4NETPLAN
 
-
-
 #### Setup ipv4 forwarding for bridge
 cat <<-SYSCTL |tee 1>/dev/null /etc/sysctl.d/99-ip-forward.conf
 net.ipv4.ip_forward=1
