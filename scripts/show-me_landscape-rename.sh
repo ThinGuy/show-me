@@ -11,7 +11,7 @@
 ######################################
 
 #### Ensure landscape is stopped
-lsctl stop
+command -v lsctl && { lsctl stop; }
 
 
 #### Create copy of last show-me.rc incase we need to trouble shoot differences on machine
@@ -194,7 +194,7 @@ a2ensite ${APACHE2_CONF##*/}
 systemctl reload apache2
 
 #### Start Landscape Server
-lsctl start
+command -v lsctl && { lsctl start; }
 
 if [ -f /usr/local/bin/show-me/show-me_finishing-script_all.sh ];then /usr/local/bin/show-me/show-me_finishing-script_all.sh;fi
 

@@ -47,6 +47,8 @@ DEBIAN_FRONTEND=noninteractive dpkg-reconfigure locales
 
 #### Ensure cloud-init does not change our hostname(s)
 if [ /etc/cloud/cloud.cfg ];then sed 's/preserve_hostname: false/preserve_hostname: true/g' -i /etc/cloud/cloud.cfg;fi
+#### Remove cloud-init modules that deal with hostnames/etc/hosts
+sed -i -r '/set_host|update_host|update_etc/d' /etc/cloud/cloud.cfg
 #### Ensure cloud-init does not change our networking
 echo 'network: {config: disabled}' > /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
 
