@@ -67,7 +67,7 @@ How to launch the Show Me Landscape demostration on AWS
    1. Look for the Public IPv4 DNS
    2. Copy just the hostname (everything before the first period) of the the entire string
 
-![aws-hostname.png](https://res.craft.do/user/full/c77657e5-9e28-d05f-4e4a-7dcb63007be8/doc/230AF8C9-4B03-49A6-85A9-6D5689509242/48A937AF-8119-46D9-A26E-06C119836D3A_2/yct1wyXB3qP8RefAl2KjvHvryfFX7ZW3avmCMNfXyjgz/aws-hostname.png)
+![aws-hostname.png](https://github.com/ThinGuy/show-me/blob/main/docs/aws-hostname.png)
 
       1. Once the machine has passed its "Instance Status Checks",  point your browser to:
 
@@ -75,32 +75,32 @@ How to launch the Show Me Landscape demostration on AWS
 
 *Where <your-aws-hostname> is replace by part you just copied*
 
-![navigate-to.png](https://res.craft.do/user/full/c77657e5-9e28-d05f-4e4a-7dcb63007be8/doc/230AF8C9-4B03-49A6-85A9-6D5689509242/A19A9066-0DC4-4979-9C22-D39689170E7D_2/vC67bfLD7cjnK5bceuJ9NUxW3zcynoFhBBb0itMaGGwz/navigate-to.png)
+![navigate-to.png](https://github.com/ThinGuy/show-me/blob/main/docs/navigate-to.png)
 
    1. You should be presented with a login screen for landscape
 
-![landscape-1.png](https://res.craft.do/user/full/c77657e5-9e28-d05f-4e4a-7dcb63007be8/doc/230AF8C9-4B03-49A6-85A9-6D5689509242/986A24EC-05E3-4CFD-82BA-A442A07267B6_2/MuQswwjSl9LyCxf7Dlm052cvRNexKoCZw9ZAptK4Nx0z/landscape-1.png)
+![landscape-1.png](https://github.com/ThinGuy/show-me/blob/main/docs/landscape-1.png)
 
 1. **Login to Landsacpe**
    1. Credentials are as follows:
       - E-mail address: lsadmin@landscape.ubuntu-show.me
       - Password: ubuntu
 
-![landscape-2.png](https://res.craft.do/user/full/c77657e5-9e28-d05f-4e4a-7dcb63007be8/doc/230AF8C9-4B03-49A6-85A9-6D5689509242/C6E9C0D4-433A-42A9-BBB3-C611CC2AC12A_2/VjHF5xWrLHIdx2dIv7vzxKNwR77yVVtiGRiVG1OFfeMz/landscape-2.png)
+![landscape-2.png](https://github.com/ThinGuy/show-me/blob/main/docs/landscape-2.png)
 
          1. After logging in, you should be presented with the main dash board
          2. This build comes with pre-initiated [LXD ](https://linuxcontainers.org/lxd/introduction/)containers to act as clientsz
 
-![landscape-3.png](https://res.craft.do/user/full/c77657e5-9e28-d05f-4e4a-7dcb63007be8/doc/230AF8C9-4B03-49A6-85A9-6D5689509242/52FDE9DB-B664-46B5-8536-651566FA35E8_2/93urgYB9O6v3vyUtTS3ymQxffZYesE3egF7Tg2xhm7oz/landscape-3.png)
+![landscape-3.png](https://github.com/ThinGuy/show-me/blob/main/docs/landscape-3.png)
 
             - The server has also registered itself as well.
             - You can automatically add more clients using either `add-landscape-clients-numbered.sh` or `add-landscape-clients-petnames.sh` scripts.
             - These scripts are located in `/usr/local/bin`.
             - You can also register any Ubuntu instance by following the instruction link on the left side of the dashboard.
 
-![register-new.png](https://res.craft.do/user/full/c77657e5-9e28-d05f-4e4a-7dcb63007be8/doc/230AF8C9-4B03-49A6-85A9-6D5689509242/DF61AE32-D9A2-4535-BFF7-C7329B855645_2/i7xWtMWfH9iPU7EQxrxoGaydL7gcdRH0NL40UG5B5I0z/register-new.png)
+![register-new.png](https://github.com/ThinGuy/show-me/blob/main/docs/register-new.png)
 
 **Have fun exploring Canonical Landscape**
 
-![landscape-4.png](https://res.craft.do/user/full/c77657e5-9e28-d05f-4e4a-7dcb63007be8/doc/230AF8C9-4B03-49A6-85A9-6D5689509242/85D823EE-D93F-4556-B795-C328CDF77CCE_2/J8vWFNp2e9szk7sJwufjzyfbO8afnGGEdWtXk8VrfLMz/landscape-4.png)
+![landscape-4.png](https://github.com/ThinGuy/show-me/blob/main/docs/landscape-4.png)
 
