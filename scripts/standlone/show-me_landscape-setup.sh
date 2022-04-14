@@ -355,7 +355,7 @@ if [ -f /usr/local/bin/show-me_rename-${CLOUD_APP}-lxd-profile.sh ];then /usr/lo
 if [ -f /usr/local/bin/add-${CLOUD_APP}-clients-numbered.sh ];then /usr/local/bin/add-${CLOUD_APP}-clients-numbered.sh 1;fi
 
 #### Create ssh config for access to landscape-client machines
-cat <<SSHCONF |su $(id -un 1000) -c 'tee ~/.ssh/config'
+cat <<SSHCONF |su $(id -un 1000) -c 'tee 1>/dev/null -a ~/.ssh/config'
 Host 10.10.10.*
   AddressFamily inet
   AddKeysToAgent yes
