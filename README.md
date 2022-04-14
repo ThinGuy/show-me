@@ -21,7 +21,7 @@ How to launch the Show Me Landscape demostration on AWS
 	  - [eu-west-2](https://console.aws.amazon.com/ec2/v2/home?region=eu-west-2#LaunchInstanceWizard:ami=ami-08dc4ca0d790b5dfa) London
 	  - [eu-central-1](https://console.aws.amazon.com/ec2/v2/home?region=eu-central-1#LaunchInstanceWizard:ami=ami-0b054c91f11cd9fb8) Frankfurt
 	  - [ap-southeast-2](https://console.aws.amazon.com/ec2/v2/home?region=ap-southeast-2#LaunchInstanceWizard:ami=ami-0458f5f08b5f0a7cd) Sydney
-		- [sa-east-1](https://console.aws.amazon.com/ec2/v2/home?region=sa-east-1#LaunchInstanceWizard:ami=ami-0f44f06e094cb8b90) São Paulo
+	  - [sa-east-1](https://console.aws.amazon.com/ec2/v2/home?region=sa-east-1#LaunchInstanceWizard:ami=ami-0f44f06e094cb8b90) São Paulo
 
 2. **Launch an instance**
    - Instance Type:
