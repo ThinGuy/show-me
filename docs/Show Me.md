@@ -17,7 +17,7 @@ How to launch the Show Me Landscape demostration on AWS
       - (Links are a work in progress)
 1. **Launch an instance**
    - ::Instance Type:::
-![full-aws-launch.png](https://res.craft.do/user/full/c77657e5-9e28-d05f-4e4a-7dcb63007be8/doc/230AF8C9-4B03-49A6-85A9-6D5689509242/3DE5024C-7317-4623-ACFB-3793C374C860_2/pBi9Jo8XSzxwXlPnVePQrmI2TaxDwJ4c7CB43biM6S0z/full-aws-launch.png)
+![full-aws-launch.png](https://github.com/ThinGuy/show-me/blob/main/docs/full-aws-launch.png?raw=true)
 
       - Minimal:
          - t2.large
@@ -40,7 +40,7 @@ How to launch the Show Me Landscape demostration on AWS
       - VPC
          - Use Existing
          - Create new
-![create-vpc.png](https://res.craft.do/user/full/c77657e5-9e28-d05f-4e4a-7dcb63007be8/doc/230AF8C9-4B03-49A6-85A9-6D5689509242/40B6722F-2E19-45E2-AE57-72D7CE7326C7_2/r677y6ifxFny9KyqocgF9SHjglYCUE77lDWrzZ2SeFEz/create-vpc.png)
+![create-vpc.png](https://github.com/ThinGuy/show-me/blob/main/docs/create-vpc.png?raw=true)
 
          - IPv4 Block
             - CIDR: 172.31.0.0/16
@@ -62,16 +62,16 @@ How to launch the Show Me Landscape demostration on AWS
    1. Look for the Public IPv4 DNS
    2. Copy just the hostname (everything before the first period) of the FQDN (the entire string)
 
-![aws-hostname.png](https://res.craft.do/user/full/c77657e5-9e28-d05f-4e4a-7dcb63007be8/doc/230AF8C9-4B03-49A6-85A9-6D5689509242/48A937AF-8119-46D9-A26E-06C119836D3A_2/yct1wyXB3qP8RefAl2KjvHvryfFX7ZW3avmCMNfXyjgz/aws-hostname.png)
+![aws-hostname.png](https://github.com/ThinGuy/show-me/blob/main/docs/aws-hostname.png?raw=true)
 
    1. Once the machine has passed its "Instance Status Checks",  point your browser to <your-aws-hostname>.landscape.ubuntu-show.me
 
-![navigate-to.png](https://res.craft.do/user/full/c77657e5-9e28-d05f-4e4a-7dcb63007be8/doc/230AF8C9-4B03-49A6-85A9-6D5689509242/A19A9066-0DC4-4979-9C22-D39689170E7D_2/vC67bfLD7cjnK5bceuJ9NUxW3zcynoFhBBb0itMaGGwz/navigate-to.png)
+![navigate-to.png](https://github.com/ThinGuy/show-me/blob/main/docs/navigate-to.png?raw=true)
 
    1. You should be presented with a login screen for landscape
 1. **Login to Landsacpe**
 
-![landscape-1.png](https://res.craft.do/user/full/c77657e5-9e28-d05f-4e4a-7dcb63007be8/doc/230AF8C9-4B03-49A6-85A9-6D5689509242/986A24EC-05E3-4CFD-82BA-A442A07267B6_2/MuQswwjSl9LyCxf7Dlm052cvRNexKoCZw9ZAptK4Nx0z/landscape-1.png)
+![landscape-1.png](https://github.com/ThinGuy/show-me/blob/main/docs/landscape-1.png?raw=true)
 
    1. Credentials are as follows:
       - E-mail address:
@@ -80,13 +80,13 @@ How to launch the Show Me Landscape demostration on AWS
          - ubuntu
    1. After logging in, you should be presented with the main dash board
 
-![landscape-2.png](https://res.craft.do/user/full/c77657e5-9e28-d05f-4e4a-7dcb63007be8/doc/230AF8C9-4B03-49A6-85A9-6D5689509242/C6E9C0D4-433A-42A9-BBB3-C611CC2AC12A_2/VjHF5xWrLHIdx2dIv7vzxKNwR77yVVtiGRiVG1OFfeMz/landscape-2.png)
+![landscape-2.png](https://github.com/ThinGuy/show-me/blob/main/docs/landscape-2.png?raw=true)
 
    1. This build comes lxd containers acting as clients, and the server has registered itself as well.  You can automatically add more clients using either `add-landscape-clients-numbered.sh` or `add-landscape-clients-petnames.sh` scripts.  These scripts are located in `/usr/local/bin`.  You can also register any Ubuntu instance by following the instruction link on the left side of the dashboard.
 
-![landscape-3.png](https://res.craft.do/user/full/c77657e5-9e28-d05f-4e4a-7dcb63007be8/doc/230AF8C9-4B03-49A6-85A9-6D5689509242/52FDE9DB-B664-46B5-8536-651566FA35E8_2/93urgYB9O6v3vyUtTS3ymQxffZYesE3egF7Tg2xhm7oz/landscape-3.png)
+![landscape-3.png](https://github.com/ThinGuy/show-me/blob/main/docs/landscape-3.png?raw=true)
 
    1. Have fun exploring Canonical Landscape
 
-![landscape-4.png](https://res.craft.do/user/full/c77657e5-9e28-d05f-4e4a-7dcb63007be8/doc/230AF8C9-4B03-49A6-85A9-6D5689509242/85D823EE-D93F-4556-B795-C328CDF77CCE_2/J8vWFNp2e9szk7sJwufjzyfbO8afnGGEdWtXk8VrfLMz/landscape-4.png)
+![landscape-4.png](https://github.com/ThinGuy/show-me/blob/main/docs/landscape-4.png?raw=true)
 
