@@ -10,16 +10,15 @@
 How to launch the Show Me Landscape demostration on AWS
 
 1. **Select the AMI from the AWS Market Place**
-   - Search for Ubuntu Show Me Landscape or …
+   - Search for "Ubuntu Show Me Landscape" or …
 
 ![ami-1.png](https://github.com/ThinGuy/show-me/blob/main/docs/ami-1.png?raw=true)
 
    - Choose a link below
       - (Links are a work in progress)
+
 2. **Launch an instance**
    - Instance Type:
-![full-aws-launch.png](https://github.com/ThinGuy/show-me/blob/main/docs/full-aws-launch.png?raw=true)
-
       - Minimal:
          - t2.large
       - **Best Price/Performace:**
@@ -37,32 +36,30 @@ How to launch the Show Me Landscape demostration on AWS
       - Create/Use Existing
          - Key pair type
             - Both RSA/ED25519 are acceptable
+
    - Networking
       - VPC
-         1. Use Existing
+         - Use Existing
             (or)
-         2. Create new
-             - Just use the wizard, as the defaults are fine.
-             - The important part is ensuring there are public subnets)
-![create-vpc.png](https://github.com/ThinGuy/show-me/blob/main/docs/create-vpc.png?raw=true)
-
-      - VPC (cont.)
-				 - Auto-assign public IP
-						 - Yes
-				 - Firewall (security groups)
-						 - SSH (TCP, 22, 0.0.0.0/0)
-								- *For management of Landscape Server*
-						 - HTTP (TCP, 80, 0.0.0.0/0)
-								- *Landscape clients check in on this port*
-						 - HTTS (TCP,443, 0.0.0.0/0)
-								- *Landscape API and Web UI*
+         - Create new
+             - Use the wizard, defaults are sane
+             - Public subnets must be selected
+                - Private subnets are not required
+         - Auto-assign public IP: Yes
+			- Firewall (security groups)
+				 - SSH (TCP, 22, 0.0.0.0/0)
+				    - For management of Landscape Server
+			   - HTTP (TCP, 80, 0.0.0.0/0)
+					  - Landscape clients check in on this port
+				 - HTTPS (TCP,443, 0.0.0.0/0)
+				    - Landscape API and Web UI
    - Advanced Details
-      - Hostname type:
-         - Resource Name
-      - DNS Hostname:
-         - Enable resource-based IPV4 (A record) DNS requests
+      - Hostname type: Resource Name
+      - DNS Hostname: Enable resource-based IPV4 (A record) DNS requests
+
 3. **Find your machine under "Instances"**
-   1. Look for the Public IPv4 DNS
+
+   1. Look for the Public IPv4 DNS of the instance you just launched
    2. Copy just the hostname (everything before the first period) of the FQDN (the entire string)
 
 ![aws-hostname.png](https://github.com/ThinGuy/show-me/blob/main/docs/aws-hostname.png?raw=true)
@@ -72,15 +69,14 @@ How to launch the Show Me Landscape demostration on AWS
 ![navigate-to.png](https://github.com/ThinGuy/show-me/blob/main/docs/navigate-to.png?raw=true)
 
    4. You should be presented with a login screen for landscape
+
 4. **Login to Landsacpe**
 
 ![landscape-1.png](https://github.com/ThinGuy/show-me/blob/main/docs/landscape-1.png?raw=true)
 
    1. Credentials are as follows:
-      - E-mail address:
-         - lsadmin@landscape.ubuntu-show.me
-      - Password:
-         - ubuntu
+      - E-mail address: lsadmin@landscape.ubuntu-show.me
+      - Password: ubuntu
    2. After logging in, you should be presented with the main dash board
 
 ![landscape-2.png](https://github.com/ThinGuy/show-me/blob/main/docs/landscape-2.png?raw=true)
