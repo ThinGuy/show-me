@@ -108,4 +108,3 @@ How to launch the Show Me Landscape demostration on AWS
 **Have fun exploring Canonical Landscape**
 
 ![landscape-4.png](https://github.com/ThinGuy/show-me/blob/main/docs/landscape-4.png)
-
