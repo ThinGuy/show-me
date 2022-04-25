@@ -126,7 +126,7 @@ echo "${MAAS_DBHOST}:${MAAS_DBPORT}:${MAAS_DBNAME}:${MAAS_DBUSER}:${MAAS_DBPASS}
 cp -a /var/lib/postgresql/.pgpass* /home/$(id -un 1000)/;chown -R "$(id -un 1000):$(id -un 1000)" /home/$(id -un 1000)/\.*
 printf '%-08s%-016s%-016s%-024s%s\n' host ${MAAS_DBNAME} ${MAAS_DBUSER} '::/0' md5 host ${MAAS_DBNAME} ${MAAS_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${MAAS_DBHBA}''
 su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
-for P in MAAS SSP RBAC CANDID LANDSCAPE PG;do set|grep "^${P}_";done|sort -uV|tee ~/.show-me.rc|su - $(id -un 1000) -c 'tee ~/.show-me.rc'|su - postgres -c 'tee ~/.show-me.rc'
+for P in MAAS SSP RBAC CANDID LANDSCAPE PG;do set|grep "^${P}_";done|sed 's/^/export /g'|sed 's/export export /export /g'|sort -uV|tee -a ~/.show-me.rc|su - $(id -un 1000) -c 'tee -a ~/.show-me.rc'|su - postgres -c 'tee -a ~/.show-me.rc'
 echo 'for RC in $(find ~/ -maxdepth 1 -type f -iname ".show-me*.rc");do source $RC;done'|tee -a /root/.bashrc |su - $(id -un 1000) -c 'tee -a ~/.bashrc'|su - postgres -c 'tee -a ~/.bashrc'
 #### END of Postgresql section
 

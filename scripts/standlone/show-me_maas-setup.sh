@@ -17,11 +17,11 @@ unset $(set|grep -oE '^CLOUD_[^=]+'|paste -sd' ')
 ###### pkg update and repo additions ######
 ###########################################
 
-#### Add Landscape Server Package Archive
+
 
 DEBIAN_FRONTEND=noninteractive apt -o "Acquire::ForceIPv4=true" update;
 DEBIAN_FRONTEND=noninteractive apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
-DEBIAN_FRONTEND=noninteractive apt install build-essential curl debconf-utils dnsutils git gnupg jq language-pack-en language-pack-en-base lynx make p7zip p7zip-full python python3 software-properties-common ssl-cert tree unzip vim wget zip -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
+DEBIAN_FRONTEND=noninteractive apt install build-essential curl debconf-utils dnsutils git gnupg jq language-pack-en language-pack-en-base lynx make postgresql postgresql-common postgresql-client postgresql-client-common p7zip p7zip-full python2-minimal python2 dh-python 2to3 python-is-python3 python3 software-properties-common ssl-cert tree unzip vim wget zip -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge
 
 #### If Bionic, remove deb-based LXD as there is no upgrade path and we don't want to run the conversion
 [ "$(lsb_release -sr|sed 's/\.//g')" -le "1804" ] && { DEBIAN_FRONTEND=noninteractive apt remove lxd lxd-client -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge; }
@@ -58,7 +58,7 @@ export CLOUD_ETH=$(ip -o r l default|grep -m1 -oP "(?<=dev )[^ ]+")
 [ "${CLOUD_ETH}" = "${CLOUD_BRIDGE}" ] && { export CLOUD_ETH=$(find /sys/devices -type l ! -path "*virt*" -iname "upper*"|awk '{gsub(/.*net\//,"");gsub(/\/upper_/," ");print $1}'|sort -uV); }
 export CLOUD_ARCH="$(dpkg --print-architecture)"
 export CLOUD_APP_GIT="https://github.com/ThinGuy/show-me.git"
-export CLOUD_APP="landscape"
+export CLOUD_APP="maas"
 export CLOUD_DOMAIN="ubuntu-show.me"
 export CLOUD_APP_DOMAIN="${CLOUD_APP}.${CLOUD_DOMAIN}"
 export CLOUD_DNS_IPV4='1.1.1.1,1.0.0.1'
@@ -162,7 +162,9 @@ export CLOUD_REPO_FQDN="${CLOUD_PLACEMENT_REGION}.${CLOUD_SERVICES_SUBDOMAIN}.ar
 export CLOUD_DOMAIN_SEARCH="${CLOUD_APP_DOMAIN},${CLOUD_DOMAIN},${CLOUD_PUBLIC_DOMAIN}"
 export CLOUD_APP_FQDN_SHORT="${CLOUD_PUBLIC_HOSTNAME}.${CLOUD_DOMAIN}"
 export CLOUD_APP_FQDN_LONG="${CLOUD_PUBLIC_HOSTNAME}.${CLOUD_APP_DOMAIN}"
-eval $(curl -sSLL https://bit.ly/3uyZjU0)
+
+#eval $(curl -sSLL https://bit.ly/3uyZjU0)
+
 if [ -n "${CLOUD_IPV6}" ];then
   export CLOUD_DNS_IPV6='2606:4700:4700::1111,2606:4700:4700::1001'
   export CLOUD_FALLBACK_DNS_IPV6='2620:fe::fe,2620:fe::9'
@@ -191,6 +193,7 @@ install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/
 find /opt/show-me/scripts -type f -name "*.sh" -exec install -o0 -g0 -m0755 {} /usr/local/bin/ \;
 find /opt/show-me/scripts -type f -name "*.lynx" -exec install -o0 -g0 -m0644 {} /usr/local/lib/show-me/ \;
 find /opt/show-me/scripts -type f -name "*.conf" -exec install -o0 -g0 -m0644 {} /usr/local/lib/show-me/ \;
+find /opt/show-me/scripts -type f -name "*.yaml" -exec install -o0 -g0 -m0644 {} /usr/local/lib/show-me/ \;
 find /opt/show-me/pki -type f -name "*_rsa"  -exec install -o0 -g0 -m0600 {} /home/$(id -un 1000)/.ssh/ \;
 find /opt/show-me/pki -type f -name "*.pub"  -exec install -o0 -g0 -m0644 {} /home/$(id -un 1000)/.ssh/ \;
 find /opt/show-me/pki -type f -name "*.pem"  -exec install -o0 -g0 -m0644 {} /etc/ssl/certs/ \;
@@ -211,35 +214,63 @@ deb [arch=${CLOUD_ARCH}] http://${CLOUD_REPO_FQDN}/ubuntu/ $(lsb_release -cs)-se
 deb [arch=${CLOUD_ARCH}] http://archive.canonical.com/ubuntu $(lsb_release -cs) partner
 REPOS
 
-#### Add Landscape Server Package Archive
-add-apt-repository ppa:landscape/19.10 -y
+#### Add MAAS Package Archive
+#add-apt-repository ppa:maas/3.2 -y
 
 DEBIAN_FRONTEND=noninteractive apt -o "Acquire::ForceIPv4=true" update;
 DEBIAN_FRONTEND=noninteractive apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
 
-#### Ensure backports will always be used for rabbit and erlang
-#### Needed for rabbitmq-server/erlang issues http://pad.lv/1808766
-#cat <<-APTPREFS |tee 1>/dev/null /etc/apt/preferences.d/bionic-backports-prefs
-#Package: rabbitmq* erlang*
-#Pin: release a=bionic-backports
-#Pin-Priority: 500
-#APTPREFS
+
 
 #### Update Package indexes to pick up backports change
 #DEBIAN_FRONTEND=noninteractive apt -o "Acquire::ForceIPv4=true" update;
 #DEBIAN_FRONTEND=noninteractive apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
 
 # Set Hostname and Name resolution
-sed -i -r '/127.0.1.1/d;s/^127.0.0.1.*$/127.0.0.1 localhost rabbit\n127.0.1.1 '${CLOUD_APP}' '${CLOUD_APP_FQDN_LONG}' '${CLOUD_PUBLIC_HOSTNAME}' '${CLOUD_LOCAL_HOSTNAME}'\n/' /etc/hosts
+sed -i -r '/127.0.1.1/d;s/^127.0.0.1.*$/127.0.0.1 localhost\n127.0.1.1 '${CLOUD_APP}' '${CLOUD_APP_FQDN_LONG}' '${CLOUD_PUBLIC_HOSTNAME}' '${CLOUD_LOCAL_HOSTNAME}'\n/' /etc/hosts
 
 # Change prompt
-install -o0 -g0 -m00644 /dev/null /etc/profile.d/bash-prompt.sh
+install -o0 -g0 -m0644 /dev/null /etc/profile.d/bash-prompt.sh
 echo "export NICKNAME=${CLOUD_APP}" > /etc/profile.d/bash-prompt.sh
+[ -f /etc/profile.d/bash-prompt.sh ] && . /etc/profile.d/bash-prompt.sh
 sed -i -r 's/@\\h:/@'"'"'${NICKNAME}'"'"':/' /etc/bash.bashrc
 export PS1='${debian_chroot:+($debian_chroot)}\u@'${NICKNAME}':\w\$ '
-[ "$(lsb_release -sr|sed 's/\.//g')" -lt "2004" ] && { hostnamectl set-hostname landscape; } || { hostnamectl hostname landscape; }
-echo "landscape"|tee /etc/hostname
-export HOSTNAME="landscape"
+[ "$(lsb_release -sr|sed 's/\.//g')" -lt "2004" ] && { hostnamectl set-hostname maas; } || { hostnamectl hostname maas; }
+echo "maas"|tee /etc/hostname
+export HOSTNAME="maas"
+
+cat <<-NETPLAN|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/netplan/50-cloud-init.yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    ens5:
+      optional: false
+      dhcp4: false
+      dhcp6: false
+      accept-ra: false
+      link-local: [ ]
+      match:
+        macaddress: '$(ip -o l show dev ens5|grep -oP "(?<=ether )[^ ]+")'
+      set-name: ens5
+  bridges:
+    br0:
+      macaddress: '$(ip -o l show dev ens5|grep -oP "(?<=ether )[^ ]+")'
+      optional: false
+      interfaces: ['ens5']
+      dhcp4: true
+      dhcp4-overrides:
+        use-dns: false
+        use-hostname: false
+        use-domains: false
+        route-metric: 1
+      dhcp6: false
+      accept-ra: false
+      link-local: [ ]
+      parameters:
+        priority: 1
+        stp: false
+NETPLAN
 
 #### Due to issues with erlang and rabbitmq after AMI gets new name/addresses
 #### We will be disabling IPv6, so ensure only IPV4 DNS servers are used
@@ -253,17 +284,17 @@ export CLOUD_FALLBACK_DNS="${CLOUD_FALLBACK_DNS_IPV4}"
 rm -rf /etc/resolv.conf
 cat <<-RESOLV |tee 1>/dev/null /etc/systemd/resolved.conf
 [Resolve]
-DNS=$(printf "${CLOUD_DNS//,/ }") $(systemd-resolve --status eth0|awk '/Servers:/{print $3}')
-FallbackDNS=$(printf "${CLOUD_FALLBACK_DNS//,/ }") $(systemd-resolve --status eth0|awk '/Servers:/{print $3}')
+DNS=$(printf "${CLOUD_DNS//,/ }") $(resolvectl --status eth0|awk '/Servers:/{print $3}')
+FallbackDNS=$(printf "${CLOUD_FALLBACK_DNS//,/ }") $(resolvectl --status eth0|awk '/Servers:/{print $3}')
 Domains=${CLOUD_APP_DOMAIN} ${CLOUD_DOMAIN} ${CLOUD_LOCAL_DOMAIN}
 DNSSEC=allow-downgrade
 DNSOverTLS=opportunistic
 MulticastDNS=yes
 LLMNR=yes
 Cache=no-negative
-CacheFromLocalhost=yes
+CacheFromLocalhost=no
 DNSStubListener=no
-DNSStubListenerExtra='127.0.0.1:9953'
+DNSStubListenerExtra=
 ReadEtcHosts=yes
 ResolveUnicastSingleLabel=yes
 RESOLV
@@ -276,20 +307,17 @@ ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
 sudo systemctl restart systemd-networkd systemd-resolved procps
 
 #### Flush DNS cache and show global parameters
-systemd-resolve --flush-caches
-systemd-resolve --status --no-pager|awk '/Global/,/internal/'
+resolvectl flush-caches
+resolvectl status --no-pager|awk '/Global/,/internal/'
 
 
 
 #### Make sure cloud-init does not overwrite our network config
-echo 'network: {config: disabled}'|tee 1>/dev/null /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+#echo 'network: {config: disabled}'|tee 1>/dev/null /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
 #### Prefer IPv4 connections
 printf '%s\x20%s\x20\x20%s\n' precedence '::ffff:0:0/96' 100|tee 1>/dev/null /etc/gai.conf
 
 #### Disable ipv6 since we don't know if the user's VPC has it enabled.
-#### If IPv6 is not disabled, Erlang's epmd.socket only wants to bind to ipv6 regardless if
-#### ERL_EPMD_ADDRESS=127.0.0.1 is set or not.  Prefixing apt install with same parameter
-#### also fails, so best to just disable IPv6
 ip -o link|awk '!/veth|tap/{gsub(/:|@.*$/,"",$2);print "net.ipv6.conf."$2".disable_ipv6=1"}'|xargs -rn1 -P0 sysctl -w
 ip -o link|awk '!/veth|tap/{gsub(/:|@.*$/,"",$2);print "net.ipv6.conf."$2".disable_ipv6=1"}'|tee 1>/dev/null /etc/sysctl.d/99-disable-ipv6.conf
 ip -o link|awk '!/veth|tap/{gsub(/:|@.*$/,"",$2);print $2}'|xargs -rn1 -P0 ip -6 a flush
@@ -308,53 +336,29 @@ SUDOERS
 ################################################
 
 
-#### Pre-answer questions about packages
-echo 'postfix postfix/main_mailer_type select Local only'|debconf-set-selections
-echo 'postfix postfix/mailname string landscape.ubuntu-show.me'|debconf-set-selections
-
-#### Pre-configure rabbitmq-server package to bind to loopback
-install -o 0 -g 0 -m 0755 -d /etc/rabbitmq/
-cat <<-RABBITENV |tee 1>/dev/null /etc/rabbitmq/rabbitmq-env.conf
-NODENAME=rabbit
-NODE_IP_ADDRESS=127.0.0.1
-#NODE_PORT=5672
-#RABBITMQ_STARTUP_TIMEOUT=600
-RABBITENV
 
 
 #### Handle app-specific show-me files
 install -o 0 -g 0 -m 0644 /etc/ssl/certs/show-me_host.pem /etc/ssl/certs/${CLOUD_APP}_server.pem
 install -o 0 -g 0 -m 0600 /etc/ssl/private/show-me_host.key /etc/ssl/private/${CLOUD_APP}_server.key
 
-DEBIAN_FRONTEND=noninteractive apt install landscape-server-quickstart -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
 
-#### Change Apache2 conf for landscape, setting server name to ${CLOUD_PUBLIC_HOSTNAME}.${CLOUD_APP}.ubuntu-show.me
-export APACHE2_CONF=$(find /etc/apache2/sites-available -type f ! -iname "000*" ! -iname "default-ssl*")
-a2dissite ${APACHE2_CONF##*/}
-rm ${APACHE2_CONF}
-systemctl reload apache2
-install -o 0 -g 0 -m 0644 /usr/local/lib/show-me/landscape-apache2.conf /etc/apache2/sites-available/${CLOUD_APP_FQDN_LONG}.conf
-export APACHE2_CONF=$(find /etc/apache2/sites-available -type f ! -iname "000*" ! -iname "default-ssl*")
-sed -r -i 's/@hostname@/'${CLOUD_APP_FQDN_LONG}'/g' ${APACHE2_CONF}
-a2ensite ${APACHE2_CONF##*/}
-systemctl reload apache2
+#### Install maas client
 
-#### Install landscape client
-DEBIAN_FRONTEND=noninteractive apt install landscape-client -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
 
 #### Run lynx script
 if [ -f /usr/local/bin/show-me_lynx-web-init.sh ];then /usr/local/bin/show-me_lynx-web-init.sh;fi
 
-#### Register self with landscape
-landscape-config -t 'Landscape Server' -u "https://${CLOUD_APP_FQDN_LONG}/message-system" --ping-url "http://${CLOUD_APP_FQDN_LONG}/ping" -a standalone -p landscape4u --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=landscape-server,show-me-demo,ubuntu --silent --log-level=debug
-#### Initialize LXD.  LXD will be used to create additional landscape clients
+#### Register self with maas
+maas-config -t 'MAAS' -u "https://${CLOUD_APP_FQDN_LONG}/message-system" --ping-url "http://${CLOUD_APP_FQDN_LONG}/ping" -a standalone -p maas4u --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=maas-server,show-me-demo,ubuntu --silent --log-level=debug
+#### Initialize LXD.  LXD will be used to create additional maas clients
 if [ -f /usr/local/bin/show-me_${CLOUD_APP}_lxd-init.sh ];then /usr/local/bin/show-me_${CLOUD_APP}_lxd-init.sh;fi
 #### Update LXD Profile
 if [ -f /usr/local/bin/show-me_rename-${CLOUD_APP}-lxd-profile.sh ];then /usr/local/bin/show-me_rename-${CLOUD_APP}-lxd-profile.sh;fi
 #### Launch a variety of ubuntu releases, which will self-register with Landscape
 if [ -f /usr/local/bin/add-${CLOUD_APP}-clients-numbered.sh ];then /usr/local/bin/add-${CLOUD_APP}-clients-numbered.sh 1;fi
 
-#### Create ssh config for access to landscape-client machines
+#### Create ssh config for access to maas-client machines
 cat <<SSHCONF |su $(id -un 1000) -c 'tee 1>/dev/null -a ~/.ssh/config'
 Host 10.10.10.*
   AddressFamily inet
