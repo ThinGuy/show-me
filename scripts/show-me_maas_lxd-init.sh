@@ -15,5 +15,5 @@ for I in $(lxc image list minimal: -cfl|awk '/more|CONTAIN/{print $4}'|sort -uV|
   ((lxc image copy  minimal:${I} local: --alias ${I} --auto-update --public) &);
 done
 
-exit 0
 { [[ $CLOUD_DEBUG ]] &>/dev/null; } && { { set +x; } &>/dev/null; }
+exit 0

@@ -10,11 +10,9 @@
 [[ -f ~/.show-me.rc ]] && source ~/.show-me.rc
 
 #### Begin Postgresql setup
-apt -yqf --auto-install --purge install postgresql postgresql-common postgresql-client postgresql-client-common
+
 
 # Basic PostgreSQL setup
-export PG_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
-export PG_DBHBA="/etc/postgresql/${PG_DBVER}/main/pg_hba.conf"
 export PG_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
 export PG_DBHBA="/etc/postgresql/${PG_DBVER}/main/pg_hba.conf"
 export PG_DBHOST=127.0.0.1
@@ -98,7 +96,7 @@ export MAAS_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
 export MAAS_PROFILE="maas-admin"
 export MAAS_PASSWORD="ubuntu"
 export MAAS_URIPORT=5240
-export MAAS_FQDN=${CLOUD_APP_FQDN_LONG}
+export MAAS_FQDN=127.0.0.1
 export MAAS_EMAIL=${MAAS_PROFILE}@${CLOUD_APP_DOMAIN}
 export MAAS_IMPORTID='lp:craig-bender'
 export MAAS_DBHBA="/etc/postgresql/${MAAS_DBVER}/main/pg_hba.conf"
@@ -106,18 +104,17 @@ export MAAS_DBHOST=127.0.0.1
 export MAAS_DBUSER=maas
 export MAAS_DBNAME='maasdb'
 export MAAS_DBPORT=5432
-export MAAS_DBPASS="$(env LANG=C LC_ALL=C tr 2>/dev/null -dc "[:alnum:]" < /dev/urandom|fold -w12|head -n1)"
 export MAAS_DBCON="postgres://${MAAS_DBUSER}:${MAAS_DBPASS}@${MAAS_DBHOST}:${MAAS_DBPORT}/${MAAS_DBNAME}"
 export MAAS_URL="http://localhost:${MAAS_URIPORT}/MAAS"
+export MAAS_DBPASS="$(env LANG=C LC_ALL=C tr 2>/dev/null -dc "[:alnum:]" < /dev/urandom|fold -w12|head -n1)"
 su - postgres -c 'psql -c "CREATE ROLE '${MAAS_DBUSER}' WITH SUPERUSER CREATEDB CREATEROLE LOGIN REPLICATION ENCRYPTED PASSWORD '"'"''${MAAS_DBPASS}''"'"';"'
 su - postgres -c 'psql -c "CREATE DATABASE '${MAAS_DBNAME}' WITH OWNER '"'"''${MAAS_DBUSER}''"'"';"'
 echo "${MAAS_DBHOST}:${MAAS_DBPORT}:${MAAS_DBNAME}:${MAAS_DBUSER}:${MAAS_DBPASS}"|su postgres -c 'tee 1>/dev/null /var/lib/postgresql/.pgpass.maas'
 cp -a /var/lib/postgresql/.pgpass* /home/$(id -un 1000)/;chown -R "$(id -un 1000):$(id -un 1000)" /home/$(id -un 1000)/\.*
 printf '%-08s%-016s%-016s%-024s%s\n' host ${MAAS_DBNAME} ${MAAS_DBUSER} '::/0' md5 host ${MAAS_DBNAME} ${MAAS_DBUSER} '0.0.0.0/0' md5|su - postgres -c 'tee -a '${MAAS_DBHBA}''
 su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
-(for P in MAAS SSP RBAC CANDID LANDSCAPE PG;do set|grep "^${P}_";done|sed 's/^/export /g')|sort -uV|tee -a ~/.show-me.rc|su - $(id -un 1000) -c 'tee -a ~/.show-me.rc'|su - postgres -c 'tee -a ~/.show-me.rc'
-echo 'for RC in $(find ~/ -maxdepth 1 -type f -iname ".show-me*.rc");do source $RC;done'|tee -a /root/.bashrc |su - $(id -un 1000) -c 'tee -a ~/.bashrc'|su - postgres -c 'tee -a ~/.bashrc'
+(for P in MAAS SSP RBAC CANDID LANDSCAPE PG;do set|grep "^${P}_";done|sed 's/^/export /g')|sort -uV|tee -a ~/.show-me.rc|su - $(id -un 1000) -c 'tee -a ~/.show-me.rc'|su - postgres -c 'tee 1>/dev/null -a ~/.show-me.rc'
+echo 'for RC in $(find ~/ -maxdepth 1 -type f -iname ".show-me*.rc");do source $RC;done'|tee -a /root/.bashrc |su - $(id -un 1000) -c 'tee -a ~/.bashrc'|su - postgres -c 'tee 1>/dev/null -a ~/.bashrc'
 #### END of Postgresql section
-
-exit 0
 { [[ $CLOUD_DEBUG ]] &>/dev/null; } && { { set +x; } &>/dev/null; }
+exit 0

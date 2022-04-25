@@ -180,7 +180,7 @@ fi
 #### Create ~/.show-me.rc in a centralized location, then copy to
 #### users home dir and ensure it loads when they log on
 install -o 0 -g 0 -m 0755 -d /usr/local/lib/show-me/
-((set|grep -E '^CANDID_|^CLOUD_|^LANDSCAPE_|^MAAS_|^PG_|^RBAC_|^SSP_|^MK8S_|^MO7K_|^MCLOUD_')|sed -r 's/^/export /g;s/\x22//g;s/\x27/\x22/g'|sed -r '/=$/d;s/Xen|xen/aws/g'|sort -uV)|tee /usr/local/lib/show-me/.show-me.rc
+((set|grep -E '^CANDID_|^CLOUD_|^LANDSCAPE_|^MAAS_|^PG_|^RBAC_|^SSP_|^MK8S_|^MO7K_|^MCLOUD_')|sed -r 's/^/export /g;s/\x22//g;s/\x27/\x22/g'|sed -r '/=$/d;s/Xen|xen/aws/g;/\x27\[\]\x27$/d'|sort -uV)|tee /usr/local/lib/show-me/.show-me.rc
 if [ -f /usr/local/lib/show-me/.show-me.rc ];then cp /usr/local/lib/show-me/.show-me.rc /root/.;su $(id -un 1000) -c 'cp /usr/local/lib/show-me/.show-me.rc ~/';echo '[ -r ~/.show-me.rc ] && . ~/.show-me.rc'|tee -a /root/.bashrc|su $(id -un 1000) -c 'tee -a ~/.bashrc';fi
 
 #### Cleanup/Prepare Show-Me files
@@ -226,7 +226,7 @@ postgres://maas:zi2cxQKoRZxQ@
 #DEBIAN_FRONTEND=noninteractive apt dist-upgrade -o "Acquire::ForceIPv4=true" -yqf --auto-remove --purge;
 
 # Set Hostname and Name resolution
-sed -i -r '/127.0.1.1/d;s/^127.0.0.1.*$/127.0.0.1 localhost\n127.0.1.1 '${CLOUD_APP}' '${CLOUD_APP_FQDN_LONG}' '${CLOUD_PUBLIC_HOSTNAME}' '${CLOUD_LOCAL_HOSTNAME}'\n/' /etc/hosts
+sed -i -r '/127.0/d;s/^/127.0.1.1 '${CLOUD_APP}' '${CLOUD_APP_FQDN_LONG}' '${CLOUD_PUBLIC_HOSTNAME}' '${CLOUD_LOCAL_HOSTNAME}'\n127.0.0.1 localhost\n/' /etc/hosts
 
 # Change prompt
 install -o0 -g0 -m0644 /dev/null /etc/profile.d/bash-prompt.sh
@@ -326,7 +326,7 @@ systemctl restart systemd-networkd systemd-resolved procps
 
 #### Ensure all Show-Me related params work with sudo
 cat <<-'SUDOERS'|sed -r 's/[ \t]+$//g;/^$/d'|tee 1>/dev/null /etc/sudoers.d/100-keep-params
-Defaults env_keep+="CANDID_* CLOUD_* LANDSCAPE_* MAAS_* PG_* RBAC_* SSP_* MK8S_* MO7K_* MCLOUD_* CANDID_* CLOUD_* DISPLAY EDITOR HOME LANDSCAPE_* LANG LC_* MAAS_* MACHINE_* PG_* PYTHONWARNINGS RBAC_* SSP_* XAUTHORITY XAUTHORIZATION *_PROXY *_proxy"
+Defaults env_keep+="CANDID_* CLOUD_* LANDSCAPE_* MAAS_* PG_* RBAC_* SSP_* MK8S_* MO7K_* MCLOUD_* DISPLAY EDITOR HOME LANG LC_* MACHINE_* PYTHONWARNINGS XAUTHORITY XAUTHORIZATION *_PROXY *_proxy"
 SUDOERS
 
 
@@ -345,28 +345,40 @@ install -o 0 -g 0 -m 0600 /etc/ssl/private/show-me_host.key /etc/ssl/private/${C
 #### Install MAAS (snap)
 snap install maas --channel 3.2/beta
 
-maas init --force --mode=region+rack --maas-url="${MAAS_URL}" --database-host=${MAAS_DBHOST} --database-name=${MAAS_DBNAME} --database-user=${MAAS_DBUSER} --database-pass=${MAAS_DBPASS} --database-port=${MAAS_DBPORT}
+maas init region+rack --maas-url http://127.0.0.1:5240/MAAS --database-uri ${MAAS_DBCON} --force
 maas createadmin --username ${MAAS_PROFILE} --password ${MAAS_PASSWORD} --email ${MAAS_EMAIL} --ssh-import "${MAAS_IMPORTID}"
 maas login ${MAAS_PROFILE} ${MAAS_URL} $(maas apikey --username=${MAAS_PROFILE})
 su - $(id -un 1000) -c 'sudo maas login '${MAAS_PROFILE}' '${MAAS_URL}' $(sudo maas apikey --username='${MAAS_PROFILE}')'
 
 
+declare -ag MAAS_CENTOS_IMGS=(centos70 centos80)
+declare -ag MAAS_UBUNTU_IMGS=(xenial bionic focal jammy)
 
+#Add a few extra LTS Ubuntu boot resources
+for rel in ${MAAS_UBUNTU_IMGS[@]};do
+if [[ -z $(maas ${MAAS_PROFILE} boot-source-selections read 1|jq -r '.[]|select(.release=="'${rel}'").release') ]];then
+printf "Importing boot image for ${rel}...\n"
+maas ${MAAS_PROFILE} boot-source-selections create 1 os="ubuntu" release="${rel}" arches="amd64" subarches="*" labels="*"
+fi
+done;unset rel
 
-#### Run lynx script
-if [ -f /usr/local/bin/show-me_lynx-web-init.sh ];then /usr/local/bin/show-me_lynx-web-init.sh;fi
+#Add a CentOS boot resources
+for rel in ${MAAS_CENTOS_IMGS[@]};do
+if [[ -z $(maas ${MAAS_PROFILE} boot-source-selections read 1|jq -r '.[]|select(.release=="'${rel}'").release') ]];then
+printf "Importing boot image for ${rel}...\n"
+maas ${MAAS_PROFILE} boot-source-selections create 1 os="centos" release="${rel}" arches="amd64" subarches="*" labels="*"
+fi
+done;unset rel
 
 
 #### Initialize LXD.  LXD will be used to create additional maas clients
 if [ -f /usr/local/bin/show-me_${CLOUD_APP}_lxd-init.sh ];then /usr/local/bin/show-me_${CLOUD_APP}_lxd-init.sh;fi
 #### Update LXD Profile
 if [ -f /usr/local/bin/show-me_rename-${CLOUD_APP}-lxd-profile.sh ];then /usr/local/bin/show-me_rename-${CLOUD_APP}-lxd-profile.sh;fi
-#### Launch a variety of ubuntu releases, which will self-register with Landscape
-if [ -f /usr/local/bin/add-${CLOUD_APP}-clients-numbered.sh ];then /usr/local/bin/add-${CLOUD_APP}-clients-numbered.sh 1;fi
 
 #### Create ssh config for access to maas-client machines
-cat <<SSHCONF |su $(id -un 1000) -c 'tee 1>/dev/null -a ~/.ssh/config'
-Host 10.10.10.*
+cat <<SSHCONF |tee -a ~/.ssh/config|su $(id -un 1000) -c 'tee 1>/dev/null -a ~/.ssh/config'
+Host 10.10.*.* maas=r*
   AddressFamily inet
   AddKeysToAgent yes
   CheckHostIP no

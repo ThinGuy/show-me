@@ -1,0 +1,309 @@
+config:
+  boot.autostart: "1"
+  migration.incremental.memory: "true"
+  raw.lxc: |-
+    lxc.apparmor.profile = unconfined
+    lxc.cgroup.devices.allow = c 10:237 rwm
+    lxc.cgroup.devices.allow = b 7:* rwm
+    lxc.mount.auto=proc:rw sys:rw
+    lxc.cap.drop =
+  security.nesting: "true"
+  security.privileged: "true"
+  user.network-config: |
+    version: 2
+    renderer: networkd
+    ethernets:
+      eth0:
+        optional: false
+        dhcp4: false
+        match:
+          name: 'eth0'
+        set-name: eth0
+      eth1:
+        optional: false
+        dhcp4: false
+        match:
+          name: 'eth1'
+        set-name: eth1
+      eth2:
+        optional: false
+        dhcp4: false
+        match:
+          name: 'eth2'
+        set-name: eth2
+      eth3:
+        optional: false
+        dhcp4: false
+        match:
+          name: 'eth3'
+        set-name: eth3
+      eth4:
+        optional: false
+        dhcp4: false
+        match:
+          name: 'eth4'
+        set-name: eth4
+    bridges:
+      br0:
+        interfaces: ['eth0']
+        optional: false
+        dhcp4: false
+        dhcp6: false
+        accept-ra: false
+        link-local: [ ]
+        addresses: [10.10.10.1/24]
+        routes:
+          -to: default
+           via: 10.10.10.254
+           on-link: true
+          -to: 10.10.10.0/24
+           via: 10.10.10.1
+           scope: link
+        parameters:
+          stp: false
+          priority: 10
+      br1:
+        interfaces: ['eth1']
+        optional: false
+        dhcp4: false
+        dhcp6: false
+        accept-ra: false
+        link-local: [ ]
+        addresses: [10.10.11.1/24]
+        routes:
+          -to: default
+           via: 10.10.11.254
+           on-link: true
+          -to: 10.10.11.0/24
+           via: 10.10.11.1
+           scope: link
+        parameters:
+          stp: false
+          priority: 11
+      br2:
+        interfaces: ['eth2']
+        optional: false
+        dhcp4: false
+        dhcp6: false
+        accept-ra: false
+        link-local: [ ]
+        addresses: [10.10.12.1/24]
+        routes:
+          -to: default
+           via: 10.10.12.254
+           on-link: true
+          -to: 10.10.12.0/24
+           via: 10.10.12.1
+           scope: link
+        parameters:
+          stp: false
+          priority: 12
+      br3:
+        interfaces: ['eth3']
+        optional: false
+        dhcp4: false
+        dhcp6: false
+        accept-ra: false
+        link-local: [ ]
+        addresses: [10.10.13.1/24]
+        routes:
+          -to: default
+           via: 10.10.13.254
+           on-link: true
+          -to: 10.10.13.0/24
+           via: 10.10.13.1
+           scope: link
+        parameters:
+          stp: false
+          priority: 13
+      br4:
+        interfaces: ['eth4']
+        optional: false
+        dhcp4: false
+        dhcp6: false
+        accept-ra: false
+        link-local: [ ]
+        addresses: [10.10.14.1/24]
+        routes:
+          -to: default
+           via: 10.10.14.254
+           on-link: true
+          -to: 10.10.14.0/24
+           via: 10.10.14.1
+           scope: link
+        parameters:
+          stp: false
+          priority: 14
+  user.user-data: |
+    #cloud-config
+    hostname: maas-region
+    fqdn: maas-region.maas.ubuntu-show.me
+    manage_etc_hosts: false
+    prefer_fqdn_over_hostname: true
+    locale: 'en_US.UTF-8'
+    timezone: America/Los_Angeles
+    final_message: 'maas region-controller completed installing in $UPTIME'
+    package_update: true
+    package_upgrade: true
+    packages: [git, jq, ntpdate, pigz, squashfuse, ubuntu-cloudimage-keyring, ubuntu-cloud-keyring, unzip, vim]
+    ssh_pwauth: true
+    apt:
+      primary:
+        - arches: [amd64]
+          uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
+          search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
+      security:
+        - arches: [amd64]
+          uri: 'http://us-west-1.ec2.archive.ubuntu.com/ubuntu'
+          search: ['http://us-west-1.ec2.archive.ubuntu.com/ubuntu', 'http://us-west-2.ec2.archive.ubuntu.com/ubuntu']
+      sources_list: |
+        deb [arch=amd64] $PRIMARY $RELEASE main universe restricted multiverse
+        deb [arch=amd64] $PRIMARY $RELEASE-updates main universe restricted multiverse
+        deb [arch=amd64] $PRIMARY $RELEASE-backports main universe restricted multiverse
+        deb [arch=amd64] $SECURITY $RELEASE-security main universe restricted multiverse
+      conf: |
+       APT {
+         Get {
+           Assume-Yes true;
+           Fix-Broken true;
+           Auto-Remove true;
+           Purge true;
+         };
+         Acquire {
+           ForceIPv4 true;
+           Check-Date false;
+         };
+       };
+    write_files:
+      - encoding: b64
+        path: /home/$(id -un 1000)/.ssh/id_rsa
+        owner: '1000:1000'
+        permissions: '0600'
+        content: LS0tLS1CRUdJTiBPUEVOU1NIIFBSSVZBVEUgS0VZLS0tLS0KYjNCbGJuTnphQzFyWlhrdGRqRUFBQUFBQ21GbGN6STFOaTFqZEhJQUFBQUdZbU55ZVhCMEFBQUFHQUFBQUJCK1VYWWh3Ugp3U2VBb3BxbExZYytlRkFBQUFFQUFBQUFFQUFBRVhBQUFBQjNOemFDMXljMkVBQUFBREFRQUJBQUFCQVFDOGxRazdrN1dlCnh5SzlpNnlZSjBNNTNSM0xYa1Q1a1lWd1lTeitTSGtPU01ncndJTVo5MHFkSmhKNGd2bTVpdm9yZzA2ckdIUi9vMEx5L0oKWTNvQVB0bHRQSGRqbjh1ODZqTVZ2c0tRZm5oWkNBcEFmYzM4VWhuZjFNY3FqVWdZTUExMEpRR2VQdkVzLzFaRVFtSlgvaQpnSHRXVVlHTkk2S0VEdTBpRjZvR0xUckVjeFVJbTBLeWliOStLTHpPMndkYVd2V3FNRGF4eUxUcXZaVTNHOFduaUkraGxFCmJkN3c3S2JyYjJmZU9wQ1B1Z1ppcHNZMkh6Y2llLzdDNTk5RWwwdEpPMFBjS2FhbGkwU3RiTUlRTWUyNmxGZ1Y4a1FUaC8KbXgzZGgzcnQwdGxENWl0K3l2WitEbmtyRlJSR0pjZjFwV1FnUFdaVW5ubjFnRGZLcXNkUEFBQUQwRnorVUJ4VHo1Q1Y2UApOZStjTmdXMmsxNCtiYmt4bVhRUlpVRHZUR1EvdzhtRGkxTmNiMG5udnpYekxzbFIrS2NKMnZLZ1V3aHN2bkNzWEZUWXZ1CjhVN0E0NGlKN0xMTGlYSDBCTlRLZ25MMUhqTlpjOWRFUmxydlV1UURFcUVvNTFVUTY5eFVQSy9DcGxsMVQyYjVBWXRrRXgKZkFpYVdKZ245a3NTQXBnd0tscy9YTDlqRm1meUpQYStvTXRUVWhVWnNLaHVVS2V0Z1VDbEZib3haZ3RRVmdlcHpqZmQxRgowZ0w4NlNZVms1SGxwVHk5bWFScmhhN2ptaFhFdTRqMytuVTVRSC9FUVRLbXMzZFllUW9rRUI4YU9sM3R0RGRIakpNRWZwCk16cStDbStYVVFCSGNTdC9NNDNxMysvQnp0TjcwSHhJYkJoVDl2ME9qK1huWWdSWVhiZlNEQjZsUEFPcWE1UXpCL095ZDAKKytRakU0UlZEQS9LaU4wRzd4aE5kc1FWVWwwOHJIVFdwSklvN2lmNVpLWU5sb1dnSGMreVZpR01kWGNUdDZCeHNsK1QxUgo1RlhPOU01enhoV3R1UmpHZXlGYytaY2o2b1FuUVFZYmp5dTEwTi9zcWNVTk9uYm0rSkNDT3NkNitFaGM4WHk0UGdQc1RpCm5DZ1U1SUpMUjUzaDhTRFIwd1Y1WUxSalEyTzR3WHk4L0x3VU9xSDhET0tlbjkzM1B5aVJqbDA1T3NSaHhaUGkrRHA3NGoKcHJnYmlvVWU3MVFWOCtYcFBJTWl6UlZ1QnppTGlJMEVRakV3cDN5TnVLS3VvM1A1NFFhcHNRV0c1eUVTakk3MHZBM0ZYUgp3RmkyMGh6YjJZZmdzYlYyY09ZNVJMQ3ZmcmtRa0pHRXlyeHg1QVFkaDFTbjlpUGxRWExFVWlKbFZENm9zb3YzNEZrV3hwCkM1TnNsZ1hRaHM4NVdEeXpmdXhwVm4zaHc0ZjFEanBFa1JQbzBjU1VsV2h5K1FRRlA0QlNvclBybCtyTWd6MllCK0dGY1cKdldJN1k0WTZVVnFmMmRjek1qczNxN1M5OEZnN3RsbG1qZ1E2Y2I2VldSM2NTOXk3bWswNmF3RU9TVFdLdlMycGwwbmtVcgpFbS81SERTSEJZempuTGtBbWh1dEtZQ3hlVHo4VjJMK0M3WEVvaFdpR2FmVU5MYzBvaG83MkVsQTkrTVR0a2dUUDVTa1BNCklZYWpleFUwV1Vkb0NpSlJoVDhKTVQ0a2hDUjV3aktIdG0zblRVdm5iVlkvU0FzaGJTVlhHdjRlMmhyKzJ4bjBNOStma3EKZDVTajFiZjZNTHBvU2R3RlJTUkxid20zSFBMNEJaWjRWR1h1dGhJR0lsSDYxbU5TWWhUOEFZYVBsQnh5QnJJcDhWWWc0ego5UzhUcFJJZEVMV0c1VDZkOGNGK2tteHk4WlRlNzRITDRNV05UdUN3M0FJVzlTc2MzNGttZWF5amhXV3E3UmEwOEpIUFhkCnZ1bUxaQzhQNWxoRUhFYnlEVGViM3AvcnZRR0dLWm4yU0ZOQ2hZQmtBOXdFcUg1QnBOOTgwUjNHUEFrbFY2a2d2WWFRVGEKVGE4QXk2bUV0YStLNnFGM0UwVEhzdHlZd0QwK2NJNUhZb0xDYWVwWllDQThBMy9sMUJmQnNYeXU0SEJzRXVuK0xYajIyVApiSHlLdGNoNWRGdWZpa3FCQ0p0Qzk0OUZXVGw5ND0KLS0tLS1FTkQgT1BFTlNTSCBQUklWQVRFIEtFWS0tLS0tCg==
+      - encoding: b64
+        path: /home/$(id -un 1000)/.ssh/id_rsa.pub
+        owner: '1000:1000'
+        permissions: '0644'
+        content: c3NoLXJzYSBBQUFBQjNOemFDMXljMkVBQUFBREFRQUJBQUFCQVFDOGxRazdrN1dleHlLOWk2eVlKME01M1IzTFhrVDVrWVZ3WVN6K1NIa09TTWdyd0lNWjkwcWRKaEo0Z3ZtNWl2b3JnMDZyR0hSL28wTHkvSlkzb0FQdGx0UEhkam44dTg2ak1WdnNLUWZuaFpDQXBBZmMzOFVobmYxTWNxalVnWU1BMTBKUUdlUHZFcy8xWkVRbUpYL2lnSHRXVVlHTkk2S0VEdTBpRjZvR0xUckVjeFVJbTBLeWliOStLTHpPMndkYVd2V3FNRGF4eUxUcXZaVTNHOFduaUkraGxFYmQ3dzdLYnJiMmZlT3BDUHVnWmlwc1kySHpjaWUvN0M1OTlFbDB0Sk8wUGNLYWFsaTBTdGJNSVFNZTI2bEZnVjhrUVRoL214M2RoM3J0MHRsRDVpdCt5dlorRG5rckZSUkdKY2YxcFdRZ1BXWlVubm4xZ0RmS3FzZFAgZGVtb0B1YnVudHUtc2hvdy5tZQo=
+      - encoding: b64
+        path: /home/$(id -un 1000)/.ssh/authorized_keys
+        owner: '1000:1000'
+        permissions: '0644'
+        content: c3NoLXJzYSBBQUFBQjNOemFDMXljMkVBQUFBREFRQUJBQUFCQVFDOGxRazdrN1dleHlLOWk2eVlKME01M1IzTFhrVDVrWVZ3WVN6K1NIa09TTWdyd0lNWjkwcWRKaEo0Z3ZtNWl2b3JnMDZyR0hSL28wTHkvSlkzb0FQdGx0UEhkam44dTg2ak1WdnNLUWZuaFpDQXBBZmMzOFVobmYxTWNxalVnWU1BMTBKUUdlUHZFcy8xWkVRbUpYL2lnSHRXVVlHTkk2S0VEdTBpRjZvR0xUckVjeFVJbTBLeWliOStLTHpPMndkYVd2V3FNRGF4eUxUcXZaVTNHOFduaUkraGxFYmQ3dzdLYnJiMmZlT3BDUHVnWmlwc1kySHpjaWUvN0M1OTlFbDB0Sk8wUGNLYWFsaTBTdGJNSVFNZTI2bEZnVjhrUVRoL214M2RoM3J0MHRsRDVpdCt5dlorRG5rckZSUkdKY2YxcFdRZ1BXWlVubm4xZ0RmS3FzZFAgZGVtb0B1YnVudHUtc2hvdy5tZQo=
+        append: true
+    runcmd:
+      - set -x
+      - if [ -f /home/$(id -un 1000)/.show-me.rc ];then . /home/$(id -un 1000)/.show-me.rc;fi
+      - export DEBIAN_FRONTEND=noninteractive
+      - ntpdate -u ntp.ubuntu.com
+      - echo 'export EDITOR=/usr/bin/vim.basic'|tee 1>/dev/null -a /etc/environment
+      - update-alternatives --set editor /usr/bin/vim.basic
+      - for GROUP in docker kvm libvirt libvirt-qemu lxd maas;do if [ "\$(getentgroup $GROUP;echo \$?)" = "0" ];then usermod -a -G \$GROUP \$(id -un 1000);fi;done
+      - echo "${CLOUD_PUBLIC_IPV4} $(hostname -f) $(hostname -s)"|tee 1>/dev/nul -a /etc/hosts
+      - sed -r -i.bak '/127.0/d;s/^/127.0.1.1 '${CLOUD_APP}' '${CLOUD_APP_FQDN_LONG}' '${CLOUD_PUBLIC_HOSTNAME}' '${CLOUD_LOCAL_HOSTNAME}'\n127.0.0.1 localhost\n/' /etc/hosts
+      - |-
+        cat <<RESOLVED|sed -r 's/[ \t]+$//g'|tee /etc/systemd/resolved.conf
+        [Resolve]
+        DNS=1.1.1.1 1.0.0.1
+        FallbackDNS=9.9.9.9 149.112.112.112
+        Domains=maas.ubuntu-show.me ubuntu-show.me us-west-1.compute.internal
+        DNSSEC=allow-downgrade
+        DNSOverTLS=opportunistic
+        MulticastDNS=yes
+        LLMNR=yes
+        Cache=no-negative
+        CacheFromLocalhost=no
+        DNSStubListener=no
+        DNSStubListenerExtra=
+        ReadEtcHosts=yes
+        ResolveUnicastSingleLabel=yes
+        RESOLVED
+      - rm -f /etc/resolv.conf
+      - ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+      - systemctl restart systemd-resolved
+      - if \$(test -d /proc/sys/net/ipv6/conf);then (find 2>/dev/null /sys/class/net -type l ! -lname "virtual*" -printf 'net.ipv6.conf.%P.disable_ipv6=1\n'|sort -uV)|tee 1>/dev/null /etc/sysctl.d/99-disable-ipv6.conf;fi
+      - if \$(test -f /etc/sysctl.d/99-disable-ipv6.conf -a -d /proc/sys/net/ipv6/conf);then sysctl -p /etc/sysctl.d/99-disable-ipv6.conf;fi
+      - systemctl restart procps.service
+      - snap install maas --channel=3.2/betadescription: maas-region
+devices:
+  aadisable0:
+    path: /dev/kmsg
+    source: /dev/kmsg
+    type: unix-char
+  aadisable1:
+    path: /sys/module/nf_conntrack/parameters/hashsize
+    source: /dev/null
+    type: disk
+  aadisable2:
+    path: /sys/module/apparmor/parameters/enabled
+    source: /dev/null
+    type: disk
+  eth0:
+    name: eth0
+    nictype: bridged
+    parent: maas-br0
+    type: nic
+  eth1:
+    name: eth1
+    nictype: bridged
+    parent: maas-br1
+    type: nic
+  eth2:
+    name: eth2
+    nictype: bridged
+    parent: maas-br2
+    type: nic
+  eth3:
+    name: eth3
+    nictype: bridged
+    parent: maas-br3
+    type: nic
+  eth4:
+    name: eth4
+    nictype: bridged
+    parent: maas-br4
+    type: nic
+  kvm:
+    path: /dev/kvm
+    type: unix-char
+  loop-control:
+    path: /dev/loop-control
+    type: unix-char
+  loop0:
+    path: /dev/loop0
+    type: unix-block
+  loop1:
+    path: /dev/loop1
+    type: unix-block
+  loop2:
+    path: /dev/loop2
+    type: unix-block
+  loop3:
+    path: /dev/loop3
+    type: unix-block
+  loop4:
+    path: /dev/loop4
+    type: unix-block
+  loop5:
+    path: /dev/loop5
+    type: unix-block
+  loop6:
+    path: /dev/loop6
+    type: unix-block
+  loop7:
+    path: /dev/loop7
+    type: unix-block
+  mem:
+    path: /dev/mem
+    type: unix-char
+  root:
+    path: /
+    pool: default
+    size: 15GB
+    type: disk    
+  tun:
+    path: /dev/net/tun
+    type: unix-char
+name: maas-region
+used_by: []
+
