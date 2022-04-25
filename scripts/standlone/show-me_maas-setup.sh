@@ -8,9 +8,8 @@
 # In case this is the base AMI, make a copy of last .show-me.rc
 if [ -f ~/.show-me.rc ];then mv ~/.{show-me,last.show-me}.rc;fi;
 if [ -f /home/$(id -un 1000)/.show-me.rc ];then su $(id -un 1000) -c 'mv ~/.{show-me,last.show-me}.rc';fi
-#### unset CLOUD_* variables loaded via .bashrc
-unset $(set|grep -oE '^CLOUD_[^=]+'|paste -sd' ')
-
+#### unset CLOUD_* and DB variables loaded via .show-me.rc via .bashrc
+[[ -f ~/.show-me.rc ]] && { unset (grep -oE 'CLOUD_[^=]+|MAAS_[^=]+|SSP_[^=]+|RBAC_[^=]+|CANDID_[^=]+|LANDSCAPE_[^=]+|PG_[^=]+' ~/.show-me.rc|paste -sd' '); }
 
 
 ###########################################
@@ -346,10 +345,12 @@ install -o 0 -g 0 -m 0600 /etc/ssl/private/show-me_host.key /etc/ssl/private/${C
 #### Install MAAS (snap)
 snap install maas --channel 3.2/beta
 
-sudo maas init --force --mode=region+rack --maas-url="${MAAS_URL}" --database-host=${MAAS_DBHOST} --database-name=${MAAS_DBNAME} --database-user=${MAAS_DBUSER} --database-pass=${MAAS_DBPASS} --database-port=${MAAS_DBPORT}
-sudo maas createadmin --username ${MAAS_PROFILE} --password ${MAAS_PASSWORD} --email ${MAAS_EMAIL} --ssh-import "${MAAS_IMPORTID}"
-sudo maas login ${MAAS_PROFILE} ${MAAS_URL} $(sudo maas apikey --username=${MAAS_PROFILE})
-su - $(id -un 1000) -c 'sudo maas login '${MAAS_PROFILE}' '${MAAS_URL}' $(sudo sudo maas apikey --username='${MAAS_PROFILE}')'
+maas init --force --mode=region+rack --maas-url="${MAAS_URL}" --database-host=${MAAS_DBHOST} --database-name=${MAAS_DBNAME} --database-user=${MAAS_DBUSER} --database-pass=${MAAS_DBPASS} --database-port=${MAAS_DBPORT}
+maas createadmin --username ${MAAS_PROFILE} --password ${MAAS_PASSWORD} --email ${MAAS_EMAIL} --ssh-import "${MAAS_IMPORTID}"
+maas login ${MAAS_PROFILE} ${MAAS_URL} $(maas apikey --username=${MAAS_PROFILE})
+su - $(id -un 1000) -c 'sudo maas login '${MAAS_PROFILE}' '${MAAS_URL}' $(sudo maas apikey --username='${MAAS_PROFILE}')'
+
+
 
 
 #### Run lynx script
