@@ -17,7 +17,7 @@ export PG_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
 export PG_DBHBA="/etc/postgresql/${PG_DBVER}/main/pg_hba.conf"
 export PG_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
 export PG_DBHBA="/etc/postgresql/${PG_DBVER}/main/pg_hba.conf"
-export PG_DBHOST=${CLOUD_APP_FQDN_LONG}
+export PG_DBHOST=127.0.0.1
 export PG_DBUSER=postgres
 export PG_DBNAME=postgres 
 export PG_DBPORT=5432
@@ -30,7 +30,7 @@ su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
 # PostgreSQL setup for Canonical Snap-Store-Proxy
 export SSP_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
 export SSP_DBHBA="/etc/postgresql/${SSP_DBVER}/main/pg_hba.conf"
-export SSP_DBHOST=${CLOUD_APP_FQDN_LONG}
+export SSP_DBHOST=127.0.0.1
 export SSP_DBUSER=snap-proxy
 export SSP_DBNAME='snap-proxy-db'
 export SSP_DBPORT=5432
@@ -50,7 +50,7 @@ su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
 # PostgreSQL setup for Canonical Candid
 export CANDID_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
 export CANDID_DBHBA="/etc/postgresql/${CANDID_DBVER}/main/pg_hba.conf"
-export CANDID_DBHOST=${CLOUD_APP_FQDN_LONG}
+export CANDID_DBHOST=127.0.0.1
 export CANDID_DBUSER=candid
 export CANDID_DBNAME='candiddb'
 export CANDID_DBPORT=5432
@@ -66,7 +66,7 @@ su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
 # PostgreSQL setup for Landscape
 export LANDSCAPE_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
 export LANDSCAPE_DBHBA="/etc/postgresql/${LANDSCAPE_DBVER}/main/pg_hba.conf"
-export LANDSCAPE_DBHOST=${CLOUD_APP_FQDN_LONG}
+export LANDSCAPE_DBHOST=127.0.0.1
 export LANDSCAPE_DBUSER=landscape_superuser
 export LANDSCAPE_DBNAME='landscapedb'
 export LANDSCAPE_DBPORT=5432
@@ -82,7 +82,7 @@ su - postgres -c 'psql postgres -c "SELECT pg_reload_conf();"'
 # PostgreSQL setup for Canonical RBAC
 export RBAC_DBVER=$(psql -V|awk '{gsub(/\..*$/,"");print $3}')
 export RBAC_DBHBA="/etc/postgresql/${RBAC_DBVER}/main/pg_hba.conf"
-export RBAC_DBHOST=${CLOUD_APP_FQDN_LONG}
+export RBAC_DBHOST=127.0.0.1
 export RBAC_DBUSER=rbac
 export RBAC_DBNAME='rbacdb'
 export RBAC_DBPORT=5432
@@ -102,13 +102,13 @@ export MAAS_FQDN=${CLOUD_APP_FQDN_LONG}
 export MAAS_EMAIL=${MAAS_PROFILE}@${CLOUD_APP_DOMAIN}
 export MAAS_IMPORTID='lp:craig-bender'
 export MAAS_DBHBA="/etc/postgresql/${MAAS_DBVER}/main/pg_hba.conf"
-export MAAS_DBHOST=${CLOUD_APP_FQDN_LONG}
+export MAAS_DBHOST=127.0.0.1
 export MAAS_DBUSER=maas
 export MAAS_DBNAME='maasdb'
 export MAAS_DBPORT=5432
 export MAAS_DBPASS="$(env LANG=C LC_ALL=C tr 2>/dev/null -dc "[:alnum:]" < /dev/urandom|fold -w12|head -n1)"
 export MAAS_DBCON="postgres://${MAAS_DBUSER}:${MAAS_DBPASS}@${MAAS_DBHOST}:${MAAS_DBPORT}/${MAAS_DBNAME}"
-export MAAS_URL="http://${MAAS_FQDN}:${MAAS_URIPORT}/MAAS"
+export MAAS_URL="http://localhost:${MAAS_URIPORT}/MAAS"
 su - postgres -c 'psql -c "CREATE ROLE '${MAAS_DBUSER}' WITH SUPERUSER CREATEDB CREATEROLE LOGIN REPLICATION ENCRYPTED PASSWORD '"'"''${MAAS_DBPASS}''"'"';"'
 su - postgres -c 'psql -c "CREATE DATABASE '${MAAS_DBNAME}' WITH OWNER '"'"''${MAAS_DBUSER}''"'"';"'
 echo "${MAAS_DBHOST}:${MAAS_DBPORT}:${MAAS_DBNAME}:${MAAS_DBUSER}:${MAAS_DBPASS}"|su postgres -c 'tee 1>/dev/null /var/lib/postgresql/.pgpass.maas'
