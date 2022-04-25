@@ -5,7 +5,7 @@
 
 [[ $EUID -ne 0 ]] && { echo "${0##*/} must be run as root or via sudo";exit 1; } || { true; }
 
-lxd init --preseed < /opt/show-me/scripts/show-me_mass_lxd-init.yaml
+lxd init --preseed < /opt/show-me/scripts/show-me_maas_lxd-init.yaml
 
 
 lxc image copy ubuntu-daily:focal local: --alias maas-controller-focal --alias focal --auto-update --public
