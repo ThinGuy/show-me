@@ -343,14 +343,19 @@ install -o 0 -g 0 -m 0644 /etc/ssl/certs/show-me_host.pem /etc/ssl/certs/${CLOUD
 install -o 0 -g 0 -m 0600 /etc/ssl/private/show-me_host.key /etc/ssl/private/${CLOUD_APP}_server.key
 
 
-#### Install maas client
+#### Install MAAS (snap)
+snap install maas --channel 3.2/beta
+
+sudo maas init --force --mode=region+rack --maas-url="${MAAS_URL}" --database-host=${MAAS_DBHOST} --database-name=${MAAS_DBNAME} --database-user=${MAAS_DBUSER} --database-pass=${MAAS_DBPASS} --database-port=${MAAS_DBPORT}
+sudo maas createadmin --username ${MAAS_PROFILE} --password ${MAAS_PASSWORD} --email ${MAAS_EMAIL} --ssh-import "${MAAS_IMPORTID}"
+sudo maas login ${MAAS_PROFILE} ${MAAS_URL} $(sudo maas apikey --username=${MAAS_PROFILE})
+su - $(id -un 1000) -c 'sudo maas login '${MAAS_PROFILE}' '${MAAS_URL}' $(sudo sudo maas apikey --username='${MAAS_PROFILE}')'
 
 
 #### Run lynx script
 if [ -f /usr/local/bin/show-me_lynx-web-init.sh ];then /usr/local/bin/show-me_lynx-web-init.sh;fi
 
-#### Register self with maas
-maas-config -t 'MAAS' -u "https://${CLOUD_APP_FQDN_LONG}/message-system" --ping-url "http://${CLOUD_APP_FQDN_LONG}/ping" -a standalone -p maas4u --http-proxy= --https-proxy= --script-users=ALL --access-group=global --tags=maas-server,show-me-demo,ubuntu --silent --log-level=debug
+
 #### Initialize LXD.  LXD will be used to create additional maas clients
 if [ -f /usr/local/bin/show-me_${CLOUD_APP}_lxd-init.sh ];then /usr/local/bin/show-me_${CLOUD_APP}_lxd-init.sh;fi
 #### Update LXD Profile
