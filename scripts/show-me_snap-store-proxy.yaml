@@ -1,0 +1,104 @@
+config:
+  boot.autostart: true
+  security.nesting: true
+  security.privileged: false
+  user.network-config: |
+    version: 2
+    renderer: networkd
+    ethernets:
+      eth0:
+        optional: false
+        dhcp4: false
+        dhcp6: false
+        accept-ra: false
+        link-local: [ ]
+        match:
+          name: 'eth0'
+        set-name: eth0
+    bridges:
+      br0:
+        interfaces: ['eth0']
+        optional: false
+        dhcp4: false
+        dhcp6: false
+        accept-ra: false
+        link-local: [ ]
+        addresses: [10.10.10.3/24]
+        routes:
+          -to: default
+           via: 10.10.10.254
+           on-link: true
+          -to: 10.10.10.0/24
+           via: 10.10.10.3
+           scope: link
+        parameters:
+          priority: 1
+          stp: false
+  user.user-data: |
+    #cloud-config
+    manage_etc_hosts: false
+    preserve_hostname: true
+    prefer_fqdn_over_hostname: true
+    fqdn: ssp.maas.ubuntu-show.me
+    hostname: ssp
+    timezone: America/Los_Angeles
+    locale: en_US.UTF-8
+    final_message: 'Snap Store Proxy completed installing in $UPTIME'
+    ssh_authorized_keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC8lQk7k7WexyK9i6yYJ0M53R3LXkT5kYVwYSz+SHkOSMgrwIMZ90qdJhJ4gvm5ivorg06rGHR/o0Ly/JY3oAPtltPHdjn8u86jMVvsKQfnhZCApAfc38Uhnf1McqjUgYMA10JQGePvEs/1ZEQmJX/igHtWUYGNI6KEDu0iF6oGLTrEcxUIm0Kyib9+KLzO2wdaWvWqMDaxyLTqvZU3G8WniI+hlEbd7w7Kbrb2feOpCPugZipsY2Hzcie/7C599El0tJO0PcKaali0StbMIQMe26lFgV8kQTh/mx3dh3rt0tlD5it+yvZ+DnkrFRRGJcf1pWQgPWZUnnn1gDfKqsdP demo@ubuntu-show.me
+    ssh_pwauth: true
+    apt_get_command: ['apt-get', '--option=Dpkg::Options::=--force-confold','--option=Dpkg::options::=--force-unsafe-io', '--assume-yes', '--quiet', '--auto-remove', '--purge']
+    apt:
+      conf: |
+        APT {
+          Get {
+            Assume-Yes true;
+            Fix-Broken true;
+          };
+          Acquire {
+            ForceIPv4 true;
+          };
+        };
+      primary:
+        - arches: [amd64]
+          uri: http://us.archive.ubuntu.com/ubuntu
+      security:
+        - arches: [amd64]
+          uri: http://us.archive.ubuntu.com/ubuntu
+      sources_list: |
+        deb [arch=amd64] $PRIMARY $RELEASE main universe restricted multiverse
+        deb [arch=amd64] $PRIMARY $RELEASE-updates main universe restricted multiverse
+        deb [arch=amd64] $SECURITY $RELEASE-security main universe restricted multiverse
+        deb [arch=amd64] $PRIMARY $RELEASE-backports main universe restricted multiverse
+    package_update: true
+    package_upgrade: true
+    packages: [apt-utils, ca-certificates, curl, debconf-utils, git, openssh-server, openssl, pastebinit, ssl-cert, sysstat, tree, unzip, vim, wget, whois]
+    bootcmd:
+      - ['cloud-init-per', 'once', 'bc1', 'set', '-x']
+      - ['cloud-init-per', 'once', 'bc2', 'export', 'DEBIAN_FRONTEND=noninteractive']
+      - ['cloud-init-per', 'once', 'bc3', 'apt-get', '-yq', 'autoremove', '--purge']
+    runcmd:
+      - set -x
+      - export DEBIAN_FRONTEND=noninteractive
+      # Setup snap-proxy-server
+      - export SSP_DBCON=postgres://snap-proxy:Xaws8a9o8Ym3@10.10.10.254:5432/snap-proxy-db
+      - snap install --stable snap-store-proxy
+      - if $(test -x /snap/bin/snap-store-proxy);then snap-proxy config proxy.domain="ssp.maas.ubuntu-show.me";fi
+      - if $(test -x /snap/bin/snap-store-proxy);then snap-proxy config proxy.db.connection="${SSP_DBCON}";fi
+      - if $(test -x /snap/bin/snap-store-proxy);then snap-proxy generate-keys;fi
+      - if $(test -x /snap/bin/snap-store-proxy);then snap-proxy config proxy.cache.size=4096;fi
+      - if $(test -x /snap/bin/snap-store-proxy);then snap-proxy check-connections;fiS
+      #- if $(test -x /snap/bin/snap-store-proxy);then if $(test -f /etc/tls/host.pem);then cat /etc/tls/host.pem /etc/tls/host.key|sudo snap-proxy import-certificate';fi;fi
+description: ${SSP_PROFILE} Profile
+devices:
+  eth0:
+    maas.subnet.ipv4: ${MAAS_SUBNET_IPV4_CIDR}
+    name: eth0
+    nictype: bridged
+    parent: br0
+    type: nic
+  root:
+    path: /
+    pool: ${LXD_POOL}
+    size: ${LXD_DISK}
+    type: disk
